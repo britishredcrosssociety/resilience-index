@@ -37,3 +37,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Data to not upload
+data/raw/floods/england/
+data/raw/floods/wales/
+data/raw/floods/ni/
+data/raw/population/
