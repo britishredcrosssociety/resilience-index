@@ -11,7 +11,6 @@ library(tidyverse)
 library(readxl)
 library(httr)
 
-
 # ---- Load population estimates ----
 # - England/Wales Lower layer Super Output Area population estimates -
 # source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/lowersuperoutputareamidyearpopulationestimates
@@ -93,8 +92,8 @@ fires_eng_msoa <- fires_eng_lsoa_sum %>%
   select(-`No. people`)
 
 # Save
-# fires_eng_lsoa_sum %>% 
-#   write_csv("Fires - LSOA - England.csv"))
-# 
-# fires_eng_msoa %>% 
-#   write_csv(file.path(data.dir.processed, "Fires - MSOA - England.csv"))
+# fires_eng_lsoa_sum %>%
+#   write_csv("Fires - LSOA - England.csv")
+
+fires_eng_msoa %>%
+  write_csv("data/processed/Fires - MSOA.csv")
