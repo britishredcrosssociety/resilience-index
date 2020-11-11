@@ -230,7 +230,7 @@ floods_lsoa <- oa_data %>%
   select(-total)
   
 # save
-write_csv(floods_lsoa, "data/processed/Flood risks - LSOA.csv")
+write_csv(floods_lsoa, "data/processed/flood risks - lsoa.csv")
 
 # ---- Count population at risk by MSOA ----
 floods_msoa <- oa_data %>% 
@@ -245,7 +245,7 @@ floods_msoa <- oa_data %>%
   select(-total) %>% 
   
   # tag on NI's LSOAs
-  bind_rows(floods_lsoa %>% filter(str_sub(LSOA11CD, 1, 1) == "9"))
+  bind_rows(floods_lsoa %>% filter(str_sub(LSOA11CD, 1, 1) == "9") %>% rename(MSOA11CD = LSOA11CD))
 
 # save
-write_csv(floods_msoa, "data/processed/Flood risks - MSOA.csv")
+write_csv(floods_msoa, "data/processed/flood risks - msoa.csv")
