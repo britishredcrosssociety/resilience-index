@@ -32,7 +32,10 @@ capacity_index <-
     ends_with("rank")
   ) %>%
   calc_domain_scores(bespoke.domains = TRUE, rank.indicators = FALSE) %>%
-  rename(`Capacity score` = `Vulnerability score`, `Capacity rank` = `Vulnerability rank`, `Capacity decile` = `Vulnerability decile`)
+  rename(`Capacity score` = `Vulnerability score`, `Capacity rank` = `Vulnerability rank`, `Capacity decile` = `Vulnerability decile`) %>% 
+  
+  # calculate quintiles
+  mutate(`Capacity quintile` = calc_risk_quantiles(`Capacity rank`, quants = 5))
 
 capacity_index %>% 
   write_csv("data/processed/capacity index.csv")
