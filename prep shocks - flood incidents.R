@@ -28,4 +28,5 @@ lsoa_msoa = read_csv("https://opendata.arcgis.com/datasets/6ecda95a83304543bc8fe
 flood_incidents %>% 
   left_join(lsoa_msoa, by = c("LSOA_CODE" = "LSOA11CD")) %>% 
   count(MSOA11CD) %>% 
+  rename(`No. flooding incidents` = n) %>% 
   write_csv("data/processed/flood incidents - msoa.csv")
