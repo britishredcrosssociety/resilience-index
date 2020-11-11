@@ -96,4 +96,4 @@ fires_eng_msoa <- fires_eng_lsoa_sum %>%
 #   write_csv("Fires - LSOA - England.csv")
 
 fires_eng_msoa %>%
-  write_csv("data/processed/Fires - MSOA.csv")
+  write_csv("data/processed/fires - msoa.csv")
