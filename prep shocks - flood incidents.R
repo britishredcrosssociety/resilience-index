@@ -16,4 +16,16 @@ flood_incidents <- flood_incidents %>%
 
 flood_incidents %>% 
   select(LSOA11CD = LSOA_CODE) %>% 
-  write_csv("data/processed/Flood incidents - LSOA.csv")
+  write_csv("data/processed/flood incidents - lsoa.csv")
+
+# ---- Create list of MSOAs that have experienced flood incidents historically ----
+# Output Area to Lower Layer Super Output Area to Middle Layer Super Output Area to Local Authority District (December 2011) Lookup in England and Wales
+# source: https://geoportal.statistics.gov.uk/datasets/output-area-to-lower-layer-super-output-area-to-middle-layer-super-output-area-to-local-authority-district-december-2011-lookup-in-england-and-wales
+lsoa_msoa = read_csv("https://opendata.arcgis.com/datasets/6ecda95a83304543bc8feedbd1a58303_0.csv") %>% 
+  select(LSOA11CD, MSOA11CD)
+
+# Count number of incidents
+flood_incidents %>% 
+  left_join(lsoa_msoa, by = c("LSOA_CODE" = "LSOA11CD")) %>% 
+  count(MSOA11CD) %>% 
+  write_csv("data/processed/flood incidents - msoa.csv")
