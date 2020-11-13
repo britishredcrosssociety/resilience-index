@@ -37,11 +37,11 @@ flood_indicents_lad <-
   left_join(pop, by = "MSOA11CD") %>% 
   group_by(LAD19CD) %>% 
   summarise(`Total historical flooding incidents` = sum(`No. flooding incidents`),
-            `Flooding incidents per capita` = `Total historical flooding incidents` / pop_lad19) %>% 
+            `Flooding incidents per 10,000 people` = (`Total historical flooding incidents` / pop_lad19) * 10000) %>% 
   distinct() %>% 
   ungroup() %>% 
   
-  mutate(`Flood incidents quintile` = as.integer(cut2(`Flooding incidents per capita`, g = 5)))
+  mutate(`Flood incidents quintile` = as.integer(cut2(`Flooding incidents per 10,000 people`, g = 5)))
 
 # Calculate per-capita dwelling fires
 fires_lad <- 
@@ -50,11 +50,11 @@ fires_lad <-
   left_join(pop, by = "MSOA11CD") %>% 
   group_by(LAD19CD) %>% 
   summarise(`Total dwelling fires (three-year average)` = sum(`Number of fires (three-year average)`),
-            `Dwelling fire incidents per capita` = `Total dwelling fires (three-year average)` / pop_lad19) %>% 
+            `Dwelling fire incidents per 10,000 people` = (`Total dwelling fires (three-year average)` / pop_lad19) * 10000) %>% 
   distinct() %>% 
   ungroup() %>% 
   
-  mutate(`Fire incidents quintile` = as.integer(cut2(`Dwelling fire incidents per capita`, g = 5)))
+  mutate(`Fire incidents quintile` = as.integer(cut2(`Dwelling fire incidents per 10,000 people`, g = 5)))
 
 # ---- Combine and save ----
 shocks_lad <- 
