@@ -17,6 +17,8 @@ volunteer <- read_csv("data/processed/volunteer scores.csv")
 charity_density <- read_csv("data/processed/charity density.csv")
 fire_response <- read_csv("data/processed/fire and rescue response times.csv")
 
+community_engagement <- read_csv("https://github.com/britishredcrosssociety/covid-19-vulnerability/raw/master/data/community-needs-LA.csv")
+
 # ---- Create capacity index -----
 # Build volunteer domain
 volunteer <-
@@ -36,9 +38,21 @@ charity_density <-
   select(LAD19CD, `Charity density (per 1,000 people)`) %>%
   mutate_if(
     is.numeric,
-    list(`Charity density score` = function(x) standardised(rank2(x)))
+    # The worst (highest) scores and ranks should be for LAs with the lowest densities, so invert_this()
+    list(`Charity density score` = function(x) rank2(x) %>% invert_this() %>% standardised())
   ) %>%
   mutate(`Charity density rank` = rank(`Charity density score`))
+
+# Build community engagement domain
+community_engagement <- 
+  community_engagement %>% 
+  filter(str_detect(LAD19CD, "^E")) %>% 
+  select(LAD19CD, `Proportion of wards with worst Engagement scores`) %>%
+  mutate_if(
+    is.numeric,
+    list(`Community engagement score` = function(x) standardised(rank2(x)))
+  ) %>%
+  mutate(`Community engagement rank` = rank(`Community engagement score`))
 
 # Build emergency response domain
 fire_response <-
@@ -57,6 +71,7 @@ capacity_index <-
   left_join(spending, by = "LAD19CD") %>%
   left_join(volunteer, by = "LAD19CD") %>%
   left_join(charity_density, by = "LAD19CD") %>%
+  left_join(community_engagement, by = "LAD19CD") %>% 
   left_join(fire_response, by = "LAD19CD") %>%
   
   select(
