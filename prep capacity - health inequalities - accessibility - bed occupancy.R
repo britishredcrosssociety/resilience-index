@@ -8,6 +8,7 @@ library(readxl)
 library(httr)
 
 trust_lad <- read_csv("data/lookup-nhs-trust-to-la.csv")
+lookup_trusts <- read_csv("data/raw/health/lookup old and new NHS Trust names.csv")
 
 # ---- Download and process bed occupancy data for 2020-21 ----
 # Quarter 2

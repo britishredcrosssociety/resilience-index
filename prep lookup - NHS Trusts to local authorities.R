@@ -8,8 +8,6 @@ library(httr)
 # List of NHS hospitals in England
 hosp_eng <- read_csv("data/raw/health/england-hospitals.csv")
 
-lookup_trusts <- read_csv("data/raw/health/lookup old and new NHS Trust names.csv")
-
 # ---- Get Local Authorities for each hospital ----
 # Load postcode lookup to LAs
 # download and unzip Postcode to Output Area to Lower Layer Super Output Area to Middle Layer Super Output Area to Local Authority District (May 2020) Lookup in the UK
