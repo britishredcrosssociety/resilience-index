@@ -37,23 +37,26 @@ beds_20_21_q1 <- beds_20_21_q1 %>%
 
 # Bind the quarters together
 beds_20_21 <- bind_rows(beds_20_21_q1, beds_20_21_q2) %>% 
-  mutate(Percent_beds_occd = as.numeric(Percent_beds_occd)) %>% 
-  
-  # some Trusts changed names over this period of time - use only their most current names
-  left_join(lookup_trusts, by = c("Trust_name" = "Name_bed_occupancy")) %>% 
-  mutate(Trust_name = ifelse(!is.na(Name_scraped), str_to_upper(Name_scraped), Trust_name)) %>% 
-  select(-Name_scraped)
+  mutate(Percent_beds_occd = as.numeric(Percent_beds_occd))
 
-# Link these mean occupancy rates to Local Authority codes for Trusts in `trust_lad`
-beds_20_21 <- beds_20_21 %>% 
-  # to match on Trust names, do some string manipulation/tidying first
-  mutate(Trust_name = str_replace_all(Trust_name, " AND ", " & ")) %>%
-  
-  left_join(trust_lad %>% mutate(Trust = str_replace_all(str_to_upper(Trust), " AND ", " & ")),
-            by = c("Trust_name" = "Trust"))
+# some Trusts changed names over this period of time - use only their most current names
+# beds_20_21 <- beds_20_21
+#   left_join(lookup_trusts, by = c("Trust_name" = "Name_bed_occupancy")) %>% 
+#   mutate(Trust_name = ifelse(!is.na(Name_scraped), str_to_upper(Name_scraped), Trust_name)) %>% 
+#   select(-Name_scraped)
+# 
+# # Link these mean occupancy rates to Local Authority codes for Trusts in `trust_lad`
+# beds_20_21 <- beds_20_21 %>% 
+#   # to match on Trust names, do some string manipulation/tidying first
+#   mutate(Trust_name = str_replace_all(Trust_name, " AND ", " & ")) %>%
+#   
+#   left_join(trust_lad %>% mutate(Trust = str_replace_all(str_to_upper(Trust), " AND ", " & ")),
+#             by = c("Trust_name" = "Trust"))
 
 # Some LAs have multiple Trusts - take the worst mean occupancy rate in each LA
 la_bed_occupancy = beds_20_21 %>% 
+  left_join(trust_lad, by = c("Trust_code" = "Code")) %>% 
+  
   # first, calculate mean occupancy rate over the time period for each Trust linked to each LA
   group_by(Trust_code, LAD19CD) %>% 
   summarise(mean_bed_rate = mean(Percent_beds_occd, na.rm = TRUE)) %>% 
@@ -65,7 +68,7 @@ la_bed_occupancy = beds_20_21 %>%
 write_csv(la_bed_occupancy, "data/raw/health/bed-occupancy-rates-la.csv")
 
 # Plot bed occupancy rates over time
-# beds_20_21 %>% 
+# beds_20_21 %>%
 #   ggplot(aes(x = Date, y = Percent_beds_occd, group = Trust_code)) +
 #   geom_line(colour = "grey", alpha = 0.2) +
 #   theme_classic()
