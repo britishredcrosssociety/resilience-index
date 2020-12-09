@@ -9,6 +9,7 @@ library(httr)
 # hosp_eng <- read_csv("data/raw/health/england-hospitals.csv")
 hosp_eng <- read_csv("https://github.com/matthewgthomas/nhs-scraper/raw/master/England%20hospitals.csv")
 
+# NHS Trust names and codes scraped from NHS Digital's ODS Portal: https://odsportal.hscic.gov.uk/Organisation/Search
 trust_names <- read_csv("https://github.com/matthewgthomas/nhs-scraper/raw/master/England%20Trusts%20names%20and%20codes.csv")
 
 # ---- Get Local Authorities for each hospital ----
