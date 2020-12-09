@@ -92,5 +92,11 @@ dom_care <- cqc_filter %>%
 # - Bed availability -
 la_beds <- read_csv("data/raw/health/beds-la.csv")
 
+# Calculate per capita bed availability
+la_beds <- la_beds %>% 
+  left_join(la_pop, by = c("LAD19CD" = "Code")) %>% 
+  
+  mutate(`Hospital bed availability per 1,000 people` = `Total beds available` / `No. people` * 1000)
 
-
+# - Waiting lists -
+la_waits <- read_csv("data/raw/health/waiting-times-la.csv")
