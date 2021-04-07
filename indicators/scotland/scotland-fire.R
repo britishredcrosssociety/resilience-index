@@ -60,7 +60,7 @@ fires_dz <-
   mutate(density_fires = n_fires / occupied_dwellings)
 
 # Count fires by Intermediate Zone (MSOA)
-fires_iz <- 
+fires_iz <-
   fires_dz %>%
   left_join(lookup, by = "data_zone") %>%
   group_by(intermediate_zone) %>%
@@ -73,4 +73,4 @@ fires_lad <-
   left_join(lookup, by = "data_zone") %>%
   group_by(lad_code) %>%
   summarise(n_fires = sum(n_fires), n_dwellings = sum(occupied_dwellings)) %>%
-  mutate(dens_dires = n_fires / n_dwellings)
+  mutate(density_fires = n_fires / n_dwellings)
