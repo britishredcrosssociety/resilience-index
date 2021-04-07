@@ -14,6 +14,9 @@ scotland_datazone_imd <- function() {
   # For all ranks: 1 is most deprived, 6,976 is least deprived
   imd_raw <- read_excel(tf, sheet = "SIMD 2020v2 ranks")
 
+  unlink(tf)
+  rm(tf)
+
   imd_clean <-
     imd_raw %>%
     select(
