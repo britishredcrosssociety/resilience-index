@@ -1,4 +1,7 @@
-# British Red Cross Resilience Index
+# Resilience Index <img src='man/figures/brc-logo.jpg' align="right" height ="65"/>
+
+<br/>
+
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code_of_conduct.md) 
 
 ## Overview
@@ -7,8 +10,6 @@ The Resilience Index maps Local Authorities based on potential need for support 
 Potential needs are measured using the [Vulnerability Index](https://britishredcrosssociety.github.io/covid-19-vulnerability/) – which models clinical, wider health and wellbeing, and socioeconomic vulnerabilities – alongside risks of experiencing adverse shocks. Capacity to cope is based on how well-placed the voluntary, community and statutory sectors are to respond to these vulnerabilities.
 
 This first version focuses on disasters and emergencies, looking specifically at floods and fires. Future versions will include vulnerability and capacity for health inequalities and migration/displacement.
-
-Note it is currently England-only; we will add devolved nations in a future release.
 
 ## Links
 Resilience Index dashboard: https://britishredcross.shinyapps.io/resilience-index/ 
