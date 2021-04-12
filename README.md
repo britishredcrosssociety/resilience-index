@@ -20,9 +20,9 @@ Potential needs are measured using the [Vulnerability Index](https://britishredc
 This first version focuses on disasters and emergencies, looking specifically at floods and fires. Future versions will include vulnerability and capacity for health inequalities and migration/displacement.
 
 ## Links
-**R Shiny Dashboard**:
+**Dashboard**:
 
-- https://britishredcross.shinyapps.io/resilience-index/ 
+- [R Shiny](https://britishredcross.shinyapps.io/resilience-index/) 
 
 **Technical docs:**
 
