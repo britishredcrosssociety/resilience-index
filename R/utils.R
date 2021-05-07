@@ -46,20 +46,21 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
 
-calculate_extent <- function(data,
-                             var,
-                             higher_level_geography,
-                             population) {
-  data %>%
-    mutate(percentile = ntile({{ var }}, 100)) %>%
-    mutate(
-      extent = case_when(
-        percentile <= 10 ~ {{ population }},
-        percentile == 11 ~ {{ population }} * 0.95,
-        percentile > 11 & percentile <= 30 ~ {{ population }} * (0.95 - ((0.9 / 19) * (percentile - 11))),
-        TRUE ~ 0
-      )
-    ) %>%
-    group_by({{ higher_level_geography }}) %>%
-    summarise(extent = sum(extent) / sum({{ population }}))
-}
+calculate_extent <-
+  function(data,
+           var,
+           higher_level_geography,
+           population) {
+    data %>%
+      mutate(percentile = ntile({{ var }}, 100)) %>%
+      mutate(
+        extent = case_when(
+          percentile <= 10 ~ {{ population }},
+          percentile == 11 ~ {{ population }} * 0.95,
+          percentile > 11 & percentile <= 30 ~ {{ population }} * (0.95 - ((0.9 / 19) * (percentile - 11))),
+          TRUE ~ 0
+        )
+      ) %>%
+      group_by({{ higher_level_geography }}) %>%
+      summarise(extent = sum(extent) / sum({{ population }}))
+  }
