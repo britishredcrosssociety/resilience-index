@@ -1,24 +1,22 @@
+# ---- Load libraries ----
 library(tidyverse)
 
+# ---- Functions----
 #' Rank indicators with NAs first (i.e. 1 = worst)
 #' @param x Data to rank
-
 rank_na_first <- function(x) rank(x, na.last = FALSE)
 
 #' Inverse ranking with NAs first (i.e. 1 = best)
 #' @param x Data to rank
-
 inverse_rank <- function(x) (length(x) + 1) - rank(x, na.last = FALSE)
 
 #' Normalise ranks to a range between 0 and 1
 #' @param x Ranks to normalise
-
 scale_ranks <- function(x) (x - 1) / (length(x) - 1)
 
 #' Invert a vector (e.g., deciles, ranks, percentiles, etc.)
 #' For example, with deciles, a score of 10 -> 1 and a score of 1 -> 10
 #' @param x Vector of data to invert
-
 invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 
 #' Calculate the 'extent' scores when aggreating up small areas
@@ -41,11 +39,10 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 #'        grouping variable
 #' @param var Name of the variable in the data frame containing the variable to
 #'        be aggregated (e.g., score) for the lower level geography
-#' @param higher_level_geography Name of the variable in the data frame containing the
-#'        higher level geography names/codes
+#' @param higher_level_geography Name of the variable in the data frame
+#'        containing the higher level geography names/codes
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
-
 calculate_extent <-
   function(data,
            var,
@@ -63,4 +60,21 @@ calculate_extent <-
       ) %>%
       group_by({{ higher_level_geography }}) %>%
       summarise(extent = sum(extent) / sum({{ population }}))
+  }
+
+#' Load indicators saved as .rds files within a folder into a tibble, joined by
+#' a key
+#' @param path Relative path to the folder containing the .rds files to be read
+#' @param key The key to join the variables
+load_indicators <-
+  function(path, key) {
+    file_list <-
+      dir(
+        path,
+        pattern = ".rds",
+        full.names = TRUE
+      )
+    file_list %>%
+      map(read_rds) %>%
+      reduce(left_join, by = key)
   }
