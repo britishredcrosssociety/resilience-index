@@ -46,10 +46,10 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
 
-calculate_extent <- calculate_extent <- function(data,
-                                                 var,
-                                                 higher_level_geography,
-                                                 population) {
+calculate_extent <- function(data,
+                             var,
+                             higher_level_geography,
+                             population) {
   data %>%
     mutate(percentile = ntile({{ var }}, 100)) %>%
     mutate(
