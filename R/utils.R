@@ -1,28 +1,83 @@
 # ---- Load libraries ----
 library(tidyverse)
 library(broom)
+library(classInt)
 
 # ---- Functions----
 #' Rank indicators with NAs first (i.e. 1 = worst)
+#'
 #' @param x Data to rank
 rank_na_first <- function(x) rank(x, na.last = FALSE)
 
 #' Inverse ranking with NAs first (i.e. 1 = best)
+#'
 #' @param x Data to rank
 inverse_rank <- function(x) (length(x) + 1) - rank(x, na.last = FALSE)
 
 #' Normalise ranks to a range between 0 and 1
+#'
 #' @param x Ranks to normalise
 scale_ranks <- function(x) (x - 1) / (length(x) - 1)
 
 #' Invert a vector (e.g., deciles, ranks, percentiles, etc.)
 #' For example, with deciles, a score of 10 -> 1 and a score of 1 -> 10
+#'
 #' @param x Vector of data to invert
 invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 
 #' Normalise a vector where mean = 0 & SD = 1.
+#'
 #' @param x Vector of data to normalise
 normalise <- function(x) (x - mean(x)) / sd(x)
+
+#' Quantise a vector of ranks
+#'
+#' @param vec The vector of ranks to quantise
+#' @param quantiles The Number of quantiles (default: 5)
+#' @param highest_quantile_worst Should a high quantile represent the worst
+#'        outcome?
+#' @param style Method to use for calculating quantiles (passed to
+#'        classIntervals; default: Fisher). One of "fixed", "sd", "equal",
+#'        "pretty", "quantile", "kmeans", "hclust", "bclust", "fisher", "jenks"
+#'        or "dpih"
+#' @param samp_prop The proportion of samples to use, if slicing using "fisher"
+#'        or "jenks" (passed to classIntervals; default: 100%)
+#' @return A vector containing the risk quantiles
+quantise <-
+  function(vec,
+           quantiles = 5,
+           highest_quantile_worst = TRUE,
+           style = "fisher",
+           samp_prop = 1) {
+    if (length(unique(vec)) > 1) {
+      quantile_breaks <-
+        classInt::classIntervals(
+          vec,
+          quantiles,
+          style = style,
+          samp_prop = samp_prop,
+          largeN = length(vec)
+        )
+
+      quantiles <-
+        as.integer(
+          cut(
+            vec,
+            breaks = quantile_breaks$brks,
+            include.lowest = TRUE
+          )
+        )
+
+      if (!highest_quantile_worst) {
+        max_quant <- max(quantiles, na.rm = TRUE)
+        quantiles <- (max_quant + 1) - quantiles
+      }
+
+      return(quantiles)
+    } else {
+      1
+    }
+  }
 
 #' Calculate the 'extent' scores when aggreating up small areas
 #'
@@ -84,15 +139,15 @@ load_indicators <-
       reduce(left_join, by = key)
   }
 
-#' Weight indicators within a domain using MFLA
+#' Weight indicators within a domain using MFLA. This function will calculate
+#' over all numeric variables in a dataframe.
 #'
 #' Method:
 #'  1. Scale each indicator to Mean = 0, SD = 1
 #'  2. Perform MLFA and extract weights for that domain
 #'  3. Multiply model weights by respective column to get weighted indicators
+#'
 #' @param data Data frame containing indicators to be weighted
-
-# Create weighted domain function
 weight_indicators_mfla <-
   function(data) {
     data <-
@@ -118,4 +173,21 @@ weight_indicators_mfla <-
       relocate(!where(is.numeric))
 
     return(weighted_indicators)
+  }
+
+#' Calculate domain scores from weighted indicators. This function will
+#' calculate over all numeric variables in a dataframe.
+#'
+#' @param data Data frame containing weighted indicators
+calculate_domain_scores <-
+  function(data) {
+    data <-
+      data %>%
+      rowwise(!where(is.numeric)) %>%
+      summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
+      ungroup() %>%
+      mutate(domain_rank = rank(domain_score)) %>%
+      mutate(domain_quantiles = quantise(domain_rank))
+
+    return(data)
   }
