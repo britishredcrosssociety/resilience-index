@@ -22,7 +22,7 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 
 #' Normalise a vector where mean = 0 & SD = 1.
 #' @param x Vector of data to normalise
-normalise <- function(x) (x - mean(x))/sd(x)
+normalise <- function(x) (x - mean(x)) / sd(x)
 
 #' Calculate the 'extent' scores when aggreating up small areas
 #'
@@ -84,3 +84,38 @@ load_indicators <-
       reduce(left_join, by = key)
   }
 
+#' Weight indicators within a domain using MFLA
+#'
+#' Method:
+#'  1. Scale each indicator to Mean = 0, SD = 1
+#'  2. Perform MLFA and extract weights for that domain
+#'  3. Multiply model weights by respective column to get weighted indicators
+#' @param data Data frame containing indicators to be weighted
+
+# Create weighted domain function
+weight_indicators_mfla <-
+  function(data) {
+    data <-
+      data %>%
+      mutate(across(where(is.numeric), normalise))
+
+    weights <-
+      data %>%
+      select(where(is.numeric)) %>%
+      factanal(factors = 1) %>%
+      tidy() %>%
+      select(-uniqueness, weights = fl1) %>%
+      mutate(
+        weights = abs(weights),
+        weights = weights / sum(weights)
+      )
+
+    weighted_indicators <-
+      data %>%
+      select(weights$variable) %>%
+      map2_dfc(weights$weights, `*`) %>%
+      bind_cols(data %>% select(!where(is.numeric))) %>%
+      relocate(!where(is.numeric))
+
+    return(weighted_indicators)
+  }
