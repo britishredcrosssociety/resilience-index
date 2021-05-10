@@ -1,5 +1,6 @@
 # ---- Load libraries ----
 library(tidyverse)
+library(broom)
 
 # ---- Functions----
 #' Rank indicators with NAs first (i.e. 1 = worst)
@@ -18,6 +19,10 @@ scale_ranks <- function(x) (x - 1) / (length(x) - 1)
 #' For example, with deciles, a score of 10 -> 1 and a score of 1 -> 10
 #' @param x Vector of data to invert
 invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
+
+#' Normalise a vector where mean = 0 & SD = 1.
+#' @param x Vector of data to normalise
+normalise <- function(x) (x - mean(x))/sd(x)
 
 #' Calculate the 'extent' scores when aggreating up small areas
 #'
@@ -78,3 +83,4 @@ load_indicators <-
       map(read_rds) %>%
       reduce(left_join, by = key)
   }
+
