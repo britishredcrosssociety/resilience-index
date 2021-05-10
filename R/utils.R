@@ -175,19 +175,25 @@ weight_indicators_mfla <-
     return(weighted_indicators)
   }
 
-#' Calculate domain scores from weighted indicators. This function will
-#' calculate over all numeric variables in a dataframe.
+#' Calculate domain scores, ranks, and quantiles from weighted indicators. This
+#' function will calculate over all numeric variables in a dataframe.
 #'
 #' @param data Data frame containing weighted indicators
+#' @param domain_name A string identifier to prefix to column names. Use
+#'        snake_case.
 calculate_domain_scores <-
-  function(data) {
+  function(data, domain_name) {
     data <-
       data %>%
       rowwise(!where(is.numeric)) %>%
       summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
       ungroup() %>%
       mutate(domain_rank = rank(domain_score)) %>%
-      mutate(domain_quantiles = quantise(domain_rank))
+      mutate(domain_quantiles = quantise(domain_rank)) %>%
+      rename_with(
+        ~ str_c(domain_name, .x, sep = "_"),
+        where(is.numeric)
+      )
 
     return(data)
   }
