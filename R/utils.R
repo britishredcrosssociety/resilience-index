@@ -103,13 +103,26 @@ quantise <-
 #'        containing the higher level geography names/codes
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
+#' @param invert_percentiles Should percentiles be inverted? Should be set to
+#'        TRUE when a higher variable score equates to a worse outcome
 calculate_extent <-
   function(data,
            var,
            higher_level_geography,
-           population) {
-    data %>%
-      mutate(percentile = ntile({{ var }}, 100)) %>%
+           population,
+           invert_percentiles = TRUE) {
+    data <-
+      data %>%
+      mutate(percentile = ntile({{ var }}, 100))
+
+    if (invert_percentiles) {
+      data <-
+        data %>%
+        mutate(percentile = invert_this(percentile))
+    }
+
+    data <-
+      data %>%
       mutate(
         extent = case_when(
           percentile <= 10 ~ {{ population }},
@@ -120,6 +133,8 @@ calculate_extent <-
       ) %>%
       group_by({{ higher_level_geography }}) %>%
       summarise(extent = sum(extent) / sum({{ population }}))
+
+    return(data)
   }
 
 #' Load indicators saved as .rds files within a folder into a tibble, joined by
