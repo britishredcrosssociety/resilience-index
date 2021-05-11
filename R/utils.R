@@ -136,7 +136,10 @@ load_indicators <-
       )
     file_list %>%
       map(read_rds) %>%
-      reduce(left_join, by = key)
+      reduce(
+        left_join,
+        by = key
+      )
   }
 
 #' Weight indicators within a domain using MFLA. This function will calculate
