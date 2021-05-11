@@ -33,7 +33,7 @@ normalise <- function(x) (x - mean(x)) / sd(x)
 #' Quantise a vector of ranks
 #'
 #' @param vec The vector of ranks to quantise
-#' @param quantiles The Number of quantiles (default: 5)
+#' @param quantiles The Number of quantiles
 #' @param highest_quantile_worst Should a high quantile represent the worst
 #'        outcome?
 #' @param style Method to use for calculating quantiles (passed to
@@ -181,15 +181,16 @@ weight_indicators_mfla <-
 #' @param data Data frame containing weighted indicators
 #' @param domain_name A string identifier to prefix to column names. Use
 #'        snake_case.
+#' @param quantiles The Number of quantiles
 calculate_domain_scores <-
-  function(data, domain_name) {
+  function(data, domain_name, quantiles = 5) {
     data <-
       data %>%
       rowwise(!where(is.numeric)) %>%
       summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
       ungroup() %>%
       mutate(domain_rank = rank(domain_score)) %>%
-      mutate(domain_quantiles = quantise(domain_rank)) %>%
+      mutate(domain_quantiles = quantise(domain_rank, quantiles)) %>%
       rename_with(
         ~ str_c(domain_name, .x, sep = "_"),
         where(is.numeric)
