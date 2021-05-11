@@ -216,3 +216,27 @@ calculate_domain_scores <-
 
     return(data)
   }
+
+#' Calculate composite scores, ranks, and quantiles from domain scores. This
+#' function will calculate over all numeric variables in a dataframe.
+#'
+#' @param data Data frame containing domain scores
+#' @param index_name A string identifier to prefix to column names. Use
+#'        snake_case.
+#' @param quantiles The Number of quantiles
+calculate_composite_score <-
+  function(data, index_name, quantiles = 5) {
+    data <-
+      data %>%
+      mutate(across(where(is.numeric), rank)) %>%
+      mutate(across(where(is.numeric), scale_ranks)) %>%
+      rowwise(!where(is.numeric)) %>%
+      summarise(composite_score = sum(c_across(where(is.numeric)))) %>%
+      ungroup() %>%
+      mutate(composite_rank = rank(composite_score)) %>%
+      mutate(composite_quantiles = quantise(composite_rank, quantiles)) %>%
+      rename_with(
+        ~ str_c(index_name, .x, sep = "_"),
+        where(is.numeric)
+      )
+  }
