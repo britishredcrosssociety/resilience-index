@@ -159,12 +159,12 @@ load_indicators <-
 
 #' Normalise indicators to Mean = 0, SD = 1. This function will calculate over
 #' all numeric variables in a dataframe.
-#' 
+#'
 #' @param data Data frame containing indicators to normalise.
 normalise_indicators <-
-  function(data){
+  function(data) {
     data <-
-      data %>% 
+      data %>%
       mutate(across(where(is.numeric), normalise))
 
     return(data)
@@ -253,4 +253,6 @@ calculate_composite_score <-
         ~ str_c(index_name, .x, sep = "_"),
         where(is.numeric)
       )
+
+    return(data)
   }
