@@ -157,11 +157,24 @@ load_indicators <-
       )
   }
 
+#' Normalise indicators to Mean = 0, SD = 1. This function will calculate over
+#' all numeric variables in a dataframe.
+#' 
+#' @param data Data frame containing indicators to normalise.
+normalise_indicators <-
+  function(data){
+    data <-
+      data %>% 
+      mutate(across(where(is.numeric), normalise))
+
+    return(data)
+  }
+
 #' Weight indicators within a domain using MFLA. This function will calculate
 #' over all numeric variables in a dataframe.
 #'
 #' Method:
-#'  1. Scale each indicator to Mean = 0, SD = 1
+#'  1. Normalise each indicator to Mean = 0, SD = 1
 #'  2. Perform MLFA and extract weights for that domain
 #'  3. Multiply model weights by respective column to get weighted indicators
 #'
@@ -193,8 +206,9 @@ weight_indicators_mfla <-
     return(weighted_indicators)
   }
 
-#' Calculate domain scores, ranks, and quantiles from weighted indicators. This
-#' function will calculate over all numeric variables in a dataframe.
+#' Calculate domain scores, ranks, and quantiles from normalised indicators. The
+#' indicators can be weighted or unweighted. This function will calculate over
+#' all numeric variables in a dataframe.
 #'
 #' @param data Data frame containing weighted indicators
 #' @param domain_name A string identifier to prefix to column names. Use
