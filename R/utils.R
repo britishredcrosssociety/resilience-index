@@ -83,7 +83,7 @@ quantise <-
       )
 
     ) {
-      stop("Quantiles are not in equal bins")
+      warning("Quantiles are not in equal bins.")
     }
 
     return(quantiles)
