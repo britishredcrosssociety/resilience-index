@@ -36,47 +36,56 @@ normalise <- function(x) (x - mean(x)) / sd(x)
 #' @param quantiles The Number of quantiles
 #' @param highest_quantile_worst Should a high quantile represent the worst
 #'        outcome?
-#' @param style Method to use for calculating quantiles (passed to
-#'        classIntervals; default: Fisher). One of "fixed", "sd", "equal",
-#'        "pretty", "quantile", "kmeans", "hclust", "bclust", "fisher", "jenks"
-#'        or "dpih"
-#' @param samp_prop The proportion of samples to use, if slicing using "fisher"
-#'        or "jenks" (passed to classIntervals; default: 100%)
 #' @return A vector containing the risk quantiles
 quantise <-
   function(vec,
            quantiles = 5,
-           highest_quantile_worst = TRUE,
-           style = "fisher",
-           samp_prop = 1) {
-    if (length(unique(vec)) > 1) {
-      quantile_breaks <-
-        classInt::classIntervals(
-          vec,
-          quantiles,
-          style = style,
-          samp_prop = samp_prop,
-          largeN = length(vec)
-        )
-
-      quantiles <-
-        as.integer(
-          cut(
-            vec,
-            breaks = quantile_breaks$brks,
-            include.lowest = TRUE
-          )
-        )
-
-      if (!highest_quantile_worst) {
-        max_quant <- max(quantiles, na.rm = TRUE)
-        quantiles <- (max_quant + 1) - quantiles
-      }
-
-      return(quantiles)
-    } else {
-      1
+           highest_quantile_worst = TRUE) {
+    if (length(unique(vec)) <= 1) {
+      stop("The vector cannot be quantised as there is only one unique value.")
     }
+    quantile_breaks <-
+      classInt::classIntervals(
+        vec,
+        quantiles,
+        style = "quantile"
+      )
+
+    quantiles <-
+      as.integer(
+        cut(
+          vec,
+          breaks = quantile_breaks$brks,
+          include.lowest = TRUE
+        )
+      )
+
+    if (!highest_quantile_worst) {
+      max_quant <- max(quantiles, na.rm = TRUE)
+      quantiles <- (max_quant + 1) - quantiles
+    }
+
+    if (
+      !(
+        tibble(quantiles = quantiles) %>%
+          count(quantiles) %>%
+          mutate(
+            equal_bins = if_else(
+              n >= length(vec) / quantiles - 1 &
+                n <= length(vec) / quantiles + 1,
+              TRUE,
+              FALSE
+            )
+          ) %>%
+          pull(equal_bins) %>%
+          all()
+      )
+
+    ) {
+      stop("Qunatiles are not in equal bins")
+    }
+
+    return(quantiles)
   }
 
 #' Calculate the 'extent' scores when aggreating up small areas
