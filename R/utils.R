@@ -225,14 +225,14 @@ weight_indicators_mfla <-
 #'        snake_case.
 #' @param quantiles The Number of quantiles
 calculate_domain_scores <-
-  function(data, domain_name, quantiles = 5) {
+  function(data, domain_name, num_quantiles = 10) {
     data <-
       data %>%
       rowwise(!where(is.numeric)) %>%
       summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
       ungroup() %>%
       mutate(domain_rank = rank(domain_score)) %>%
-      mutate(domain_quantiles = quantise(domain_rank, quantiles)) %>%
+      mutate(domain_quantiles = quantise(domain_rank, num_quantiles)) %>%
       rename_with(
         ~ str_c(domain_name, .x, sep = "_"),
         where(is.numeric)
@@ -249,7 +249,7 @@ calculate_domain_scores <-
 #'        snake_case.
 #' @param quantiles The Number of quantiles
 calculate_composite_score <-
-  function(data, index_name, quantiles = 5) {
+  function(data, index_name, num_quantiles = 10) {
     data <-
       data %>%
       mutate(across(where(is.numeric), rank)) %>%
@@ -258,7 +258,7 @@ calculate_composite_score <-
       summarise(composite_score = sum(c_across(where(is.numeric)))) %>%
       ungroup() %>%
       mutate(composite_rank = rank(composite_score)) %>%
-      mutate(composite_quantiles = quantise(composite_rank, quantiles)) %>%
+      mutate(composite_quantiles = quantise(composite_rank, num_quantiles)) %>%
       rename_with(
         ~ str_c(index_name, .x, sep = "_"),
         where(is.numeric)
