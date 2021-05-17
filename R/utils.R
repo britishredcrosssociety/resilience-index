@@ -33,21 +33,22 @@ normalise <- function(x) (x - mean(x)) / sd(x)
 #' Quantise a vector of ranks
 #'
 #' @param vec The vector of ranks to quantise
-#' @param quantiles The Number of quantiles
+#' @param num_quantiles The Number of quantiles
 #' @param highest_quantile_worst Should a high quantile represent the worst
 #'        outcome?
 #' @return A vector containing the risk quantiles
 quantise <-
   function(vec,
-           quantiles = 5,
+           num_quantiles = 10,
            highest_quantile_worst = TRUE) {
     if (length(unique(vec)) <= 1) {
       stop("The vector cannot be quantised as there is only one unique value.")
     }
+    
     quantile_breaks <-
       classInt::classIntervals(
         vec,
-        quantiles,
+        num_quantiles,
         style = "quantile"
       )
 
@@ -71,8 +72,8 @@ quantise <-
           count(quantiles) %>%
           mutate(
             equal_bins = if_else(
-              n >= length(vec) / quantiles - 1 &
-                n <= length(vec) / quantiles + 1,
+              n >= (length(vec) / num_quantiles) - 1 &
+                n <= (length(vec) / num_quantiles) + 1,
               TRUE,
               FALSE
             )
@@ -82,7 +83,7 @@ quantise <-
       )
 
     ) {
-      stop("Qunatiles are not in equal bins")
+      stop("Quantiles are not in equal bins")
     }
 
     return(quantiles)
