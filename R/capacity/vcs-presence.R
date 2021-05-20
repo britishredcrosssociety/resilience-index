@@ -171,7 +171,7 @@ shp %>%
       labels = seq(1, 11, by = 1),
       na.value = "transparent",
       option = "magma",
-      name = expression(paste("VCS Presence \nPer 1000")),
+      name = expression(paste("No. VCS Orgs \nPer 1000 People")),
       alpha = 0.8, # make fill a bit brighter
       begin = 0.1, # this option seems to be new (compared to 2016):
       # with this we can truncate the
@@ -186,3 +186,20 @@ shp %>%
         reverse = T)) +
     theme_map() +
     theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm"))
+
+# Relationship between population and VCS org count
+vcs_lad_count %>% 
+  left_join(pop) %>% 
+  mutate(pop_thousands = pop_count/1000) %>% 
+  mutate(vcs_presence_per_1000 = n/pop_thousands) %>% 
+  ggplot(aes(x = pop_thousands, y = vcs_presence_per_1000)) +
+  geom_point() +
+  geom_smooth() +
+  theme_minimal()+
+  labs(x = "Population (thousands)", y = "Number of VCS Organisations")
+
+vcs_presence %>% 
+  ggplot(aes(x = vcs_presence_per_1000)) +
+  geom_density(fill = "steelblue2", alpha = .3) +
+  theme_minimal() +
+  labs(x = "No. VCS Orgs Per 1000 People", y = NULL)
