@@ -39,8 +39,8 @@ vignettes/*.pdf
 .Renviron
 
 # Data to not upload
-data/raw/floods/england/
-data/raw/floods/wales/
-data/raw/floods/ni/
-data/raw/population/
-data/raw/postcodes/
+depreciated/data/raw/floods/england/
+depreciated/data/raw/floods/wales/
+depreciated/data/raw/floods/ni/
+depreciated/data/raw/population/
+depreciated/data/raw/postcodes/
