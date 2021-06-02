@@ -1,9 +1,21 @@
-# Resilience Index <img src='man/figures/logo.png' align="right" height="170" /></a>
+# Resilience Index <img src='man/figures/logo.png' align="right" height="150" /></a>
 
 [![Project Status: WIP – Initial development is in progress, but there
 has not yet been a stable, usable release suitable for the
 public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code_of_conduct.md) 
+
+## Overview
+The Resilience Index maps Local Authorities based on potential need for support and capacity to meet that need. There are three different resilience indices, one for each of the British Red Cross strategic causes:
+
+- Health Inequalities
+- Disasters & Emergencies
+- Displacement & Migration
+
+## How to interpret the indices
+Resilience is calculated as the interaction of need for support and capacity to cope. This is presented as an overall resillience score, which is then ranked and quantised (i.e., computed into quintiles and deciles):
+
+<img src='man/figures/example-map.png' align="centre"/>
 
 ## Development
 The Resilience Index is currently under active development, and only exists in a limited capacity for England and Scotland, with the other devolved nations to be added at a later date.
@@ -14,13 +26,6 @@ The Resilience Index *closely* resembles an R package in structure. If you are n
 Unlike a typical R package, all the `.R` source files live within subdirectories of `R/` to make it easier to navigate through the files. Each dimension of the resilience index (capacity and resilience) is split by BRC strategic cause (disasters & emergencies, migration & displacement, and health inequalities) and devolved nation (eg. , `capacity/disasters-emergencies/england/`). For each of these subfolders, each of the indicators which make up the relevant component (specified in the path of the subfolder) should occupy a single file. These single files serve as the reproducible building-block for that component. The `data/` folder mirrors this structure. This makes both documenting and updating the indicators easier.
 
 Old code that was written before this repository got refactored to an R package structure, can now be found in the `depreciated/` folder. This code will slowly get ported to the new format, and will no longer be supported in the long term.
-
-## Overview
-The Resilience Index maps Local Authorities based on potential need for support and capacity to meet that need.
-
-Potential needs are measured using the [Vulnerability Index](https://britishredcrosssociety.github.io/covid-19-vulnerability/) – which models clinical, wider health and wellbeing, and socioeconomic vulnerabilities – alongside risks of experiencing adverse shocks. Capacity to cope is based on how well-placed the voluntary, community and statutory sectors are to respond to these vulnerabilities.
-
-This first version focuses on disasters and emergencies, looking specifically at floods and fires. Future versions will include vulnerability and capacity for health inequalities and migration/displacement.
 
 ## Links
 **Dashboard**:
