@@ -75,3 +75,7 @@ care_home_beds_normalised <-
 # Save
 care_home_beds_normalised %>%
   write_rds("data/capacity/health-inequalities/england/care-home-beds.rds")
+
+# The LAD "E09000001" does not appear on the care homes beds normalised list,
+# indicating that there are no care home beds there, which wouldn't be
+# surprising. How should this "missing" data be handled?
