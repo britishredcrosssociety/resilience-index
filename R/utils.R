@@ -4,6 +4,15 @@ library(broom)
 library(classInt)
 
 # ---- Functions----
+#' Keep rows containing missing values
+#'
+#' @param x A data frame
+keep_na <-
+  function(.data) {
+    .data %>%
+      anti_join(drop_na(.data))
+  }
+
 #' Rank indicators with NAs first (i.e. 1 = worst)
 #'
 #' @param x Data to rank
