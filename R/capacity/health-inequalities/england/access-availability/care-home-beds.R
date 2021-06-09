@@ -52,16 +52,26 @@ care_home_beds <-
   mutate(num_beds = as.double(num_beds)) %>%
   summarise(num_beds = sum(num_beds, na.rm = TRUE))
 
+# Drop care home beds which couldn't be matched (less than 0.05%)
+care_home_beds <-
+  care_home_beds %>%
+  drop_na()
+
 # Normalise per 1,000 population above 65
-population_lad %>% 
-  select(lad_code, `65`:`90+`) %>% 
-  pivot_longer(cols = !lad_code, names_to = "age", values_to = "count") %>% 
-  group_by(lad_code) %>% 
-  summarise(pop_over_65 = )
+pop_over_65 <-
+  population_lad %>%
+  select(lad_code, `65`:`90+`) %>%
+  pivot_longer(cols = !lad_code, names_to = "age", values_to = "count") %>%
+  group_by(lad_code) %>%
+  summarise(pop_over_65 = sum(count)) %>%
+  mutate(pop_over_65_per_1000 = pop_over_65 / 1000)
+
+care_home_beds_normalised <-
+  care_home_beds %>%
+  left_join(pop_over_65, by = "lad_code") %>%
+  mutate(beds_per_1000_over_65 = num_beds / pop_over_65_per_1000) %>%
+  select(lad_code, beds_per_1000_over_65)
 
 # Save
-care_home_beds %>%
-  write_csv("")
-
-
-care_home_beds %>% filter(str_detect(lad_code, "E06000062"))
+care_home_beds_normalised %>%
+  write_rds("data/capacity/health-inequalities/england/care-home-beds.rds")
