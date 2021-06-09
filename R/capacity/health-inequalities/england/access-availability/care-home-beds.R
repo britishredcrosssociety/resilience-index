@@ -16,7 +16,6 @@ GET(
 )
 
 care_homes_raw <- read_ods(tf, sheet = 2)
-care_homes_raw <- readxl::read_excel("/Users/mike/Downloads/cqc.xlsx", sheet = 2)
 
 # Remove vars
 care_homes <-
