@@ -168,19 +168,20 @@ charities_health <-
 # Assign Local Authorities to the geography_area columns:
 #   - for for geographic_area_type == "Country", remove all as presence will
 #     be indistinguishable for any UK orgs.
+#   - for geographic_area_type == "Region", remove all regions, as they do not
+#     provide any granular detail as they are at the devolved nation or London
+#     level.
 #   - for for geographic_area_type == NA, remove all as information is needed.
 #   - for geographic_area_type == "Local Authortiy", just keep the
 #     corresponding geographic_area_description and then match to the ONS
 #     region. Note the areas are UTLA's.
-#   - for for geographic_area_type == "Region", decide if the region can be
-#     assigned to multiple Local Authortities.
 
-# - Country & NA -
-# Remove NA and country level data
-charities_not_country_na <-
+# - Country, Region, & NA -
+# Remove country, region, and NA level data
+# i.e. keep only Local Authority level data
+charities_local_authorities_not_matched <-
   charities_health %>%
-  filter(geographic_area_type != "Country") %>%
-  filter(!is.na(geographic_area_type))
+  filter(geographic_area_type == "Local Authority")
 
 # - Local Authorities -
 # Create lists of UTLA's (2019) to compare against
@@ -192,19 +193,17 @@ utla_list <-
   pull(county_ua_name)
 
 # Find Local Authority names not matched in UTLA list
-charities_not_country_na %>%
-  filter(geographic_area_type == "Local Authority") %>%
+charities_local_authorities_not_matched %>%
   mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>%
   select(geographic_area_description) %>%
   filter(!(geographic_area_description %in% utla_list)) %>%
-  distinct() %>% 
+  distinct() %>%
   print(n = Inf)
 
 # Match UTLA names and keep on English UTLA's
 charities_local_authorities <-
-  charities_not_country_na %>%
-  filter(geographic_area_type == "Local Authority") %>% 
-  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>% 
+  charities_local_authorities_not_matched %>%
+  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>%
   mutate(
     geographic_area_description = case_when(
       geographic_area_description == "bristol city" ~ "bristol, city of",
@@ -238,5 +237,10 @@ charities_local_authorities <-
       geographic_area_description == "portsmouth city" ~ "portsmouth",
       TRUE ~ geographic_area_description
     )
-  ) %>% 
+  ) %>%
   filter(geographic_area_description %in% utla_list)
+
+# TODO:
+# 1. keep only one record of each unique chairty
+# 2. Calculate presence (no. of orgs multipled by mean annual income?)
+# 3. Disaggregate to LTLA?
