@@ -1,6 +1,8 @@
 # ---- Load libs ----
 library(tidyverse)
 library(httr)
+library(geographr)
+library(sf)
 source("R/utils.R")
 
 # ---- Load data ----
@@ -144,12 +146,97 @@ charities_joined <-
     by = "registered_charity_number"
   )
 
-# TODO:
-# 1. Filter the joined charity list to onl health/social VCS orgs
-# 2. Assign Local authority coverage to the geography_area columns:
-#    - for geographic_area_type == "Local Authortiy", just keep the
-#      corresponding geographic_area_description.
-#    - for for geographic_area_type == "Country", remove all as presence will
-#      be indistinguishable for any UK orgs. 
-#    - for for geographic_area_type == "Region", decide if the region can be
-#      assigned to multiple Local Authortities.
+# ---- Keep health/social VCS orgs only ----
+# Remove classifications that are obviously not related
+charities_health <-
+  charities_joined %>%
+  filter(
+    classification_description == "Accommodation/housing" |
+      classification_description == "Children/young People" |
+      classification_description == "Disability" |
+      classification_description == "Economic/community Development/employment" |
+      classification_description == "Education/training" |
+      classification_description == "Elderly/old People" |
+      classification_description == "People With Disabilities" |
+      classification_description == "Sponsors Or Undertakes Research" |
+      classification_description == "The Advancement Of Health Or Saving Of Lives" |
+      classification_description == "The General Public/mankind" |
+      classification_description == "The Prevention Or Relief Of Poverty"
+  )
+
+# ---- Assign geographies ----
+# Assign Local Authorities to the geography_area columns:
+#   - for for geographic_area_type == "Country", remove all as presence will
+#     be indistinguishable for any UK orgs.
+#   - for for geographic_area_type == NA, remove all as information is needed.
+#   - for geographic_area_type == "Local Authortiy", just keep the
+#     corresponding geographic_area_description and then match to the ONS
+#     region. Note the areas are UTLA's.
+#   - for for geographic_area_type == "Region", decide if the region can be
+#     assigned to multiple Local Authortities.
+
+# - Country & NA -
+# Remove NA and country level data
+charities_not_country_na <-
+  charities_health %>%
+  filter(geographic_area_type != "Country") %>%
+  filter(!is.na(geographic_area_type))
+
+# - Local Authorities -
+# Create lists of UTLA's (2019) to compare against
+utla_list <-
+  boundaries_counties_ua %>%
+  filter(str_detect(county_ua_code, "^E")) %>%
+  mutate(county_ua_name = str_to_lower(county_ua_name)) %>%
+  arrange(county_ua_name) %>%
+  pull(county_ua_name)
+
+# Find Local Authority names not matched in UTLA list
+charities_not_country_na %>%
+  filter(geographic_area_type == "Local Authority") %>%
+  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>%
+  select(geographic_area_description) %>%
+  filter(!(geographic_area_description %in% utla_list)) %>%
+  distinct() %>% 
+  print(n = Inf)
+
+# Match UTLA names and keep on English UTLA's
+charities_local_authorities <-
+  charities_not_country_na %>%
+  filter(geographic_area_type == "Local Authority") %>% 
+  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>% 
+  mutate(
+    geographic_area_description = case_when(
+      geographic_area_description == "bristol city" ~ "bristol, city of",
+      geographic_area_description == "birmingham city" ~ "birmingham",
+      geographic_area_description == "plymouth city" ~ "plymouth",
+      geographic_area_description == "peterborough city" ~ "peterborough",
+      geographic_area_description == "leeds city" ~ "leeds",
+      geographic_area_description == "leicester city" ~ "leicester",
+      geographic_area_description == "city of westminster" ~ "westminster",
+      geographic_area_description == "herefordshire" ~ "herefordshire, county of",
+      geographic_area_description == "liverpool city" ~ "liverpool",
+      geographic_area_description == "nottingham city" ~ "nottingham",
+      geographic_area_description == "city of york" ~ "york",
+      geographic_area_description == "cheshire west & chester" ~ "cheshire west and chester",
+      geographic_area_description == "sheffield city" ~ "sheffield",
+      geographic_area_description == "salford city" ~ "salford",
+      geographic_area_description == "durham" ~ "county durham",
+      geographic_area_description == "city of wakefield" ~ "wakefield",
+      geographic_area_description == "derby city" ~ "derby",
+      geographic_area_description == "manchester city" ~ "manchester",
+      geographic_area_description == "southampton city" ~ "southampton",
+      geographic_area_description == "bradford city" ~ "bradford",
+      geographic_area_description == "coventry city" ~ "coventry",
+      geographic_area_description == "telford & wrekin" ~ "telford and wrekin",
+      geographic_area_description == "st helens" ~ "st. helens",
+      geographic_area_description == "kingston upon hull city" ~ "kingston upon hull, city of",
+      geographic_area_description == "newcastle upon tyne city" ~ "newcastle upon tyne",
+      geographic_area_description == "poole" ~ "bournemouth, christchurch and poole",
+      geographic_area_description == "bournemouth" ~ "bournemouth, christchurch and poole",
+      geographic_area_description == "stoke-on-trent city" ~ "stoke-on-trent",
+      geographic_area_description == "portsmouth city" ~ "portsmouth",
+      TRUE ~ geographic_area_description
+    )
+  ) %>% 
+  filter(geographic_area_description %in% utla_list)
