@@ -105,7 +105,7 @@ charity_returns_mean <-
   select(
     organisation_number,
     total_gross_income
-  ) %>% 
+  ) %>%
   group_by(organisation_number) %>%
   summarise(mean_annual_income = mean(total_gross_income, na.rm = TRUE))
 
@@ -250,19 +250,36 @@ charities_unique <-
 
 # Drop areas where mean_annual_income is NA
 charities_unique_income <-
-  charities_unique %>% 
+  charities_unique %>%
   drop_na(mean_annual_income)
 
 # Calaculate capacity to respond per area as:
 # Total summed income per area / population size
-charities_unique_income %>% 
-  group_by(geographic_area_description) %>% 
-  summarise(total_area_income = sum(mean_annual_income))
-
-
+vcs_presence <-
+  charities_unique_income %>%
+  group_by(geographic_area_description) %>%
+  summarise(total_area_income = sum(mean_annual_income)) %>%
+  rename(county_ua_name = geographic_area_description) %>%
+  left_join(
+    boundaries_counties_ua %>%
+      filter(str_detect(county_ua_code, "^E")) %>%
+      as_tibble() %>%
+      select(-geometry) %>%
+      mutate(county_ua_name = str_to_lower(county_ua_name)),
+    by = "county_ua_name"
+  ) %>%
+  select(-county_ua_name) %>%
+  left_join(
+    population_counties_ua %>%
+      select(county_ua_code, total_population),
+    by = "county_ua_code"
+  ) %>%
+  relocate(county_ua_code) %>%
+  mutate(vcs_presence = total_area_income / total_population) %>%
+  select(county_ua_code, vcs_presence) %>%
+  arrange(desc(vcs_presence))
 
 # TODO:
-
-# 2. Calculate presence (no. of orgs multipled by mean annual income?)
-# 3. Normalise by population size
-# 4. Disaggregate to LTLA? Or list geographical areas in metadata 
+# 1. When charity income repeats across different areas, does this income
+#    need dividing by the number of areas?
+# 2. Disaggregate to LTLA? Or list geographical areas in metadata
