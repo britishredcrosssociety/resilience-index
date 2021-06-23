@@ -80,7 +80,7 @@ charity_classification_raw <-
 charity_list_cols <-
   charity_list_raw %>%
   select(
-    registered_charity_number,
+    organisation_number,
     charity_name,
     charity_registration_status,
     charity_insolvent,
@@ -94,29 +94,26 @@ charities_active <-
   filter(charity_insolvent == FALSE) %>%
   filter(charity_in_administration == FALSE) %>%
   select(
-    registered_charity_number,
+    organisation_number,
     charity_name
   )
 
 # Charity returns
-charity_returns_cols <-
-  charity_returns_raw %>%
-  select(
-    registered_charity_number,
-    total_gross_income
-  )
-
 # Calculate annual mean income
 charity_returns_mean <-
-  charity_returns_cols %>%
-  group_by(registered_charity_number) %>%
+  charity_returns_raw %>%
+  select(
+    organisation_number,
+    total_gross_income
+  ) %>% 
+  group_by(organisation_number) %>%
   summarise(mean_annual_income = mean(total_gross_income, na.rm = TRUE))
 
 # Charity areas of operation
 charity_areas <-
   charity_areas_raw %>%
   select(
-    registered_charity_number,
+    organisation_number,
     geographic_area_type,
     geographic_area_description
   )
@@ -125,7 +122,7 @@ charity_areas <-
 charity_classification <-
   charity_classification_raw %>%
   select(
-    registered_charity_number,
+    organisation_number,
     classification_type,
     classification_description
   )
@@ -135,15 +132,15 @@ charities_joined <-
   charities_active %>%
   left_join(
     charity_returns_mean,
-    by = "registered_charity_number"
+    by = "organisation_number"
   ) %>%
   left_join(
     charity_areas,
-    by = "registered_charity_number"
+    by = "organisation_number"
   ) %>%
   left_join(
     charity_classification,
-    by = "registered_charity_number"
+    by = "organisation_number"
   )
 
 # ---- Keep health/social VCS orgs only ----
@@ -240,7 +237,32 @@ charities_local_authorities <-
   ) %>%
   filter(geographic_area_description %in% utla_list)
 
+# Keep one record of each charity per area (multiple exist to due to the
+# multiple classifications and areas covered)
+charities_unique <-
+  charities_local_authorities %>%
+  distinct(
+    organisation_number,
+    charity_name,
+    mean_annual_income,
+    geographic_area_description
+  )
+
+# Drop areas where mean_annual_income is NA
+charities_unique_income <-
+  charities_unique %>% 
+  drop_na(mean_annual_income)
+
+# Calaculate capacity to respond per area as:
+# Total summed income per area / population size
+charities_unique_income %>% 
+  group_by(geographic_area_description) %>% 
+  summarise(total_area_income = sum(mean_annual_income))
+
+
+
 # TODO:
-# 1. keep only one record of each unique chairty
+
 # 2. Calculate presence (no. of orgs multipled by mean annual income?)
-# 3. Disaggregate to LTLA?
+# 3. Normalise by population size
+# 4. Disaggregate to LTLA? Or list geographical areas in metadata 
