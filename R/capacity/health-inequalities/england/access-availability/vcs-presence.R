@@ -200,7 +200,9 @@ charities_local_authorities_not_matched %>%
 # Match UTLA names and keep on English UTLA's
 charities_local_authorities <-
   charities_local_authorities_not_matched %>%
-  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>%
+  mutate(
+    geographic_area_description = str_to_lower(geographic_area_description)
+  ) %>%
   mutate(
     geographic_area_description = case_when(
       geographic_area_description == "bristol city" ~ "bristol, city of",
@@ -253,10 +255,18 @@ charities_unique_income <-
   charities_unique %>%
   drop_na(mean_annual_income)
 
+# Where charity income repeats across areas, split income across areas.
+# This is to stop areas being overweighted.
+charities_split_income <-
+  charities_unique_income %>%
+  group_by(organisation_number) %>%
+  mutate(mean_annual_income = mean_annual_income / n()) %>%
+  ungroup()
+
 # Calaculate capacity to respond per area as:
 # Total summed income per area / population size
 vcs_presence <-
-  charities_unique_income %>%
+  charities_split_income %>%
   group_by(geographic_area_description) %>%
   summarise(total_area_income = sum(mean_annual_income)) %>%
   rename(county_ua_name = geographic_area_description) %>%
@@ -279,7 +289,4 @@ vcs_presence <-
   select(county_ua_code, vcs_presence) %>%
   arrange(desc(vcs_presence))
 
-# TODO:
-# 1. When charity income repeats across different areas, does this income
-#    need dividing by the number of areas?
-# 2. Disaggregate to LTLA? Or list geographical areas in metadata
+# TODO: Disaggregate to LTLA?
