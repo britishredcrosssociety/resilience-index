@@ -11,9 +11,9 @@ source("R/utils.R")
 # the p_trust column. See: https://epiforecasts.io/covid19.nhs.data/articles/mapping_summary.html
 trust_lad <-
   trust_ltla_mapping %>%
-  ungroup() %>% 
+  ungroup() %>%
   rename(lad_code = geo_code) %>%
-  select(-p_geo)
+  select(-p_trust)
 
 # Source:
 # - https://www.england.nhs.uk/statistics/statistical-work-areas/bed-availability-and-occupancy/
@@ -103,38 +103,41 @@ beds_days_formatted <-
 
 # - Join -
 beds_joined <-
-  beds_nights_formatted %>% 
+  beds_nights_formatted %>%
   left_join(
     beds_days_formatted,
     by = "trust_code"
   )
 
 beds_mean <-
-  beds_joined %>% 
-  rowwise() %>% 
+  beds_joined %>%
+  rowwise() %>%
   mutate(
     beds_occupied = mean(
       c(percentage_occupied_night, percentage_occupied_day),
       na.rm = TRUE
-      )
-  ) %>% 
-  ungroup() %>% 
-  select(trust_code, beds_occupied)
+    )
+  ) %>%
+  ungroup() %>%
+  select(trust_code, beds_occupied) %>%
+  drop_na()
+
+# Calculate the expected mean occupancy bed rate at the LTLA level.
+# This can be calculated as the sum of bed occupancy rates weighted by the
+# proportion of the LTLA population they serve.
+trust_lad_beds <-
+  trust_lad %>%
+  left_join(beds_mean, by = "trust_code")
+
+lad_bed_occupany <-
+  trust_lad_beds %>%
+  mutate(p_occupied = p_geo * beds_occupied) %>%
+  group_by(lad_code) %>%
+  summarise(mean_bed_occupany = sum(p_occupied))
 
 # TODO:
-# - Calculate LAD bed occupancy scores
 # - Revisit the Trust-LTLA mapping. The epiforecasts method is both (i) missing
 #   lots of trusts (is this because it only uses acute trusts?) that contain bed
-#   occupancy data and (ii) is probably not entirely appropriate to use as the 
+#   occupancy data and (ii) is probably not entirely appropriate to use as the
 #   proportion estimates are based off covid admissions, which likely differ
 #   from non-covid admissions. Potential solution: https://github.com/VictimOfMaths/COVID-19/issues/7
-
-# Calculate the proportion of beds that are expected to be 
-# available for any given LAD. This should be equivilant to the mean of the
-# beds occupied at the Trust level, weighted by the proportion of that Trust
-# serving the LAD (i.e., p_trust)
-trust_lad %>% 
-  left_join(beds_mean, by = "trust_code") %>% 
-  mutate(
-    p_beds_occupied = p_trust * beds_occupied
-  )
