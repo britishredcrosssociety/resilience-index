@@ -8,7 +8,7 @@ source("R/utils.R")
 
 # Load trust to LAD mappings from covid19.nhs.data package
 # Trust map to LADs in a many-to-one fashion, with the proportion denoted by
-# the p_trust column. See: https://epiforecasts.io/covid19.nhs.data/articles/mapping_summary.html
+# the p_geo column. See: https://epiforecasts.io/covid19.nhs.data/articles/mapping_summary.html
 trust_lad <-
   trust_ltla_mapping %>%
   ungroup() %>%
