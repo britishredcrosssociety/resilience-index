@@ -6,11 +6,24 @@ library(classInt)
 # ---- Functions----
 #' Keep rows containing missing values
 #'
-#' @param x A data frame
+#' @param .data A data frame
 keep_na <-
   function(.data) {
     .data %>%
       anti_join(drop_na(.data))
+  }
+
+#' Filter geographical codes by a regex pattern
+#' 
+#' @param .data A data frame
+#' @param codes The column containing geographical codes
+#' @param pattern Pattern to look for. Use a regular expression
+filter_codes <-
+  function(.data, codes, pattern){
+    filter(
+      .data,
+      str_detect({{ codes }}, {{ pattern }})
+      )
   }
 
 #' Rank indicators with NAs first (i.e. 1 = worst)
