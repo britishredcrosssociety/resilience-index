@@ -13,6 +13,14 @@ keep_na <-
       anti_join(drop_na(.data))
   }
 
+#' Print all values in a tibble
+#' 
+print_inf <-
+  function(.data){
+    .data %>% 
+      print(n=Inf)
+  }
+
 #' Filter geographical codes by a regex pattern
 #' 
 #' @param .data A data frame
