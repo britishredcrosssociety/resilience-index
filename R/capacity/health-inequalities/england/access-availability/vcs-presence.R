@@ -197,7 +197,7 @@ charities_local_authorities_not_matched %>%
   distinct() %>%
   print(n = Inf)
 
-# Match UTLA names and keep on English UTLA's
+# Match UTLA names and keep only English UTLA's
 charities_local_authorities <-
   charities_local_authorities_not_matched %>%
   mutate(
