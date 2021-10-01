@@ -10,5 +10,5 @@
 | Access & Availability | Waiting Lists |  |  |  |  |  |
 | Access & Availability | GP Registrations |  |  |  |  |  |
 | Access & Availability | A&E Waiting Times |  |  |  |  |  |
-| Access & Availability | Ambulance Waiting Times |  |  |  |  |  |
+| Access & Availability | Ambulance Waiting Times | 2021 | [NHS](https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/) | [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | :x: | :x: |
 | Workforce | ACS Capacity |  |  |  |  |  |
