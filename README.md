@@ -18,7 +18,7 @@ Resilience is calculated as the interaction of need for support and capacity to 
 <img src='man/figures/example-map.png' align="centre"/>
 
 ## Development
-The Resilience Index is currently under active development, and only exists in a limited capacity for England and Scotland, with the other devolved nations to be added at a later date.
+The Resilience Index is currently under active development, and only exists in a limited capacity at this time. Check the metadata files in `/R` to see the progress of each cause in each nation.
 
 ## Structure
 The Resilience Index *closely* resembles an R package in structure. If you are new to R packages, the [R Packages](https://r-pkgs.org/) book is a good resource, and will help you understand how to navigate this repository. An R package structure was chosen as it is a well tested convention for organising code and related artefacts that comes with a bunch of free tools (e.g., dependency management via the `DESCRIPTION` file).
