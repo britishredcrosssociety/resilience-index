@@ -41,9 +41,10 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# Data to not upload
+# Data sets
 depreciated/data/raw/floods/england/
 depreciated/data/raw/floods/wales/
 depreciated/data/raw/floods/ni/
 depreciated/data/raw/population/
 depreciated/data/raw/postcodes/
+data/vulnerability/disasters-emergencies/england/heat-hazard/
