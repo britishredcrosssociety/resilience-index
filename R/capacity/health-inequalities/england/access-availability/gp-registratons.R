@@ -1,17 +1,15 @@
 # ---- Load libs ----
 library(tidyverse)
 library(httr)
+library(readxl)
 library(geographr)
 library(sf)
 source("R/utils.R")
 
 # ---- Load data ----
-lad_pop <-
-  population_lad |>
-  select(
-    lad_code,
-    pop = total_population
-  )
+pop_lad <-
+  population_lad |> 
+  select(lad_code, pop = total_population)
 
 GET(
   "https://files.digital.nhs.uk/74/93D6A1/gp-reg-pat-prac-lsoa-male-female-october-21.zip",
@@ -60,14 +58,16 @@ lad_registrations <-
 
 gp_registrations <-
   lad_registrations |>
-  left_join(lad_pop) |>
+  left_join(pop_lad) |>
   mutate(perc_registered_gp = count / pop * 100) |>
   select(lad_code, perc_registered_gp)
 
 # TODO:
-# 1. There are four NA values in gp_registrations due to missing pop values,
-#    manually add these back in, or update population_lad?
-# 2. How do we handle the fact that only 10 LADs have less than 100% gp 
+# 1. There are four NA values in gp_registrations due to missing pop values.
+#    It is assumed these values are missing because 2021 lad codes have been
+#    used and so don't align. Check this assumption and align codes. See
+#    carers-allowance.R script for potential alignment solution.
+# 2. How do we handle the fact that only 10 LADs have less than 100% gp
 #    registration? The issue is that because we use deciles mainly, even places
 #    ranked as 100% registration will get lumped into the most vulnerable
 #    decile. This doesn't make sense.
