@@ -9,18 +9,35 @@ library(sf)
 source("R/utils.R")
 
 lad_lookup <-
-  boundaries_lad |> 
+  boundaries_lad |>
   st_drop_geometry()
 
 lookup_counties_lad <-
-  lookup_counties_ua_lad |> 
+  lookup_counties_ua_lad |>
   select(-lad_name, -county_ua_code)
 
+# 2019 LAD populations
+GET(
+  "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2019april2019localauthoritydistrictcodes/ukmidyearestimates20192019ladcodes.xls",
+  write_disk(tf <- tempfile(fileext = ".xls"))
+)
+
+raw_pop <-
+  read_excel(
+    tf,
+    sheet = "MYE2 - Persons",
+    skip = 4
+  )
+
 pop_lad <-
-  population_lad |> 
+  raw_pop |>
+  inner_join(
+    lad_lookup,
+    by = c("Code" = "lad_code")
+  ) |>
   select(
-    lad_code,
-    total_population
+    lad_code = Code,
+    total_pop = `All ages`
   )
 
 GET(
@@ -102,7 +119,10 @@ match_ltlas <-
 match_county <-
   lad_means |>
   anti_join(lad_lookup) |>
-  inner_join(lookup_counties_lad, by = c("lad_name" = "county_ua_name")) |>
+  inner_join(
+    lookup_counties_lad,
+    by = c("lad_name" = "county_ua_name")
+  ) |>
   relocate(lad_code)
 
 # Join to population data
@@ -110,103 +130,107 @@ match_county_pop <-
   match_county |>
   left_join(pop_lad)
 
+# Weight by population
+match_county_weighted <-
+  match_county_pop |>
+  group_by(lad_name) |>
+  mutate(
+    pop_sum = sum(total_pop),
+    weight = total_pop / pop_sum
+  ) |>
+  ungroup() |>
+  select(
+    -total_pop,
+    -pop_sum
+  ) |>
+  mutate(
+    across(
+      turnover:zero_hour_yes,
+      ~ . * weight
+    )
+  ) |>
+  select(
+    -lad_name,
+    -weight
+  )
+
+# - Manually match anything that didn't match to an LA or county -
+match_remainder <-
+  lad_means |>
+  anti_join(lad_lookup) |>
+  anti_join(
+    lookup_counties_lad,
+    by = c("lad_name" = "county_ua_name")
+  ) |>
+  mutate(
+    lad_code = case_when(
+      lad_name == "Redcar & Cleveland" ~ "E06000003",
+      lad_name == "Stockton on Tees" ~ "E06000004",
+      lad_name == "Durham" ~ "E06000047",
+      lad_name == "Kingston upon Hull" ~ "E06000010",
+      lad_name == "St Helens" ~ "E08000013",
+      lad_name == "Stoke on Trent" ~ "E06000021",
+      lad_name == "Herefordshire" ~ "E06000019",
+      lad_name == "Telford & Wrekin" ~ "E06000020",
+      lad_name == "Windsor & Maidenhead" ~ "E06000040",
+      lad_name == "Southend on Sea" ~ "E06000033",
+      lad_name == "Hammersmith & Fulham" ~ "E09000013",
+      lad_name == "Kensington & Chelsea" ~ "E09000020",
+      lad_name == "Barking & Dagenham" ~ "E09000002",
+      lad_name == "Bournemouth Christchurch and Poole" ~ "E06000058",
+      lad_name == "Brighton & Hove" ~ "E06000043",
+      lad_name == "Cornwall and Isles of Scilly" ~ "E06000052/E06000053",
+      lad_name == "Bristol" ~ "E06000023",
+      lad_name == "Cheshire West & Chester" ~ "E06000050"
+    )
+  ) |>
+  # separate Cornwall and Isles of Scilly
+  separate_rows(lad_code, sep = "/") |>
+  relocate(lad_code)
+
+# Create population weighted values for Cornwall and Isles of Scilly
+match_remainder_weighted <-
+  match_remainder |>
+  left_join(pop_lad) |>
+  group_by(lad_name) |>
+  mutate(
+    pop_sum = sum(total_pop),
+    weight = total_pop / pop_sum
+  ) |>
+  ungroup() |>
+  select(
+    -total_pop,
+    -pop_sum
+  ) |>
+  mutate(
+    across(
+      turnover:zero_hour_yes,
+      ~ . * weight
+    )
+  ) |>
+  select(
+    -lad_name,
+    -weight
+  )
+
+# Join all LAD19CD
+match_all <-
+  bind_rows(
+    match_ltlas,
+    match_county_weighted,
+    match_remainder_weighted
+  )
+
 # TODO:
-# 1. When population figures are joined above, values for Buckinghamshire
-#    are missing and need sorting
-# 2. Finish amending/reviewing code below:
+# 1. Review the above weighting methods after matching LADS. Does it make sense
+#    to weight areas by population when the indicator values are relative and not
+#    absolute? I think not...
+# 2. Review commented-out code below
 
 
-
-
-
-
-# # Weight by population
-# soc_county <-
-#   soc_county |>
-#   group_by(CTY19CD) |>
-#   mutate(
-#     pop_total = sum(pop_lad19),
-#     weight = pop_lad19 / pop_total
-#   ) |>
-#   ungroup() |>
-#   select(
-#     -pop_lad19,
-#     -pop_total
-#   ) |>
-#   mutate(across(turnover:zero_hour_yes, ~ . * weight))
-
-# soc_county <-
-#   soc_county |>
-#   select(
-#     -CTY19CD,
-#     -weight
-#   )
-
-# # - Manually match anything that didn't match to an LA or county -
-# soc_remainder <-
-#   social |>
-#   anti_join(lad_names, by = c("la_name" = "LAD19NM")) |>
-#   anti_join(lad_county, by = c("la_name" = "CTY19NM")) |>
-#   mutate(LAD19CD = case_when(
-#     la_name == "Redcar & Cleveland" ~ "E06000003",
-#     la_name == "Stockton on Tees" ~ "E06000004",
-#     la_name == "Durham" ~ "E06000047",
-#     la_name == "Kingston upon Hull" ~ "E06000010",
-#     la_name == "St Helens" ~ "E08000013",
-#     la_name == "Stoke on Trent" ~ "E06000021",
-#     la_name == "Herefordshire" ~ "E06000019",
-#     la_name == "Telford & Wrekin" ~ "E06000020",
-#     la_name == "Windsor & Maidenhead" ~ "E06000040",
-#     la_name == "Southend on Sea" ~ "E06000033",
-#     la_name == "Hammersmith & Fulham" ~ "E09000013",
-#     la_name == "Kensington & Chelsea" ~ "E09000020",
-#     la_name == "Barking & Dagenham" ~ "E09000002",
-#     la_name == "Bournemouth" ~ "E06000058",
-#     la_name == "Poole" ~ "E06000058",
-#     la_name == "Brighton & Hove" ~ "E06000043",
-#     la_name == "Cornwall and Isles of Scilly" ~ "E06000052/E06000053",
-#     la_name == "Bristol" ~ "E06000023",
-#     la_name == "Cheshire West & Chester" ~ "E06000050"
-#   )) |>
-#   # separate Cornwall and Isles of Scilly
-#   separate_rows(LAD19CD, sep = "/")
-
-# # Create population weighted values for Cornwall and Isles of Scilly
-# soc_remainder <-
-#   soc_remainder |>
-#   left_join(pop, by = "LAD19CD") |>
-#   group_by(la_name) |>
-#   mutate(
-#     pop_total = sum(pop_lad19),
-#     weight = pop_lad19 / pop_total
-#   ) |>
-#   ungroup() |>
-#   select(
-#     -pop_lad19,
-#     -pop_total
-#   ) |>
-#   mutate(across(turnover:zero_hour_yes, ~ . * weight)) |>
-#   select(
-#     -la_name,
-#     -weight
-#   ) |>
-#   relocate(LAD19CD)
-
-# # Join Bournemouth and Poole
-# soc_remainder <-
-#   soc_remainder |>
-#   group_by(LAD19CD) |>
-#   mutate(across(turnover:zero_hour_yes, sum)) |>
-#   ungroup() |>
-#   distinct(LAD19CD, .keep_all = TRUE)
-
-# # Join all LAD19CD
-# social <-
-#   bind_rows(
-#     soc_la,
-#     soc_county,
-#     soc_remainder
-#   )
+# ===================
+# ==== TO REVIEW ====
+# ===================
 
 # # ---- Calculate social score ----
 # # Create two domains:
