@@ -14,3 +14,4 @@
 | Access & Availability | Ambulance Waiting Times | 2021 | [NHS](https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/) | [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | :x: | :x: |
 | Workforce | Adult Social Care | 2021 | [Skills for Care](https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/publications/local-information/My-local-authority-area.aspx) | [TBC] | :heavy_check_mark: - method needs reviewing & finishing | :x: |
 | Workforce | Informal Carers |  |  |  | :x: - can't find data | :x: |
+| Workforce | NHS Workforce | 2021 | [NHS](https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics/may-2021) | [OGL3](https://digital.nhs.uk/about-nhs-digital/terms-and-conditions#8-your-use-of-nhs-digital-content)  | :x: | :x: |
