@@ -14,40 +14,39 @@ keep_na <-
   }
 
 #' Print all values in a tibble
-#' 
+#'
 print_inf <-
-  function(.data){
-    .data %>% 
-      print(n=Inf)
+  function(.data) {
+    .data %>%
+      print(n = Inf)
   }
 
 #' Filter geographical codes by a regex pattern
-#' 
+#'
 #' @param .data A data frame
 #' @param codes The column containing geographical codes
 #' @param pattern Pattern to look for. Use a regular expression
 filter_codes <-
-  function(.data, codes, pattern){
+  function(.data, codes, pattern) {
     filter(
       .data,
       str_detect({{ codes }}, {{ pattern }})
-      )
+    )
   }
 
 #' Download a file temporarily to disk
-#' 
+#'
 #' @param url A URL for the request
 #' @param file_extension A character vector detailing the file extension (e.g.,
 #'         ".xlsx")
 download_file <-
   function(url, file_extension) {
-
     stopifnot(
       !missing(url),
-      !missing(file_extension)),
+      !missing(file_extension),
       is.character(url),
       is.character(file_extension)
-      )
+    )
 
     temp_path <-
       tempfile(fileext = file_extension)
@@ -100,7 +99,7 @@ quantise <-
     if (length(unique(vec)) <= 1) {
       stop("The vector cannot be quantised as there is only one unique value.")
     }
-    
+
     quantile_breaks <-
       classInt::classIntervals(
         vec,
