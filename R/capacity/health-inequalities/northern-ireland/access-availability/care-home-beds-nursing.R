@@ -48,4 +48,4 @@ care_home_beds_nursing <-
   select(trust_code, care_home_beds_nursing_per_1000)
 
 care_home_beds_nursing |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/care-home-beds_nursing.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/care-home-beds-nursing.rds")
