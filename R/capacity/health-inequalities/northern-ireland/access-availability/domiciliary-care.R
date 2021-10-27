@@ -13,7 +13,7 @@ raw_file <-
 raw <-
   read_excel(
     raw_file,
-    sheet = "Table2",
+    sheet = "Table9",
     skip = 2
   )
 
@@ -21,7 +21,7 @@ dom_care <-
   raw |>
   select(
     trust_code = `HSC Trust`,
-    domiciliary_care_hours_per_client = `...10`
+    domiciliary_care_per_10000 = `...12`
   ) |>
   slice(2:6)
 
