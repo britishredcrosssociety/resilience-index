@@ -5,7 +5,7 @@
 | Access & Availability | Domiciliary Care | 2020 | [Department of Health](https://www.health-ni.gov.uk/publications/domiciliary-care-services-adults-northern-ireland-2020) | [OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
 | Access & Availability | Carers Allowance Recipients | 2021 | [Deparment for Communities](https://www.communities-ni.gov.uk/publications/benefits-statistics-summary-publication-national-statistics-may-2021) | [OGL3](https://www.communities-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :x: - data at LGD, not HSCT level |
 | Accesss & Avialability | Bed Availablity | 2020/21 | [Department of Health](https://www.health-ni.gov.uk/publications/hospital-statistics-inpatient-and-day-case-activity-202021) | [OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
-|  |  |  |  |  |  |  |
+| Access & Availability | Waiting Lists | 2021-22 | [Deparment of Health](https://www.health-ni.gov.uk/publications/northern-ireland-waiting-time-statistics-outpatient-waiting-times-june-2021) | [OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
