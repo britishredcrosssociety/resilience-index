@@ -4,6 +4,7 @@ library(httr)
 library(readxl)
 library(sf)
 library(geographr)
+library(viridis)
 
 source("R/utils.R")
 
@@ -52,7 +53,6 @@ diagnostics_vars <-
   )
 
 # Filter to only open trusts
-# diagnostic_wait_times <-
 diagnostic_open_trusts <-
   open_trusts |>
   left_join(
@@ -70,26 +70,53 @@ diagnostic_drop_na <-
   drop_na()
 
 # Aggregate to MSOA
-
-# Notice, that many trusts don't have lookup data available. This is because
+# ==============================================================================
+# Notice, that 24 trusts don't have lookup data available. This is because
 # the catchment population data used in the trust to msoa lookup does not
-# include these trusts. This is presumably because the catchment data (2018) is
-# out of date with the Trust data. This needs verifying somehow. Note: the
-# lookup script in geographr does attempt to update codes where a change has
-# been made.
-# not_available <-
-#   diagnostic_drop_na |>
-#   left_join(lookup_trust_msoa) |>
-#   keep_na() |>
-#   pull(trust_code)  |>
-#   unique()
+# include these trusts.
+not_available <-
+  diagnostic_drop_na |>
+  left_join(lookup_trust_msoa) |>
+  keep_na() |>
+  pull(trust_code) |>
+  unique()
 
-# points_nhs_trusts |>
-#   filter(nhs_trust_code %in% not_avilable) |>
-#   ggplot() +
-#   geom_sf(data = boundaries_lad) +
-#   geom_sf(size = 3) +
-#   theme_minimal()
+points_available <-
+  points_nhs_trusts |>
+  left_join(
+    diagnostic_drop_na,
+    by = c("nhs_trust_code" = "trust_code")
+  ) |>
+  mutate(
+    available = if_else(
+      nhs_trust_code %in% not_available,
+      "no",
+      "yes"
+    )
+  )
+
+points_available |>
+  ggplot() +
+  geom_sf(
+    data = boundaries_lad |>
+      filter(str_detect(lad_code, "^E") | str_detect(lad_code, "^W")),
+    fill = NA,
+    size = 0.1
+  ) +
+  geom_sf(
+    mapping = aes(colour = available),
+    size = 3,
+    alpha = .7,
+    fill = "black"
+  ) +
+  theme_minimal() +
+  scale_colour_viridis(
+    discrete = TRUE, 
+    option = "C",
+    end = .7
+    )
+
+# ==============================================================================
 
 # Calculate MSOA proportions
 diagnostic_msoa <-
