@@ -12,7 +12,7 @@
 | Workforce | Informal Carers | 2018 | [NISRA](https://www.nisra.gov.uk/) | [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | :heavy_check_mark: | :heavy_check_mark: |
 | Workforce | NHS Workforce per Capita | 2021 | [Department of Health](https://www.health-ni.gov.uk/publications/northern-ireland-health-and-social-care-hsc-key-facts-workforce-bulletin-june-2021) | [OGL3](https://www.ninis2.nisra.gov.uk/public/terms.aspx) | :heavy_check_mark: | :heavy_check_mark: |
 | Workforce | Cancelled Operations | 2021 | [Department of Health](http://www.health-ni.gov.uk/publications/hospital-statistics-outpatient-activity-statistics-202021) | [OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark:  |
-|  |  |  |  |  |  |  |
+| Quality | CQC Ratings | 2020 | Department of Health(https://www.health-ni.gov.uk/publications/quality-and-outcomes-framework-qof-achievement-data-201920) | OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
 |  |  |  |  |  |  |  |
