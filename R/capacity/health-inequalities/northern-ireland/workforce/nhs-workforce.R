@@ -56,4 +56,4 @@ nhs_workforce <-
   )
 
 nhs_workforce |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/nhs-workforce.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/workforce/nhs-workforce.rds")

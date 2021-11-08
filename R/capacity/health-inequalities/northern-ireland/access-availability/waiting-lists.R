@@ -67,4 +67,4 @@ waiting_lists <-
   )
 
 waiting_lists |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/waiting-lists.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/waiting-lists.rds")

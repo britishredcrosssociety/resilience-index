@@ -25,4 +25,4 @@ informal_carers <-
   )
 
 informal_carers |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/informal-carers.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/workforce/informal-carers.rds")

@@ -31,4 +31,4 @@ cqc_ratings <-
   )
 
 cqc_ratings |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/cqc-ratings.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/quality/cqc-ratings.rds")

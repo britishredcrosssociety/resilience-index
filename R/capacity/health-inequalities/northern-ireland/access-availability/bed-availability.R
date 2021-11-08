@@ -50,4 +50,4 @@ beds_available <-
   )
 
 beds_available |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/bed-availability.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/bed-availability.rds")

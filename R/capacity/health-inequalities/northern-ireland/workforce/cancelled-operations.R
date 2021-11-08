@@ -67,4 +67,4 @@ cancelled_operations <-
   )
 
 cancelled_operations |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/cancelled-operations.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/workforce/cancelled-operations.rds")

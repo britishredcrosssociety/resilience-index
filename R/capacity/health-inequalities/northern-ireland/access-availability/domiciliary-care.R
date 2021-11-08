@@ -26,4 +26,4 @@ dom_care <-
   slice(2:6)
 
 dom_care |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/domiciliary-care.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/domiciliary-care.rds")

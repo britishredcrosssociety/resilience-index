@@ -29,4 +29,4 @@ ae <-
   select(trust_code, ae_percent_under_4h)
 
 ae |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/ae-waiting-times.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/ae-waiting-times.rds")

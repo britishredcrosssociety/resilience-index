@@ -28,4 +28,4 @@ ambulance <-
   select(-ambulance_response_time)
 
 ambulance |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/ambulance-response-times.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/ambulance-response-times.rds")

@@ -40,4 +40,4 @@ gp_registrations <-
   select(trust_code, gps_per_1000)
 
 gp_registrations |>
-  write_rds("data/capacity/health-inequalities/northern-ireland/gp-registrations.rds")
+  write_rds("data/capacity/health-inequalities/northern-ireland/access-availability/gp-registrations.rds")
