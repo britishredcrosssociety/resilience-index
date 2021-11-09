@@ -26,7 +26,7 @@ source("R/utils.R")
 
 # ---- Build Access & Availability Domain ----
 # Load indicators
-access_avilability_indicators <-
+access_availability_indicators <-
   load_indicators(
     path = "data/capacity/health-inequalities/northern-ireland/access-availability",
     key = "trust_code"
@@ -34,7 +34,7 @@ access_avilability_indicators <-
 
 # 1. Scale (align) indicators - Higher value = Higher capacity.
 access_availability_scaled <-
-  access_avilability_indicators %>%
+  access_availability_indicators %>%
   mutate(
     ambulance_response_time_seconds = ambulance_response_time_seconds * -1,
     outpatient_waiting_more_52_weeks_percent = outpatient_waiting_more_52_weeks_percent * -1
@@ -46,9 +46,37 @@ access_availability_weighted <-
   normalise_indicators()
 
 # 5. Calculate domain scores
-access_avialbility_scores <-
+access_availability_scores <-
   access_availability_weighted %>%
   calculate_domain_scores(
     domain_name = "access_availability",
+    num_quantiles = 5
+  )
+
+# ---- Build Workforce Domain ----
+# Load indicators
+workforce_indicators <-
+  load_indicators(
+    path = "data/capacity/health-inequalities/northern-ireland/workforce",
+    key = "trust_code"
+  )
+
+# 1. Scale (align) indicators - Higher value = Higher capacity.
+workforce_scaled <-
+  workforce_indicators %>%
+  mutate(
+    cancelled_operations_per_1000 = cancelled_operations_per_1000 * -1
+  )
+
+# 3. Weight the indicators within the domain
+workforce_weighted <-
+  workforce_scaled %>%
+  normalise_indicators()
+
+# 5. Calculate domain scores
+workforce_scores <-
+  workforce_weighted %>%
+  calculate_domain_scores(
+    domain_name = "workforce",
     num_quantiles = 5
   )
