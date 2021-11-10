@@ -74,7 +74,7 @@ access_availability <-
     option = "E",
     name = expression(paste("Domain Quintiles \n(5 = Highest Capacity)")),
     alpha = 0.8,
-    begin = 0.1, 
+    begin = 0.1,
     end = 0.9,
     discrete = F,
     direction = -1,
@@ -86,7 +86,11 @@ access_availability <-
   ) +
   theme_map() +
   theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm")) +
-  labs(title = "Access & Availability")
+  labs(title = "Access & Availability") +
+  geom_sf_label(
+    data = boundaries_trusts_ni,
+    mapping = aes(label = trust_name)
+  )
 
 workforce <-
   domain_scores_shp %>%
@@ -104,7 +108,7 @@ workforce <-
     option = "E",
     name = expression(paste("Domain Quintiles \n(5 = Highest Capacity)")),
     alpha = 0.8,
-    begin = 0.1, 
+    begin = 0.1,
     end = 0.9,
     discrete = F,
     direction = -1,
@@ -116,7 +120,11 @@ workforce <-
   ) +
   theme_map() +
   theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm")) +
-  labs(title = "Workforce")
+  labs(title = "Workforce") +
+  geom_sf_label(
+    data = boundaries_trusts_ni,
+    mapping = aes(label = trust_name)
+  )
 
 quality <-
   domain_scores_shp %>%
@@ -134,7 +142,7 @@ quality <-
     option = "E",
     name = expression(paste("Domain Quintiles \n(5 = Highest Capacity)")),
     alpha = 0.8,
-    begin = 0.1, 
+    begin = 0.1,
     end = 0.9,
     discrete = F,
     direction = -1,
@@ -146,7 +154,11 @@ quality <-
   ) +
   theme_map() +
   theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm")) +
-  labs(title = "Quality")
+  labs(title = "Quality") +
+  geom_sf_label(
+    data = boundaries_trusts_ni,
+    mapping = aes(label = trust_name)
+  )
 
 access_availability + workforce + quality + guide_area() +
-  plot_layout(guides = 'collect')
+  plot_layout(guides = "collect")
