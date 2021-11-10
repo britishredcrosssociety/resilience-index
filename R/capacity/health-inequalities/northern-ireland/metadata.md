@@ -18,6 +18,6 @@
 | Funding | Health Spend | | | | :x: - data unavailable| :x: |
 | Quality | Social - CQC Ratings| | | | :x: - data unavailable| :x: |
 | Quality | Hospital Maintenance Backlog | | | :x: - data unavailable| :x: |
-| Quality | CQC Ratings | 2020 | Department of Health(https://www.health-ni.gov.uk/publications/quality-and-outcomes-framework-qof-achievement-data-201920) | OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
+| Quality | CQC Ratings | 2020 | [Department of Health](https://www.health-ni.gov.uk/publications/quality-and-outcomes-framework-qof-achievement-data-201920) | [OGL3](https://www.health-ni.gov.uk/crown-copyright) | :heavy_check_mark: | :heavy_check_mark: |
 | Quality | NHS Choice Scores | | | :x: - data unavailable| :x: |
 | Quality | Non-elective Procedure Deaths | | | :x: - data unavailable| :x: |
