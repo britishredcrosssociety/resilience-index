@@ -1,7 +1,10 @@
 # Load libs
+library(geographr)
+library(readxl)
+library(sf)
 library(tidyverse)
 
-source("R/utils.R") #for download_file()
+source("R/utils.R") # for download_file()
 
 # Create trust lookup of open trusts
 open_trusts <-
@@ -12,7 +15,7 @@ open_trusts <-
     trust_code = nhs_trust_code
   )
 
-# Download the data 
+# Download the data
 tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2020/02/Cancelled-Ops-Q3-2019-20-4hiU8.xlsx", "xlsx")
 
 raw <-
@@ -35,10 +38,23 @@ ops_open <-
   open_trusts |>
   left_join(ops_vars, by = c("trust_code" = "Organisation Code"))
 
+# Drop NA
+ops_drop_na <-
+  ops_open |>
+  drop_na()
 
 # TODO:
 # Trusts need to be matched to MSOA's, and then aggregated up to LTLA.
-# Issue with current lookup 'lookup_trust_msoa' which is being investigated so waiting until then. 
+# Issue with current lookup 'lookup_trust_msoa' which is being investigated so waiting until then.
+
+ops_drop_na |>
+  left_join(lookup_trust_msoa) |>
+  keep_na() |>
+  pull(trust_code) |>
+  unique() -> not_matched_drop_na
 
 ops_open |>
-  left_join(lookup_trust_msoa) 
+  left_join(lookup_trust_msoa) |>
+  keep_na() |>
+  pull(trust_code) |>
+  unique() -> not_matched_full
