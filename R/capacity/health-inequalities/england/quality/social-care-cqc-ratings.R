@@ -108,6 +108,5 @@ raw_deactivated <-
 
 # Social care orgs -----
 
-
 cqc_social_overall <- raw_providers |>
   filter(`Provider Type` == "Social Care Org")

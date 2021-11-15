@@ -20,14 +20,14 @@ deaths_raw <-
       pattern = "*SHMI data at trust level, Jul20-Jun21 \\(xls\\)",
       recursive = T,
       full.names = TRUE
-    ), 
+    ),
     sheet = "Data",
     skip = 10
   )
 
 deaths_columns <- deaths_raw %>%
   select(`Provider code`, `Provider name`, `SHMI value`, `SHMI banding`, `Number of spells`, `Observed deaths`, `Expected deaths`)
-#122 trusts
+# 122 trusts
 
 # NHS TRUST table in geographr package -----
 
@@ -44,4 +44,3 @@ open_trusts <-
 open_trusts |>
   anti_join(deaths_columns, by = c("trust_code" = "Provider code"))
 # 93 trusts no deaths data
-

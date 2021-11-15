@@ -13,10 +13,10 @@ tf <- download_file("https://files.digital.nhs.uk/84/07227E/ERIC%20-%20201920%20
 raw_trust <-
   read_csv(
     tf,
-    locale = locale(encoding = "latin1") #to deal with special characters in column names
-   )
+    locale = locale(encoding = "latin1") # to deal with special characters in column names
+  )
 
-trust_columns <- raw_trust %>%
+trust_columns <- raw_trust |>
   select("Trust Code", "Trust Name", "Trust Type", "Investment to reduce backlog maintenance (£)")
 
 # Download site level data
@@ -25,29 +25,45 @@ tf <- download_file("https://files.digital.nhs.uk/11/BC1043/ERIC%20-%20201920%20
 raw_site <-
   read_csv(
     tf,
-    locale = locale(encoding = "latin1") #to deal with special characters in column names
+    locale = locale(encoding = "latin1") # to deal with special characters in column names
   )
 
 site_maintance_columns <- c("Cost to eradicate high risk backlog (£)", "Cost to eradicate significant risk backlog (£)", "Cost to eradicate moderate risk backlog (£)", "Cost to eradicate low risk backlog (£)")
 
-site_columns <- raw_site %>%
-  select("Trust Code", "Trust Name", "Site Code", "Site Name", "Site Type", site_maintance_columns) %>%
-  mutate_at(site_maintance_columns, ~ifelse(.x == "Not Applicable", NA, .x)) %>%
-  mutate_at(site_maintance_columns, ~as.numeric(str_remove_all(.x, ",")))
+site_columns <- raw_site |>
+  select("Trust Code", "Trust Name", "Site Code", "Site Name", "Site Type", site_maintance_columns) |>
+  mutate_at(site_maintance_columns, ~ ifelse(.x == "Not Applicable", NA, .x)) |>
+  mutate_at(site_maintance_columns, ~ as.numeric(str_remove_all(.x, ",")))
 
-site_agg <- site_columns %>%
-  group_by(`Trust Code`) %>%
-  summarise_if(is.numeric, ~sum(.x, na.rm = TRUE)) 
+site_agg <- site_columns |>
+  group_by(`Trust Code`) |>
+  summarise_if(is.numeric, ~ sum(.x, na.rm = TRUE))
 
-site_agg_total  <- site_agg %>%  
-  rowwise(`Trust Code`) %>% 
+site_agg_total <- site_agg |>
+  rowwise(`Trust Code`) |>
   mutate(total_cost = rowSums(across(where(is.numeric))))
 
 # Comparison of trust level and aggregated site level data -----
 
-combined_data <- trust_columns |>
+combined_maint_backlog_data <- trust_columns |>
   left_join(site_agg_total, by = "Trust Code")
-# cost != investment at trust level 
+# cost != investment at trust level
 
+# NHS TRUST table in geographr package -----
 
-  
+# Create trust lookup of open trusts
+open_trusts <-
+  points_nhs_trusts |>
+  as_tibble() |>
+  filter(status == "open") |>
+  select(
+    trust_code = nhs_trust_code
+  )
+
+# Check the matching of cost/investment data & trust table in geographr package --------
+
+trusts_missing_maint_backlog <- open_trusts |>
+  anti_join(combined_maint_backlog_data, by = c("trust_code" = "Trust Code")) |>
+  pull(trust_code)
+
+trusts_missing_maint_backlog
