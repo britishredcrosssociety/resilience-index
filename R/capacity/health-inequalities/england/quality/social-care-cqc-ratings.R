@@ -10,15 +10,21 @@ source("R/utils.R") # for download_file()
 # Download the data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
 
-raw <-
+raw_providers <-
   read_ods(
     tf,
     sheet = "Providers",
   )
 
+raw_locations <-
+  read_ods(
+    tf,
+    sheet = "Locations",
+  )
+
 
 # Investigate the "Provider Type" & "Provider Primary Inspection Category"
-raw |>
+raw_providers |>
   distinct(`Provider Type`, `Provider Primary Inspection Category`) |>
   arrange(`Provider Type`)
 # To investigate these different categories
@@ -30,12 +36,12 @@ raw |>
 # 2. Filter only the overall ratings (as also provides broken down ratings - more info here: https://www.cqc.org.uk/guidance-providers/nhs-trusts/your-ratings-nhs-trusts)
 # 3. Filter only the "Overall" category for `Service / Population Group` (there is many breakdown categories e.g. Critical care, Community health services for adults, Urgent care centre)
 #     it's the  equivalent to filtering `Report type` == "Provider" (the breakdown categories are `Report type` == "CoreService")
-cqc_nhs_trusts_overall <- raw |>
+cqc_nhs_trusts_overall <- raw_providers |>
   filter(`Provider Type` == "NHS Healthcare Organisation") |>
   filter(Domain == "Overall") |>
-  filter(`Service / Population Group` == "Overall") |> 
+  filter(`Service / Population Group` == "Overall") |>
   select(`Provider ID`, `Latest Rating`)
-  
+
 # Check distinct mapping i.e. only 1 score for 1 provider due to comment in the rating documentation stating:
 # 'In some cases, a location or provider may have had more than one rating published on the same date, and in this case both ratings are shown in this file. It will be necessary to check on the CQC website to see which is the current rating for these organisations.'
 cqc_nhs_trusts_overall |>
@@ -59,8 +65,8 @@ open_trusts <-
 
 # Join CQC scores onto the open trusts table and check for any missing
 trusts_missing_cqc_score <- open_trusts |>
-  anti_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID"))  |>
-  pull(trust_code) 
+  anti_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
+  pull(trust_code)
 
 # Check those with no score
 points_nhs_trusts |>
@@ -69,8 +75,8 @@ points_nhs_trusts |>
 
 # Check of any trusts that are in the CQC ratings but not in open trusts
 cqc_score_trusts_not_matched <- cqc_nhs_trusts_overall |>
-  anti_join(open_trusts, by = c("Provider ID" = "trust_code"))  |>
-  pull(`Provider ID`) 
+  anti_join(open_trusts, by = c("Provider ID" = "trust_code")) |>
+  pull(`Provider ID`)
 
 # Check not in full trusts table (i.e. maybe closed)
 points_nhs_trusts |>
@@ -78,7 +84,7 @@ points_nhs_trusts |>
   filter(nhs_trust_code %in% cqc_score_trusts_not_matched)
 
 # Can't find landing page of the dataset but found through searching missing trust codes
-#https://www.england.nhs.uk/wp-content/uploads/2014/11/nhs-non-nhs-ods-codes.xlsx
+# https://www.england.nhs.uk/wp-content/uploads/2014/11/nhs-non-nhs-ods-codes.xlsx
 tf <- download_file("https://www.england.nhs.uk/wp-content/uploads/2014/11/nhs-non-nhs-ods-codes.xlsx", "xlsx")
 
 raw_non_nhs_codes <-
@@ -89,7 +95,7 @@ raw_non_nhs_codes <-
 raw_non_nhs_codes |>
   filter(Code %in% cqc_score_trusts_not_matched)
 
-# Check deactivated locations data -------- 
+# Check deactivated locations data --------
 
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Deactivated_locations.ods", "ods")
 
@@ -98,3 +104,10 @@ raw_deactivated <-
     tf,
     sheet = "Deactivated_Locations",
   )
+
+
+# Social care orgs -----
+
+
+cqc_social_overall <- raw_providers |>
+  filter(`Provider Type` == "Social Care Org")
