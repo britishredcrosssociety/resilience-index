@@ -7,6 +7,7 @@ library(sf)
 source("R/utils.R") # for download_file()
 
 # NHS trust deaths associated with hospitalisation -----
+# IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths
 
 # Download the data
 tf <- download_file("https://files.digital.nhs.uk/A6/0F708F/SHMI%20data%20files%2C%20Jul20-Jun21.zip", "zip")
@@ -51,6 +52,8 @@ open_trusts <-
 open_trusts |>
   anti_join(deaths_columns, by = c("trust_code" = "Provider code"))
 # 93 trusts no deaths data
+
+# TO DO - make sure 122 in open trusts
 
 # Downloading CQC rating data as has information on what is the primary type of care trust provides
 # Used to check against the trusts with no death data

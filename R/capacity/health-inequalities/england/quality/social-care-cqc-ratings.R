@@ -102,7 +102,7 @@ tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021
 raw_deactivated <-
   read_ods(
     tf,
-    sheet = "Deactivated_Locations",
+    sheet = "Deactivated_Locations"
   )
 
 
