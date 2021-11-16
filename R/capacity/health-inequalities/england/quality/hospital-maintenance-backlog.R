@@ -39,15 +39,23 @@ site_agg <- site_columns |>
   group_by(`Trust Code`) |>
   summarise_if(is.numeric, ~ sum(.x, na.rm = TRUE))
 
+site_agg_columns <- site_agg |>
+  select(`Trust Code`, `Cost to eradicate high risk backlog (£)`)
+
+# Only want to look at the cost for high risk back log
+# From data definition (https://files.digital.nhs.uk/7B/0FF3E8/ERIC%20-%20201920%20-%20Data%20Definitions.xlsx):
+# High risk is where repairs/replacement must be addressed with urgent priority in order to prevent catastrophic failure,
+# major disruption to clinical services or deficiencies in safety liable to cause serious injury and/or prosecution
+
+# Check to see how total cost at trust level compares to investment -----
 site_agg_total <- site_agg |>
   rowwise(`Trust Code`) |>
   mutate(total_cost = rowSums(across(where(is.numeric))))
 
-# Comparison of trust level and aggregated site level data -----
-
 combined_maint_backlog_data <- trust_columns |>
   left_join(site_agg_total, by = "Trust Code")
 # cost != investment at trust level
+
 
 # NHS TRUST table in geographr package -----
 
@@ -62,8 +70,12 @@ open_trusts <-
 
 # Check the matching of cost/investment data & trust table in geographr package --------
 
-trusts_missing_maint_backlog <- open_trusts |>
-  anti_join(combined_maint_backlog_data, by = c("trust_code" = "Trust Code")) |>
+high_risk_cost_open <- open_trusts |>
+  left_join(site_agg_columns, by = c("trust_code" = "Trust Code"))
+
+trusts_missing_maint_backlog <- high_risk_cost_open |>
+  keep_na() |>
   pull(trust_code)
 
 trusts_missing_maint_backlog
+# 4 trusts missing : "R0D" "RQF" "RT4" "RYT"
