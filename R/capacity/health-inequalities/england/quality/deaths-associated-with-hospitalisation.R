@@ -28,19 +28,19 @@ deaths_raw <-
 
 deaths_columns <- deaths_raw %>%
   select(`Provider code`, `Provider name`, `SHMI value`, `SHMI banding`, `Number of spells`, `Observed deaths`, `Expected deaths`)
-# 122 trusts 
+# 122 trusts
 
 # There is data for only 122 trusts (but there is over 200 open trusts) - this is because data is only available for non-specialist acute trusts (see below)
-# Also have done a check of this at end of script (under 'Extra checks' section) by loading in trust inspection categories from CQC data to confirm. 
+# Also have done a check of this at end of script (under 'Extra checks' section) by loading in trust inspection categories from CQC data to confirm.
 
 # Source of below quote on coverage of data: https://files.digital.nhs.uk/2C/498A3E/SHMI%20background%20quality%20report%2C%20Jul20-Jun21.pdf
 # The SHMI methodology has been designed for non-specialist acute trusts. Specialist trusts,
 # mental health trusts, community trusts and independent sector providers are excluded from
 # the SHMI because there are important differences in the case-mix of patients treated there
 # compared to non-specialist acute trusts and the SHMI has not been designed for these types
-# of trusts. 
+# of trusts.
 
-  
+
 # NHS TRUST table in geographr package -----
 
 # Create trust lookup of open trusts
@@ -54,7 +54,7 @@ open_trusts <-
 
 # Check the matching of deaths data & trust table in geographr package --------
 
-# Have established not all trusts have available death data. 
+# Have established not all trusts have available death data.
 # Check death data trusts not missing in open trusts list from geographr
 deaths_columns |>
   anti_join(open_trusts, by = c("Provider code" = "trust_code"))
@@ -81,16 +81,12 @@ raw_providers <-
 trust_categories <- raw_providers |>
   select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
   distinct()
-  
+
 combined_table <- open_trusts |>
   left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code"))
 
-# Check missing death data for each care category 
+# Check missing death data for each care category
 combined_table |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), count_death_data = sum(!is.na(`SHMI value`)))
-  
-  
-  
-  
