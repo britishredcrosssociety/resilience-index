@@ -28,7 +28,10 @@ deaths_raw <-
 
 deaths_columns <- deaths_raw %>%
   select(`Provider code`, `Provider name`, `SHMI value`, `SHMI banding`, `Number of spells`, `Observed deaths`, `Expected deaths`)
-# 122 trusts
+# 122 trusts 
+
+# There is data for only 122 trusts (but there is over 200 open trusts) - this is because data is only available for non-specialist acute trusts (see below)
+# Also have done a check of this at end of script (under 'Extra checks' section) by loading in trust inspection categories from CQC data to confirm. 
 
 # Source of below quote on coverage of data: https://files.digital.nhs.uk/2C/498A3E/SHMI%20background%20quality%20report%2C%20Jul20-Jun21.pdf
 # The SHMI methodology has been designed for non-specialist acute trusts. Specialist trusts,
@@ -36,6 +39,7 @@ deaths_columns <- deaths_raw %>%
 # the SHMI because there are important differences in the case-mix of patients treated there
 # compared to non-specialist acute trusts and the SHMI has not been designed for these types
 # of trusts. 
+
   
 # NHS TRUST table in geographr package -----
 
@@ -49,14 +53,23 @@ open_trusts <-
   )
 
 # Check the matching of deaths data & trust table in geographr package --------
-open_trusts |>
-  anti_join(deaths_columns, by = c("trust_code" = "Provider code"))
-# 93 trusts no deaths data
 
-# TO DO - make sure 122 in open trusts
+# Have established not all trusts have available death data. 
+# Check death data trusts not missing in open trusts list from geographr
+deaths_columns |>
+  anti_join(open_trusts, by = c("Provider code" = "trust_code"))
+# all matched
 
-# Downloading CQC rating data as has information on what is the primary type of care trust provides
-# Used to check against the trusts with no death data
+# TO DO: Trust to MSOA (then to LA) lookup.
+# Think about effect of not all trusts data being available
+
+
+
+
+
+## Extra checks ##
+# Downloading CQC rating data as has information on what is the primary type of care trust provides ---
+# This is used to check against the trusts with no death data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
 
 raw_providers <-
@@ -76,7 +89,7 @@ combined_table <- open_trusts |>
 # Check missing death data for each care category 
 combined_table |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), count_missing_death_data = sum(is.na(`SHMI value`)))
+  summarise(count = n(), count_death_data = sum(!is.na(`SHMI value`)))
   
   
   

@@ -90,12 +90,12 @@ trusts_missing_geographr |>
 
 # Join trust to MSOA lookup --------
 
-lookup_trust_msoa 
-
+# Check if any trusts not in lookup table
 high_risk_cost_open |>
-  left_join()
+  anti_join(lookup_trust_msoa) 
+
 
 # TODO:
 # Trusts need to be matched to MSOA's, and then aggregated up to LTLA.
 # As detailed in the 'access-availability/ae-waiting-times.R' script not all trusts are matching the
-# lookup table. This needs fixing before aggregation can happen.
+# lookup table (68 not found in lookup table). This needs fixing before aggregation can happen.
