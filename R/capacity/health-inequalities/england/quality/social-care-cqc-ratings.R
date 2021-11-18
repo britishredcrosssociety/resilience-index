@@ -1,4 +1,4 @@
-# Load libs
+# Load packages
 library(tidyverse)
 library(readODS)
 library(geographr)
@@ -7,6 +7,7 @@ library(sf)
 
 source("R/utils.R") # for download_file()
 
+# Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory 
 # Download the data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
 
