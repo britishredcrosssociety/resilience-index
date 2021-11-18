@@ -9,8 +9,10 @@ source("R/utils.R") # for download_file()
 
 # Number of surveys on CQC site: https://www.cqc.org.uk/publications/surveys/surveys
 # Some are for 2020: 1. adult inpatient, 2. urgent & emergency care, 3. COVID inpatient, 4. Community mental health
-# Others further in past (and so not included): 1. Maternity (2019), 2, Children & young people (2018), 3. Ambulance (2013/14), 4. Outpatient (2011)
+# As at 11/21 others further in past (and so not included): 1. Maternity (2019), 2, Children & young people (2018), 3. Ambulance (2013/14), 4. Outpatient (2011) 
 # The COVID inpatient survey did not split by trust so have not included.
+
+# IMPORTANT NOTE: Documentation states some of the currently out of date surveys will become available for 2020 at end of 2021 so might able to be added to the RI https://www.cqc.org.uk/sites/default/files/20211020%20Website%20forward%20programme%20v89.odt
 
 # For each of these surveys there is data at trust level (the scores are calculated by comparing trusts against each other, rather than absolute performance).
 # Within each survey there are a variety of specific questions about performance but there is one ‘overall’ question where rate experience (on scale 0 to 10) so only extract this answer.
@@ -74,15 +76,38 @@ open_trusts <-
     trust_code = nhs_trust_code
   )
 
-# Join data --------
+# Join data survey data to open trust data --------
 
-open_trusts |>
+combined_survey_data <- open_trusts |>
   left_join(inpatient_survey, by = c("trust_code" = "trustcode")) |>
   left_join(mental_health_survey, by = c("trust_code" = "trustcode")) |>
   left_join(outpatient_ae, by = c("trust_code" = "trustcode")) |>
   left_join(outpatient_minor_inj, by = c("trust_code" = "trustcode"))
   
-  
-  
-  
 
+# Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
+
+# Checking the types of trusts that have missing data for each category ---
+
+# Downloading CQC rating data as has information on what is the primary type of care trust provides 
+# This is used to check against the trusts with no survey data for each survey type
+tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
+
+raw_providers <-
+  read_ods(
+    tf,
+    sheet = "Providers",
+  )
+
+trust_categories <- raw_providers |>
+  select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
+  distinct()
+
+# Check missing data for each category
+combined_survey_data |>
+  select(trust_code, starts_with("num_respon")) |>
+  left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(across(where(is.numeric), ~sum(!is.na(.x))), count = n())
+
+            
