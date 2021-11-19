@@ -81,6 +81,10 @@ not_available <-
   pull(trust_code) |>
   unique()
 
+open_trusts |> 
+  filter(`Trust Code` %in% not_available) |>
+  print(n = Inf)
+
 points_available <-
   points_nhs_trusts |>
   left_join(
@@ -88,10 +92,10 @@ points_available <-
     by = c("nhs_trust_code" = "trust_code")
   ) |>
   mutate(
-    available = if_else(
+    missing = if_else(
       nhs_trust_code %in% not_available,
-      "no",
-      "yes"
+      "yes",
+      "no"
     )
   )
 
@@ -104,7 +108,7 @@ points_available |>
     size = 0.1
   ) +
   geom_sf(
-    mapping = aes(colour = available),
+    mapping = aes(colour = missing),
     size = 3,
     alpha = .7,
     fill = "black"
