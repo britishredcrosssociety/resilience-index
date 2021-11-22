@@ -14,14 +14,15 @@ tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021
 raw_providers <-
   read_ods(
     tf,
-    sheet = "Providers",
+    sheet = "Providers"
   )
 
-raw_locations <-
-  read_ods(
-    tf,
-    sheet = "Locations",
-  )
+# Commented out reading in locations and takes very long time
+# raw_locations <-
+#   read_ods(
+#     tf,
+#     sheet = "Locations"
+#   )
 
 
 # Investigate the "Provider Type" & "Provider Primary Inspection Category"

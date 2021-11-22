@@ -2,6 +2,7 @@
 library(tidyverse)
 library(geographr)
 library(sf)
+library(readODS)
 
 source("R/utils.R") # for download_file()
 
@@ -91,9 +92,35 @@ trusts_missing_geographr |>
 # Join trust to MSOA lookup --------
 
 # Check if any trusts not in lookup table
-high_risk_cost_open |>
-  anti_join(lookup_trust_msoa) 
+missing_trusts_from_lookup <- high_risk_cost_open |>
+  anti_join(lookup_trust_msoa) |>
+  distinct(trust_code) |>
+  print(n = Inf)
 
+missing_trusts_from_lookup |>
+  left_join(as_tibble(points_nhs_trusts), by = c("trust_code" = "nhs_trust_code")) |>
+  print(n = Inf)
+
+## Extra checks ##
+# Downloading CQC rating data as has information on what is the primary type of care trust provides ---
+# This is used to check against the trusts with no death data
+tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
+
+raw_providers <-
+  read_ods(
+    tf,
+    sheet = "Providers",
+  )
+
+trust_categories <- raw_providers |>
+  select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
+  distinct()
+
+missing_trusts_from_lookup  |>
+  left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n())
+# Vast majority of the missing trusts are ambulance, community health and mental health providers
 
 # TODO:
 # Trusts need to be matched to MSOA's, and then aggregated up to LTLA.

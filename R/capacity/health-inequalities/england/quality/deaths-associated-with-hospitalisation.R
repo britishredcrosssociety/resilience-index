@@ -60,8 +60,12 @@ deaths_columns |>
   anti_join(open_trusts, by = c("Provider code" = "trust_code"))
 # all matched
 
-# TO DO: Trust to MSOA (then to LA) lookup.
-# Think about effect of not all trusts data being available
+# Trust to MSOA (then to LA) lookup.
+# Think about effect of not all trusts data being available - not an issue as it is reflective of the number of deaths in non-specialist acute trusts?
+
+open_trusts |>
+  left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
+  left_join(geographr::)
 
 
 
