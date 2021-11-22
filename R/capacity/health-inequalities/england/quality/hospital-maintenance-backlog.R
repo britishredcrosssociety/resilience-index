@@ -116,10 +116,11 @@ trust_categories <- raw_providers |>
   select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
   distinct()
 
-missing_trusts_from_lookup  |>
+high_risk_cost_open |>
+  anti_join(lookup_trust_msoa)  |>
   left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n())
+  summarise(count = n(), total_cost = sum(`Cost to eradicate high risk backlog (£)`, na.rm = T))
 # Vast majority of the missing trusts are ambulance, community health and mental health providers
 
 # TODO:

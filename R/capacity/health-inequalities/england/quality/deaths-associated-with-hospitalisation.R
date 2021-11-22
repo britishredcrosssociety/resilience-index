@@ -1,4 +1,4 @@
-# Load libs
+# Load packages
 library(tidyverse)
 library(geographr)
 library(readxl)
@@ -54,19 +54,67 @@ open_trusts <-
 
 # Check the matching of deaths data & trust table in geographr package --------
 
-# Have established not all trusts have available death data.
+# Have established not all trusts have available death data (i.e. non-specialist acute trusts).
+open_trusts |>
+  anti_join(deaths_columns, by = c("trust_code" = "Provider code")) 
+
 # Check death data trusts not missing in open trusts list from geographr
 deaths_columns |>
   anti_join(open_trusts, by = c("Provider code" = "trust_code"))
 # all matched
 
+# From https://digital.nhs.uk/data-and-information/publications/statistical/shmi/2021-11:
+# The SHMI is the ratio between the actual number of patients who die following hospitalisation at the trust and the number 
+# that would be expected to die on the basis of average England figures, given the characteristics of the patients treated there. 
+# It covers patients admitted to hospitals in England who died either while in hospital or within 30 days of being discharged. 
+# Deaths related to COVID-19 are excluded from the SHMI.
+
 # Trust to MSOA (then to LA) lookup.
-# Think about effect of not all trusts data being available - not an issue as it is reflective of the number of deaths in non-specialist acute trusts?
-
-open_trusts |>
+# Think about effect of not all trusts data being available 
+msoa_shmi <- open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
-  left_join(geographr::)
+  left_join(lookup_trust_msoa, by = "trust_code")  |>
+  mutate(weighted = `SHMI value` * proportion) 
 
+msoa_shmi |>
+  filter(msoa_code == "E02004566")
+
+# Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a mosa attending
+# a trust for only non-specialist acute trusts and calculate proportions that way? Need to chat over with team if this makes sense. 
+
+# Below code taken and amended from https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R 
+
+# Make GET request
+tf <- download_file("https://app.box.com/index.php?rm=box_download_shared_file&shared_name=qh8gzpzeo1firv1ezfxx2e6c4tgtrudl&file_id=f_877983829510",".xlsx")
+
+# All admissions
+catchment_populations <-
+  read_excel(tf, sheet = "All Admissions") 
+
+catchment_populations_columns <- catchment_populations |>
+  filter(CatchmentYear == 2019) |>
+  select(msoa, TrustCode, patients)
+
+non_actute_trust_msoa_trust_lookup <- catchment_populations_columns |>
+  filter(TrustCode %in% deaths_columns$`Provider code`)  |>
+  group_by(msoa) |>
+  mutate(non_actute_trust_total_patients = sum(patients)) |>
+  mutate(non_actute_trust_prop = patients/non_actute_trust_total_patients) 
+
+msoa_shmi_non_acute_prop_only <- open_trusts |>
+  left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
+  left_join(non_actute_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode"))  |>
+  mutate(weighted = `SHMI value` * non_actute_trust_prop) 
+
+msoa_shmi_non_acute_prop_only |>
+  filter(msoa == "E02004566")
+
+ msoa_shmi_non_acute_prop_only_weighted <- msoa_shmi_non_acute_prop_only |>
+  group_by(msoa) |>
+  mutate(shmi_averaged = sum(weighted, na.rm = T)) |>
+  ungroup() |>
+  select(msoa, shmi_averaged) |>
+  distinct()
 
 
 
