@@ -72,7 +72,7 @@ mental_health_survey <- survey_data_download("https://www.cqc.org.uk/sites/defau
 outpatient_ae <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type1_benchmark-data.ods", 47, "UEC20_Trust_Scores", "q", "ae")
 outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type3_benchmark-data.ods", 39, "UEC20_Trust_Scores", "t", "min")
 
-# NHS TRUST table in geographr package -----
+# NHS Trusts table in geographr package -----
 
 # Create trust lookup of open trusts
 open_trusts <-
@@ -90,7 +90,6 @@ combined_survey_data <- open_trusts |>
   left_join(mental_health_survey, by = c("trust_code" = "trustcode")) |>
   left_join(outpatient_ae, by = c("trust_code" = "trustcode")) |>
   left_join(outpatient_minor_inj, by = c("trust_code" = "trustcode"))
-  
 
 # Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
 
@@ -117,4 +116,21 @@ combined_survey_data |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(across(where(is.numeric), ~sum(!is.na(.x))), count = n())
 
-            
+
+# Combining the survey scores ---
+
+# Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores - or maybe this is overkill. 
+# Will combine the means for just now 
+
+avg_survey_scores <- combined_survey_data |>
+  select(trust_code, meaninp, meanmh, meanae, meanmin) |>
+  mutate(avg_survey_score = rowSums(across(where(is.numeric)), na.rm = T)/rowSums(!is.na(across(where(is.numeric))))) |>
+  select(trust_code, avg_survey_score)
+
+
+
+
+
+
+
+
