@@ -105,7 +105,7 @@ acute_nonspec_trust_msoa_trust_lookup <- catchment_populations_columns |>
   mutate(acute_nonspec_trust_total_patients = sum(patients)) |>
   mutate(acute_nonspec_trust_prop = patients / acute_nonspec_trust_total_patients)
 
-# Join the proportions for weighting onto the death data and weight the shmi values 
+# Join the proportions for weighting onto the death data and weight the shmi values
 msoa_shmi_acute_nonspec_prop_only <- open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
   left_join(acute_nonspec_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode")) |>
@@ -114,7 +114,7 @@ msoa_shmi_acute_nonspec_prop_only <- open_trusts |>
 msoa_shmi_acute_nonspec_prop_only |>
   filter(msoa == "E02004566")
 
-# Aggregate up to MSOA level 
+# Aggregate up to MSOA level
 msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only |>
   group_by(msoa_code) |>
   mutate(shmi_averaged = sum(weighted, na.rm = T)) |>
@@ -122,10 +122,10 @@ msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only 
   select(msoa_code, shmi_averaged) |>
   distinct()
 
-# Join on MSOA to LAD look up 
+# Join on MSOA to LAD look up
 shmi_acute_nonspec_prop_only_lad <-
   msoa_shmi_acute_nonspec_prop_only_weighted |>
-  left_join(lookup_msoa_lad, by = "msoa_code") 
+  left_join(lookup_msoa_lad, by = "msoa_code")
 
 
 
