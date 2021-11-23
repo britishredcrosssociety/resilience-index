@@ -79,7 +79,7 @@ msoa_shmi <- open_trusts |>
 msoa_shmi |>
   filter(msoa_code == "E02004566")
 
-# Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a mosa attending
+# Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a msoa attending
 # a trust for only non-specialist acute trusts and calculate proportions that way? Need to chat over with team if this makes sense.
 
 # Below code taken and amended from https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R
@@ -91,31 +91,41 @@ tf <- download_file("https://app.box.com/index.php?rm=box_download_shared_file&s
 catchment_populations <-
   read_excel(tf, sheet = "All Admissions")
 
+# Only most recent (2019) rows
 catchment_populations_columns <- catchment_populations |>
   filter(CatchmentYear == 2019) |>
-  select(msoa, TrustCode, patients)
+  select(msoa, TrustCode, patients) |>
+  rename(msoa_code = msoa)
 
-actute_nonspec_trust_msoa_trust_lookup <- catchment_populations_columns |>
+# Only return acute non specialist trusts (i.e. those in the deaths dataset) and calculate the prop of acute non specialist patients for a msoa
+# that come from each particular acute non specialist trusts
+acute_nonspec_trust_msoa_trust_lookup <- catchment_populations_columns |>
   filter(TrustCode %in% deaths_columns$`Provider code`) |>
-  group_by(msoa) |>
-  mutate(actute_nonspec_trust_total_patients = sum(patients)) |>
-  mutate(actute_nonspec_trust_prop = patients / non_actute_trust_total_patients)
+  group_by(msoa_code) |>
+  mutate(acute_nonspec_trust_total_patients = sum(patients)) |>
+  mutate(acute_nonspec_trust_prop = patients / acute_nonspec_trust_total_patients)
 
-msoa_shmi_actute_nonspec_prop_only <- open_trusts |>
+# Join the proportions for weighting onto the death data and weight the shmi values 
+msoa_shmi_acute_nonspec_prop_only <- open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
-  left_join(actute_nonspec_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode")) |>
-  mutate(weighted = `SHMI value` * actute_nonspec_trust_prop)
+  left_join(acute_nonspec_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode")) |>
+  mutate(weighted = `SHMI value` * acute_nonspec_trust_prop)
 
-msoa_shmi_actute_nonspec_prop_only |>
+msoa_shmi_acute_nonspec_prop_only |>
   filter(msoa == "E02004566")
 
-msoa_shmi_actute_nonspec_prop_only_weighted <- msoa_shmi_actute_nonspec_prop_only |>
-  group_by(msoa) |>
+# Aggregate up to MSOA level 
+msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only |>
+  group_by(msoa_code) |>
   mutate(shmi_averaged = sum(weighted, na.rm = T)) |>
   ungroup() |>
-  select(msoa, shmi_averaged) |>
+  select(msoa_code, shmi_averaged) |>
   distinct()
 
+# Join on MSOA to LAD look up 
+shmi_acute_nonspec_prop_only_lad <-
+  msoa_shmi_acute_nonspec_prop_only_weighted |>
+  left_join(lookup_msoa_lad, by = "msoa_code") 
 
 
 
