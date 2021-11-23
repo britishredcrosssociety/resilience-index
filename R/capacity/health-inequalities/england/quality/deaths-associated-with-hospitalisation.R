@@ -4,7 +4,7 @@ library(geographr)
 library(readxl)
 library(sf)
 
-source("R/utils.R") # for download_file()
+source("R/utils.R") # for download_file() & calculate_extent()
 
 # NHS trust deaths associated with hospitalisation -----
 # IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths
@@ -41,7 +41,7 @@ deaths_columns <- deaths_raw %>%
 # of trusts.
 
 
-# NHS TRUST table in geographr package -----
+# NHS Trust table in geographr package -----
 
 # Create trust lookup of open trusts
 open_trusts <-
@@ -69,22 +69,19 @@ deaths_columns |>
 # It covers patients admitted to hospitals in England who died either while in hospital or within 30 days of being discharged.
 # Deaths related to COVID-19 are excluded from the SHMI.
 
-# Trust to MSOA (then to LA) lookup.
+# Trust to MSOA (then to LA) lookup ----
 # Think about effect of not all trusts data being available
 msoa_shmi <- open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
   left_join(lookup_trust_msoa, by = "trust_code") |>
   mutate(weighted = `SHMI value` * proportion)
 
-msoa_shmi |>
-  filter(msoa_code == "E02004566")
-
 # Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a msoa attending
 # a trust for only non-specialist acute trusts and calculate proportions that way? Need to chat over with team if this makes sense.
 
 # Below code taken and amended from https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R
 
-# Make GET request
+# Download file
 tf <- download_file("https://app.box.com/index.php?rm=box_download_shared_file&shared_name=qh8gzpzeo1firv1ezfxx2e6c4tgtrudl&file_id=f_877983829510", ".xlsx")
 
 # All admissions
@@ -111,9 +108,6 @@ msoa_shmi_acute_nonspec_prop_only <- open_trusts |>
   left_join(acute_nonspec_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode")) |>
   mutate(weighted = `SHMI value` * acute_nonspec_trust_prop)
 
-msoa_shmi_acute_nonspec_prop_only |>
-  filter(msoa == "E02004566")
-
 # Aggregate up to MSOA level
 msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only |>
   group_by(msoa_code) |>
@@ -122,14 +116,32 @@ msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only 
   select(msoa_code, shmi_averaged) |>
   distinct()
 
+# Get MSOA pop
+msoa_pop <-
+  population_msoa |>
+  select(msoa_code, total_population)
+
 # Join on MSOA to LAD look up
 shmi_acute_nonspec_prop_only_lad <-
   msoa_shmi_acute_nonspec_prop_only_weighted |>
-  left_join(lookup_msoa_lad, by = "msoa_code")
+  left_join(lookup_msoa_lad, by = "msoa_code") |>
+  left_join(msoa_pop, by = "msoa_code")
 
+# Aggregate to LAD ----
+shmi_extent_lad <-
+  shmi_acute_nonspec_prop_only_lad |>
+  calculate_extent(
+    var = shmi_averaged,
+    higher_level_geography = lad_code,
+    population = total_population
+  )
 
+# 63% : extent = 0
+# 5%: extent = 1
 
-## Extra checks ##
+###################################################
+
+## Extra checks  ----
 # Downloading CQC rating data as has information on what is the primary type of care trust provides ---
 # This is used to check against the trusts with no death data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")

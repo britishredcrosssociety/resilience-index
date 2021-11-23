@@ -1,7 +1,8 @@
-# Load libs
+# Load packages
 library(tidyverse)
 library(geographr)
 library(sf)
+library(readODS)
 
 source("R/utils.R") # for download_file()
 
@@ -21,6 +22,12 @@ source("R/utils.R") # for download_file()
 
 # Each survey dataset has a sheet (roughly named) 'Trust_Respondents' with the demographic info on the respondents to the survey and 'Trust_Scores' with the summary of scores.
 # The survey questions can be found linked in the 'Further information' section of the front page of the datasets (then 'Survey Materials' section of linked page)
+
+# Notes on the trust level scores:
+# Weights were calculated to adjust for any variation between trusts that resulted from differences in the age, sex and route of admission groupings of respondents. 
+# The reason for weighting the data was that respondents may answer questions differently, depending on certain characteristics
+
+
 
 # Function ----
 
