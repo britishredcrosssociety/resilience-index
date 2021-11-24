@@ -126,11 +126,49 @@ avg_survey_scores <- combined_survey_data |>
   select(trust_code, meaninp, meanmh, meanae, meanmin) |>
   mutate(avg_survey_score = rowSums(across(where(is.numeric)), na.rm = T)/rowSums(!is.na(across(where(is.numeric))))) |>
   select(trust_code, avg_survey_score)
+# Ambulance services primary providers haven't completed any of the surveys since they don't provide any of the services in the 4 surveys currently including.
+
+# Combining the survey scores ---
+
+# NHS Trust table in geographr package -----
+
+# Create trust lookup of open trusts
+open_trusts <-
+  points_nhs_trusts |>
+  as_tibble() |>
+  filter(status == "open") |>
+  select(
+    trust_code = nhs_trust_code
+  )
+
+# Check the matching of survey data & trust table in geographr package --------
+
+open_trusts |>
+  anti_join(avg_survey_scores, by = c("trust_code"))
+# all matched
+
+avg_survey_scores |>
+  anti_join(open_trusts, by = c("trust_code"))
+# all matched
+
+# Join survey to open trusts ---
+
+open_surveys <- open_trusts |>
+  left_join(avg_survey_scores, by = c("trust_code")) 
 
 
+# Trust to MSOA (then to LA) lookup ----
+# Think about effect of not all trusts data being available
 
+open_surveys |>
+  left_join(lookup_trust_msoa, by = "trust_code") |>
+  filter(is.na(msoa_code)) 
 
+# Check if any trusts not in lookup table
+open_surveys  |>
+  anti_join(lookup_trust_msoa) |>
+  distinct(trust_code) |>
+  print(n = Inf)
 
-
-
+# TO DO: Missing trusts in the msoa lookup - to be discussed
 
