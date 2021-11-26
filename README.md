@@ -34,14 +34,14 @@ Old code that was written before this repository got refactored to an R package 
 
 | Nation | Strategic Cause | Vulerability | Capacity |
 | --- | --- | --- | --- |
-| England | Health Inequalities | :heavy_check_mark: | Under development |
-| England | Disasters & Emergencies | Under development | Under development |
+| England | Health Inequalities | :heavy_check_mark: | :keyboard: - Under development |
+| England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development |
 | Scotland | Health Inequalities | :heavy_check_mark: | :x: |
 | Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: |
-| Wales | Health Inequalities | Under development | :x: |
+| Wales | Health Inequalities | :keyboard: - Under development | :x: |
 | Wales | Disasters & Emergencies | :heavy_check_mark: | :x: |
 | Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
-| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | Under development |
+| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development |
 
 
 ## Links
