@@ -32,7 +32,7 @@ Old code that was written before this repository got refactored to an R package 
 - Last update: 26.11.21
 - Notes: complete segments are only provisional and are subject to change (e.g., indicator amendments and weighting)
 
-| Nation | Strategic Cause | Vulerability | Capacity |
+| Nation | Strategic Cause | Vulnerability | Capacity |
 | --- | --- | --- | --- |
 | England | Health Inequalities | :heavy_check_mark: | :keyboard: - Under development |
 | England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development |
