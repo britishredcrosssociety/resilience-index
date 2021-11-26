@@ -27,6 +27,23 @@ Unlike a typical R package, all the `.R` source files live within subdirectories
 
 Old code that was written before this repository got refactored to an R package structure, can now be found in the `depreciated/` folder. This code will slowly get ported to the new format, and will no longer be supported in the long term.
 
+## Status
+
+- Last update: 26.11.21
+- Notes: complete segments are only provisional and are subject to change (e.g., indicator amendments and weighting)
+
+| Nation | Strategic Cause | Vulerability | Capacity |
+| --- | --- | --- | --- |
+| England | Health Inequalities | :heavy_check_mark: | Under development |
+| England | Disasters & Emergencies | Under development | Under development |
+| Scotland | Health Inequalities | :heavy_check_mark: | :x: |
+| Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: |
+| Wales | Health Inequalities | Under development | :x: |
+| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: |
+| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
+| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | Under development |
+
+
 ## Links
 **Dashboard**:
 
