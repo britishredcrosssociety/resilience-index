@@ -76,6 +76,8 @@ msoa_shmi <- open_trusts |>
   left_join(lookup_trust_msoa, by = "trust_code") |>
   mutate(weighted = `SHMI value` * proportion)
 
+save <- msoa_shmi |>
+  filter(msoa_code == "E02004566")
 # Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a msoa attending
 # a trust for only non-specialist acute trusts and calculate proportions that way? Need to chat over with team if this makes sense.
 

@@ -17,19 +17,18 @@ raw_providers <-
     sheet = "Providers"
   )
 
-# Commented out reading in locations and takes very long time
+# Commented out reading in locations and takes very long time to load
 # raw_locations <-
 #   read_ods(
 #     tf,
 #     sheet = "Locations"
 #   )
 
+# Check social care orgs -----
 
-# Investigate the "Provider Type" & "Provider Primary Inspection Category"
 raw_providers |>
-  distinct(`Provider Type`, `Provider Primary Inspection Category`) |>
-  arrange(`Provider Type`)
-# To investigate these different categories
+  filter(`Provider Type` == "Social Care Org")
+# Only 1 provider in data
 
 
 # NHS trusts CQC ratings -----
@@ -52,7 +51,7 @@ cqc_nhs_trusts_overall |>
   filter(rating_count > 1)
 # Check ok
 
-# NHS TRUST table in geographr package -----
+# NHS Trust table in geographr package -----
 
 # Create trust lookup of open trusts
 open_trusts <-
@@ -74,11 +73,13 @@ trusts_missing_cqc_score <- open_trusts |>
 points_nhs_trusts |>
   as_tibble() |>
   filter(nhs_trust_code %in% trusts_missing_cqc_score)
+# 5 Trusts with no score
 
 # Check of any trusts that are in the CQC ratings but not in open trusts
 cqc_score_trusts_not_matched <- cqc_nhs_trusts_overall |>
   anti_join(open_trusts, by = c("Provider ID" = "trust_code")) |>
   pull(`Provider ID`)
+# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ") - also in deaths data
 
 # Check not in full trusts table (i.e. maybe closed)
 points_nhs_trusts |>
@@ -95,21 +96,28 @@ raw_non_nhs_codes <-
   )
 
 raw_non_nhs_codes |>
-  filter(Code %in% cqc_score_trusts_not_matched)
-
-# Check deactivated locations data --------
-
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Deactivated_locations.ods", "ods")
-
-raw_deactivated <-
-  read_ods(
-    tf,
-    sheet = "Deactivated_Locations"
-  )
+  filter(Code %in% cqc_score_trusts_not_matched)  |>
+  select(Code, Organisation)
 
 
-# Social care orgs -----
+# Trust to MSOA lookup ----
 
-cqc_social_overall <- raw_providers |>
-  filter(`Provider Type` == "Social Care Org")
-# Only 1
+msoa_rating <- open_trusts |>
+  left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
+  left_join(lookup_trust_msoa, by = "trust_code")
+
+# Check missing in Trust to MSOA look up
+
+cqc_nhs_trusts_overall |>
+  anti_join(lookup_trust_msoa, by = c("Provider ID" = "trust_code"))
+# 76 Trusts missing from the lookup
+
+# TO DO: Discuss workaround to missing Trust to MSOA look up
+
+# Aggregate rating to MSOA level
+
+# Team discussion on method to aggregate ratings to MSOA level:
+# The ratings are on a scale: "Outstanding" , “Good" , "Requires improvement" , "Inadequate" (and “Insufficient evidence to rate”). 
+# Will convert “Insufficient evidence to rate” to NA but discussed converting rest to numeric and averaging will 'average out' areas with low performing providers (like with extnet method when aggregate from MSOA to LA)
+# Discussed more heavily weighting lower ratings - 
+# 
