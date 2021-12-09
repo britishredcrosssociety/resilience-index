@@ -5,6 +5,18 @@ library(readxl)
 
 source("R/utils.R")
 
+lookup <-
+  lookup_sa_soa_lgd |>
+  select(
+    sa_code,
+    lad_code = lgd_code
+  )
+
+pop_lad <-
+  population_lad |>
+  select(lad_code, total_population) |>
+  filter(str_detect(lad_code, "^N"))
+
 # ---- Load population data for Northern Ireland's Small Areas ----
 # Source: https://www.nisra.gov.uk/publications/2018-mid-year-population-estimates-small-areas
 tf <-
@@ -19,12 +31,12 @@ pop_raw <-
     sheet = "Flat"
   )
 
-pop <-
-  pop_raw |> 
-  filter(Year == max(pop_ni$Year)) |> 
-  select(SA2011 = Area_Code, `All Ages` = MYE)
+pop_sa <-
+  pop_raw |>
+  filter(Year == max(pop_raw$Year)) |>
+  select(sa_code = Area_Code, pop_sa = MYE)
 
-# ---- Load Northern Ireland flood risk map ----
+# ---- Load Northern Ireland flood risk map area ----
 # NI flood map file was created in QGIS and can't be downloaded - so this code must be run
 #
 # Steps to reproduce this file (with huge thanks to Nick McWilliam from MapAction (@nickmcw)):
@@ -62,12 +74,32 @@ pop <-
 floods_raw <-
   read_sf("data/on-disk/ni-floods/NI small areas in flood risk zones.shp")
 
-floods_transform_crs <-
-  st_transform(floods_raw, crs = 4326)
+flood_areas <-
+  floods_raw |>
+  st_drop_geometry() |>
+  select(sa_code = SA2011)
 
-# ---- Keep only OAs that intersect with the flood risk areas ----
-areas_at_risk <- 
-  floods_transform_crs |> 
-  left_join(pop, by = "SA2011") |> 
-  rename(OA11CD = SA2011, LSOA11CD = SOA2011) |> 
-  st_drop_geometry()
+# ---- Calcualte flood risks ----
+# The flood_areas data set provides a list of SA2011 areas that are at risk
+# of flooding. Calculate the number of people that live in these areas as a
+# proportion of the higher coterminous Local Authority area population.
+flood_areas_pop <-
+  flood_areas |>
+  left_join(pop_sa) |>
+  rename(pop_at_risk = pop_sa)
+
+pop_at_risk <-
+  lookup |>
+  left_join(flood_areas_pop) |>
+  replace_na(list(pop_at_risk = 0)) |>
+  group_by(lad_code) |>
+  summarise(pop_at_risk = sum(pop_at_risk))
+
+proportion_at_risk <-
+  pop_at_risk |>
+  left_join(pop_lad) |>
+  mutate(flood_risk_proportion = pop_at_risk / total_population) |>
+  select(lad_code, flood_risk_proportion)
+
+proportion_at_risk |>
+  write_rds("data/shocks/disasters-emergencies/northern-ireland/floods.rds")
