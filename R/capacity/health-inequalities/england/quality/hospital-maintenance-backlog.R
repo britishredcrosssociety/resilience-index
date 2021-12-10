@@ -5,7 +5,7 @@ library(sf)
 library(readODS)
 
 source("R/utils.R") # for download_file()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types codeto create open_trust_types.feather
 
 # There was trust level data for 'Investment to reduce backlog maintenance (£)' but investment != cost and so have used the site level data for
 # 'Cost to eradicate high risk backlog (£)' and aggregated the cost up to trust level
