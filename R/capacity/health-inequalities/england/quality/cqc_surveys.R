@@ -5,12 +5,13 @@ library(sf)
 library(readODS)
 
 source("R/utils.R") # for download_file()
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # Info ----
 
 # Number of surveys on CQC site: https://www.cqc.org.uk/publications/surveys/surveys
 # Some are for 2020: 1. adult inpatient, 2. urgent & emergency care, 3. COVID inpatient, 4. Community mental health
-# As at 11/21 others further in past (and so not included): 1. Maternity (2019), 2, Children & young people (2018), 3. Ambulance (2013/14), 4. Outpatient (2011) 
+# As at 11/21 others further in past (and so not included): 1. Maternity (2019), 2, Children & young people (2018), 3. Ambulance (2013/14), 4. Outpatient (2011)
 # The COVID inpatient survey did not split by trust so have not included.
 
 # IMPORTANT NOTE: Documentation states some of the currently out of date surveys will become available for 2020 at end of 2021 so might able to be added to the RI https://www.cqc.org.uk/sites/default/files/20211020%20Website%20forward%20programme%20v89.odt
@@ -24,7 +25,7 @@ source("R/utils.R") # for download_file()
 # The survey questions can be found linked in the 'Further information' section of the front page of the datasets (then 'Survey Materials' section of linked page)
 
 # Notes on the trust level scores:
-# Weights were calculated to adjust for any variation between trusts that resulted from differences in the age, sex and route of admission groupings of respondents. 
+# Weights were calculated to adjust for any variation between trusts that resulted from differences in the age, sex and route of admission groupings of respondents.
 # The reason for weighting the data was that respondents may answer questions differently, depending on certain characteristics
 
 
@@ -35,12 +36,11 @@ source("R/utils.R") # for download_file()
 #'
 #' @param url url to data download (assumes ODS file)
 #' @param question_num Which question in the survey is the ‘overall’ question
-#' @param question_coding Which encoding used in the sheet (for outpatient_minor_inj seems to be 't1', 't2' etc. rather than 'q1' etc. which is what is meant to be from the key) 
+#' @param question_coding Which encoding used in the sheet (for outpatient_minor_inj seems to be 't1', 't2' etc. rather than 'q1' etc. which is what is meant to be from the key)
 #' @param category What survey is it (mental health etc.) so can have in column names
 
 
 survey_data_download <- function(url, question_num, sheet_name, question_coding, category) {
-  
   tf <- download_file(url, "ods")
 
   raw <-
@@ -51,18 +51,18 @@ survey_data_download <- function(url, question_num, sheet_name, question_coding,
 
   q_col_name <- paste0(question_coding, question_num)
   new_num_respon_name <- paste0("num_respon_", category)
-  
+
   subset_data <- raw |>
     rename_with(tolower) |>
     select(`trustcode`, `trustname`, `n_tpat`, contains(q_col_name)) |>
     rename(!!new_num_respon_name := `n_tpat`) |>
-    rename_with(str_replace_all, pattern = q_col_name, replacement =  category)
-    
+    rename_with(str_replace_all, pattern = q_col_name, replacement = category)
+
   return(subset_data)
-  
 }
 
 # Download survey datasets ----
+
 inpatient_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210917%20IP20%20Trust-level%20benchmark%20ODS%20V1.ods", 45, "Trust_Scores", "q", "inp")
 mental_health_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20201124_cmh20_trustresults.ods", 35, "CMH20_Trust_Scores", "q", "mh")
 
@@ -74,72 +74,8 @@ outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/defau
 
 # NHS Trusts table in geographr package -----
 
-# Create trust lookup of open trusts
-open_trusts <-
-  points_nhs_trusts |>
-  as_tibble() |>
-  filter(status == "open") |>
-  select(
-    trust_code = nhs_trust_code
-  )
-
-# Join data survey data to open trust data --------
-
-combined_survey_data <- open_trusts |>
-  left_join(inpatient_survey, by = c("trust_code" = "trustcode")) |>
-  left_join(mental_health_survey, by = c("trust_code" = "trustcode")) |>
-  left_join(outpatient_ae, by = c("trust_code" = "trustcode")) |>
-  left_join(outpatient_minor_inj, by = c("trust_code" = "trustcode"))
-
-# Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
-
-# Checking the types of trusts that have missing data for each category ---
-
-# Downloading CQC rating data as has information on what is the primary type of care trust provides 
-# This is used to check against the trusts with no survey data for each survey type
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
-
-raw_providers <-
-  read_ods(
-    tf,
-    sheet = "Providers",
-  )
-
-trust_categories <- raw_providers |>
-  select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
-  distinct()
-
-# Check missing data for each category
-combined_survey_data |>
-  select(trust_code, starts_with("num_respon")) |>
-  left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
-  group_by(`Provider Primary Inspection Category`) |>
-  summarise(across(where(is.numeric), ~sum(!is.na(.x))), count = n())
-
-
-# Combining the survey scores ---
-
-# Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores - or maybe this is overkill. 
-# Will combine the means for just now 
-
-avg_survey_scores <- combined_survey_data |>
-  select(trust_code, meaninp, meanmh, meanae, meanmin) |>
-  mutate(avg_survey_score = rowSums(across(where(is.numeric)), na.rm = T)/rowSums(!is.na(across(where(is.numeric))))) |>
-  select(trust_code, avg_survey_score)
-# Ambulance services primary providers haven't completed any of the surveys since they don't provide any of the services in the 4 surveys currently including.
-
-# Combining the survey scores ---
-
-# NHS Trust table in geographr package -----
-
-# Create trust lookup of open trusts
-open_trusts <-
-  points_nhs_trusts |>
-  as_tibble() |>
-  filter(status == "open") |>
-  select(
-    trust_code = nhs_trust_code
-  )
+# Load in open trusts table created in trust_types.R
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 # Check the matching of survey data & trust table in geographr package --------
 
@@ -151,24 +87,86 @@ avg_survey_scores |>
   anti_join(open_trusts, by = c("trust_code"))
 # all matched
 
-# Join survey to open trusts ---
+# Join data survey data to open trust data --------
 
-open_surveys <- open_trusts |>
-  left_join(avg_survey_scores, by = c("trust_code")) 
+combined_survey_data <- open_trusts |>
+  left_join(inpatient_survey, by = c("trust_code" = "trustcode")) |>
+  left_join(mental_health_survey, by = c("trust_code" = "trustcode")) |>
+  left_join(outpatient_ae, by = c("trust_code" = "trustcode")) |>
+  left_join(outpatient_minor_inj, by = c("trust_code" = "trustcode"))
 
+# Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
+
+# Checking the types of trusts that have missing data for each category --------
+
+# Downloading CQC rating data as has information on what is the primary type of care trust provides
+# This is used to check against the trusts with no survey data for each survey type
+
+# Check missing data for each category
+combined_survey_data |>
+  select(trust_code, `Provider Primary Inspection Category`, starts_with("num_respon")) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(across(where(is.numeric), ~ sum(!is.na(.x))), count = n())
+
+# Ambulance services primary providers haven't completed any of the surveys since they don't provide any of the services in the 4 surveys currently including.
+
+# Combining the survey scores ---------
+
+# Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores - or maybe this is overkill?
+# Will combine the means for just now (consider if medians would be more appropriate)
+avg_survey_scores <- combined_survey_data |>
+  select(trust_code, `Provider Primary Inspection Category`, meaninp, meanmh, meanae, meanmin) |>
+  mutate(avg_survey_score = rowSums(across(where(is.numeric)), na.rm = T) / rowSums(!is.na(across(where(is.numeric)))))
+
+avg_survey_scores |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
+# some trusts have no survey score (consider after join on MSOA lookup)
 
 # Trust to MSOA (then to LA) lookup ----
-# Think about effect of not all trusts data being available
 
-open_surveys |>
-  left_join(lookup_trust_msoa, by = "trust_code") |>
-  filter(is.na(msoa_code)) 
+# Trust to MSOA table only has data for acute trusts
+avg_survey_scores |>
+  left_join(lookup_trust_msoa) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
-# Check if any trusts not in lookup table
-open_surveys  |>
-  anti_join(lookup_trust_msoa) |>
-  distinct(trust_code) |>
-  print(n = Inf)
+# Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
+# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
+avg_survey_scores_full <- avg_survey_scores |>
+  inner_join(lookup_trust_msoa, by = "trust_code")
 
-# TO DO: Missing trusts in the msoa lookup - to be discussed
+# Check is any of acute trusts don't have a survey score
+avg_survey_scores_full |>
+  distinct(trust_code, `Provider Primary Inspection Category`, avg_survey_score) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
+# 20% of specialists trusts (i.e. 3 trusts) have no survey score - affected 2.5k MSOAs they map into
 
+
+# Re-proportion for the trusts with no data
+# TO DO: get this checked
+avg_survey_scores_reprop <- avg_survey_scores_full |>
+  filter(!is.na(avg_survey_score)) |>
+  group_by(msoa_code) |>
+  mutate(denominator_msoa = sum(proportion)) |>
+  mutate(reweighted_proportion = proportion / denominator_msoa)
+
+avg_survey_scores_msoa <- avg_survey_scores_reprop |>
+  mutate(avg_survey_score_prop = avg_survey_score * reweighted_proportion) |>
+  group_by(msoa_code) |>
+  summarise(avg_score_msoa = sum(avg_survey_score_prop))
+
+msoa_pop <- geographr::population_msoa |>
+  select(msoa_code, total_population)
+
+rating_lad <- avg_survey_scores_msoa |>
+  left_join(lookup_msoa_lad) |>
+  left_join(msoa_pop) |>
+  calculate_extent(
+    var = avg_score_msoa,
+    higher_level_geography = lad_code,
+    population = total_population
+  ) 
+
+# TO DO: Think about the combining of the scores (i.e. averaging of averages) as CI is also available.

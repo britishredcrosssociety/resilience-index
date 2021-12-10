@@ -1,8 +1,3 @@
-# TODO:
-# 1. Inspect different data sets and choose most appropriate
-# 2. Make sure locum/agency spend is separated and not captured in the data to
-#    differentiate the two types of care.
-
 # Load packages
 library(tidyverse)
 library(geographr)
@@ -16,7 +11,6 @@ source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run
 # Both FTE and total headcount is available - FTE is likely more representative
 
 tf <- download_file("https://files.digital.nhs.uk/F5/8ADE23/NHS%20Workforce%20Statistics%2C%20May%202021%20England%20and%20Organisation.xlsx", "xlsx")
-
 
 raw_fte <-
   read_excel(
@@ -77,17 +71,19 @@ fte_staff_msoa <- open_trusts |>
   group_by(msoa_code) |>
   summarise(fte_staff_per_msoa = sum(fte_staff_prop))
 
+msoa_pop <- geographr::population_msoa |>
+  select(msoa_code, total_population)
+
 fte_staff_lad <- fte_staff_msoa |>
   left_join(lookup_msoa_lad) |>
-  group_by(lad_code) |>
-  summarise(fte_staff_per_lad = sum(fte_staff_per_msoa))
+  left_join(msoa_pop) |>
+  calculate_extent(
+    var = fte_staff_per_msoa,
+    higher_level_geography = lad_code,
+    population = total_population
+  ) 
 
-pop_lad <- population_lad |>
-  select(lad_code, pop = total_population)
-
-fte_staff_lad_per_capita <- fte_staff_lad |>
-  left_join(pop_lad) |>
-  mutate(fte_staff_per_capita = fte_staff_per_lad / pop * 100) |>
-  select(lad_code, fte_staff_per_capita)
 
 # TO DO: check about staff definition and also CCG staff
+# (Mike's note) Make sure locum/agency spend is separated and not captured in the data to
+#    differentiate the two types of care.

@@ -5,7 +5,7 @@ library(sf)
 library(readODS)
 
 source("R/utils.R") # for download_file()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types codeto create open_trust_types.feather
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # There was trust level data for 'Investment to reduce backlog maintenance (£)' but investment != cost and so have used the site level data for
 # 'Cost to eradicate high risk backlog (£)' and aggregated the cost up to trust level
@@ -42,7 +42,7 @@ site_agg_columns <- site_agg |>
   select(`Trust Code`, `Cost to eradicate high risk backlog (£)`)
 
 
-# NHS TRUST table in geographr package -----
+# NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
@@ -50,11 +50,9 @@ open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust
 
 # Check the matching of cost data & trust table in geographr package --------
 
-# Check which trusts are in geographr package and not cost data --
-
+# Check which trusts are in geographr package and not cost data 
 # In quality report (https://files.digital.nhs.uk/4E/5A51F9/ERIC-201920%20-%20Data%20Quality%20Report%20v5.pdf) says 'All 224 trusts required to complete an ERIC return in 2019/20 did so.'
 # And there are 224 trusts in the raw data
-
 high_risk_cost_open <- open_trusts |>
   left_join(site_agg_columns, by = c("trust_code" = "Trust Code"))
 
@@ -101,22 +99,18 @@ high_risk_cost_msoa <- high_risk_cost_open |>
   group_by(msoa_code) |>
   summarise(cost_per_msoa = sum(cost_prop))
 
-high_risk_cost_lad <-
-  high_risk_cost_msoa |>
+msoa_pop <- geographr::population_msoa |>
+  select(msoa_code, total_population)
+
+high_risk_cost_lad <- high_risk_cost_msoa |>
   left_join(lookup_msoa_lad) |>
-  group_by(lad_code) |>
-  summarise(cost_per_lad = sum(cost_per_msoa))
-
-pop_lad <-
-  population_lad |>
-  select(lad_code, pop = total_population)
-
-high_risk_cost_lad_per_capita <-
-  high_risk_cost_lad |>
-  left_join(pop_lad) |>
-  mutate(cost_per_capita = cost_per_lad / pop * 100) |>
-  select(lad_code, cost_per_capita)
+  left_join(msoa_pop) |>
+  calculate_extent(
+    var = cost_per_msoa,
+    higher_level_geography = lad_code,
+    population = total_population
+  ) 
 
 # Save ----
-high_risk_cost_lad_per_capita |>
+high_risk_cost_lad |>
   write_rds("data/capacity/health-inequalities/england/hospital_maintanance_backlog_cost.rds")

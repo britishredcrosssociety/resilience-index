@@ -10,7 +10,7 @@ source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory 
 # Download the data
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
+tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_December_2021_Latest_ratings.ods", "ods")
 
 raw_providers <-
   read_ods(
@@ -103,7 +103,7 @@ rating_msoa <- open_trusts |>
 # TO DO: Look into different method of weighting to more heavily weight poorer performing
 # (So have code to amend later will convert ordinal to numeric and average)
 
-rating_msoa_numeric <- msoa_rating |> 
+rating_msoa_numeric <- rating_msoa |> 
   mutate(rating_numeric =  recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
   group_by(msoa_code) |>
   summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric))/n())
@@ -111,12 +111,19 @@ rating_msoa_numeric <- msoa_rating |>
 # Check if any MSOA have a high prop of missing as may be better to keep as NA rather than take single value as the average
 rating_msoa_numeric |>
   arrange(desc(prop_missing))
+
+msoa_pop <- geographr::population_msoa |>
+  select(msoa_code, total_population)
     
-rating_lad <-
-  rating_msoa_numeric |>
+rating_lad <- rating_msoa_numeric |>
+  select(msoa_code, avg_rating) |>
   left_join(lookup_msoa_lad) |>
-  group_by(lad_code) |>
-  summarise(avg_rating = mean(avg_rating))
+  left_join(msoa_pop) |>
+  calculate_extent(
+    var = avg_rating,
+    higher_level_geography = lad_code,
+    population = total_population
+  ) 
 
 
 # TO DO: Look into different method of weighting to more heavily weight poorer performing
