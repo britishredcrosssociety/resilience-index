@@ -5,29 +5,17 @@ library(httr)
 library(geographr)
 
 source("R/utils.R")
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
-# Load trust to LAD mappings from covid19.nhs.data package
-# Trust map to LADs in a many-to-one fashion, with the proportion denoted by
-# the p_geo column. See: https://epiforecasts.io/covid19.nhs.data/articles/mapping_summary.html
-trust_lad <-
-  trust_ltla_mapping %>%
-  ungroup() %>%
-  rename(lad_code = geo_code) %>%
-  select(-p_trust)
+# NHS Trust table in geographr package -----
 
-# Source:
-# - https://www.england.nhs.uk/statistics/statistical-work-areas/bed-availability-and-occupancy/
+# Load in open trusts table created in trust_types.R
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Date: Jan-March 2021
 
-# Note: In general hospitals will experience capacity pressures at lower overall
-# occupancy rates than would previously have been the case.
 
 # - Night -
-GET(
-  "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Overnight-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx",
-  write_disk(tf <- tempfile(fileext = ".xlsx"))
-)
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Overnight-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
 
 beds_nights_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
 
@@ -63,10 +51,7 @@ beds_nights_formatted <-
   )
 
 # - Day -
-GET(
-  "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx",
-  write_disk(tf <- tempfile(fileext = ".xlsx"))
-)
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
 
 beds_days_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
 
@@ -122,22 +107,43 @@ beds_mean <-
   select(trust_code, beds_occupied) %>%
   drop_na()
 
-# Calculate the expected mean occupancy bed rate at the LTLA level.
-# This can be calculated as the sum of bed occupancy rates weighted by the
-# proportion of the LTLA population they serve.
-trust_lad_beds <-
-  trust_lad %>%
-  left_join(beds_mean, by = "trust_code")
 
-lad_bed_occupany <-
-  trust_lad_beds %>%
-  mutate(p_occupied = p_geo * beds_occupied) %>%
-  group_by(lad_code) %>%
-  summarise(mean_bed_occupany = sum(p_occupied))
+# Join trust to MSOA lookup --------
 
-# TODO:
-# - Revisit the Trust-LTLA mapping. The epiforecasts method is both (i) missing
-#   lots of trusts (is this because it only uses acute trusts?) that contain bed
-#   occupancy data and (ii) is probably not entirely appropriate to use as the
-#   proportion estimates are based off covid admissions, which likely differ
-#   from non-covid admissions. Potential solution: https://github.com/VictimOfMaths/COVID-19/issues/7
+# Trust to MSOA table only has data for acute trusts
+open_trusts |>
+  left_join(beds_mean) |>
+  left_join(lookup_trust_msoa) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
+
+# Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
+# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
+
+beds_weights <- open_trusts |>
+  left_join(beds_mean) |>
+  inner_join(lookup_trust_msoa) |>
+  mutate(beds_prop = beds_occupied * proportion) 
+
+beds_msoa <- beds_weights |>
+  group_by(msoa_code) |>
+  summarise(beds_per_msoa = sum(beds_prop))
+
+# Check distributions
+summary(beds_msoa)
+summary(beds_mean)
+
+msoa_pop <- geographr::population_msoa |>
+  select(msoa_code, total_population)
+
+beds_lad <- beds_msoa  |>
+  left_join(lookup_msoa_lad) |>
+  left_join(msoa_pop) |>
+  calculate_extent(
+    var = beds_per_msoa,
+    higher_level_geography = lad_code,
+    population = total_population
+  ) 
+
+# TO DO: Ask if proportion of available better measure than the number of available beds proportioned to population
+# since could be a high prop but a low number
