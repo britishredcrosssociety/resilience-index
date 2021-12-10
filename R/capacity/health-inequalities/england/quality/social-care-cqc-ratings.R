@@ -6,6 +6,7 @@ library(readxl)
 library(sf)
 
 source("R/utils.R") # for download_file()
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory 
 # Download the data
@@ -16,13 +17,6 @@ raw_providers <-
     tf,
     sheet = "Providers"
   )
-
-# Commented out reading in locations and takes very long time to load
-# raw_locations <-
-#   read_ods(
-#     tf,
-#     sheet = "Locations"
-#   )
 
 # Check social care orgs -----
 
@@ -51,16 +45,17 @@ cqc_nhs_trusts_overall |>
   filter(rating_count > 1)
 # Check ok
 
+# Check spread of scores
+cqc_nhs_trusts_overall |>
+  group_by(`Latest Rating`) |>
+  summarise(prop = round(n()/nrow(cqc_nhs_trusts_overall), 2))
+
+
 # NHS Trust table in geographr package -----
 
-# Create trust lookup of open trusts
-open_trusts <-
-  points_nhs_trusts |>
-  as_tibble() |>
-  filter(status == "open") |>
-  select(
-    trust_code = nhs_trust_code
-  )
+# Load in open trusts table created in trust_types.R
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+
 
 # Check the matching of CQC scores & trust table in geographr package --------
 
@@ -73,51 +68,56 @@ trusts_missing_cqc_score <- open_trusts |>
 points_nhs_trusts |>
   as_tibble() |>
   filter(nhs_trust_code %in% trusts_missing_cqc_score)
-# 5 Trusts with no score
+# 5 Trusts with no score - R0D, RQF, RT4, RW6, RYT
 
 # Check of any trusts that are in the CQC ratings but not in open trusts
 cqc_score_trusts_not_matched <- cqc_nhs_trusts_overall |>
   anti_join(open_trusts, by = c("Provider ID" = "trust_code")) |>
   pull(`Provider ID`)
-# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ") - also in deaths data
+
+cqc_score_trusts_not_matched
+# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ") 
 
 # Check not in full trusts table (i.e. maybe closed)
 points_nhs_trusts |>
   as_tibble() |>
   filter(nhs_trust_code %in% cqc_score_trusts_not_matched)
 
-# Can't find landing page of the dataset but found through searching missing trust codes
-# https://www.england.nhs.uk/wp-content/uploads/2014/11/nhs-non-nhs-ods-codes.xlsx
-tf <- download_file("https://www.england.nhs.uk/wp-content/uploads/2014/11/nhs-non-nhs-ods-codes.xlsx", "xlsx")
-
-raw_non_nhs_codes <-
-  read_excel(
-    tf
-  )
-
-raw_non_nhs_codes |>
-  filter(Code %in% cqc_score_trusts_not_matched)  |>
-  select(Code, Organisation)
-
 
 # Trust to MSOA lookup ----
 
-msoa_rating <- open_trusts |>
+# Trust to MSOA table only has data for acute trusts
+open_trusts |>
   left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
-  left_join(lookup_trust_msoa, by = "trust_code")
+  left_join(lookup_trust_msoa, by = "trust_code") |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
-# Check missing in Trust to MSOA look up
+# Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
+# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
-cqc_nhs_trusts_overall |>
-  anti_join(lookup_trust_msoa, by = c("Provider ID" = "trust_code"))
-# 76 Trusts missing from the lookup
+rating_msoa <- open_trusts |>
+  left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
+  inner_join(lookup_trust_msoa, by = "trust_code")
 
-# TO DO: Discuss workaround to missing Trust to MSOA look up
+# TO DO: Look into different method of weighting to more heavily weight poorer performing
+# (So have code to amend later will convert ordinal to numeric and average)
 
-# Aggregate rating to MSOA level
+rating_msoa_numeric <- msoa_rating |> 
+  mutate(rating_numeric =  recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
+  group_by(msoa_code) |>
+  summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric))/n())
 
-# Team discussion on method to aggregate ratings to MSOA level:
-# The ratings are on a scale: "Outstanding" , “Good" , "Requires improvement" , "Inadequate" (and “Insufficient evidence to rate”). 
-# Will convert “Insufficient evidence to rate” to NA but discussed converting rest to numeric and averaging will 'average out' areas with low performing providers (like with extnet method when aggregate from MSOA to LA)
-# Discussed more heavily weighting lower ratings - 
-# 
+# Check if any MSOA have a high prop of missing as may be better to keep as NA rather than take single value as the average
+rating_msoa_numeric |>
+  arrange(desc(prop_missing))
+    
+rating_lad <-
+  rating_msoa_numeric |>
+  left_join(lookup_msoa_lad) |>
+  group_by(lad_code) |>
+  summarise(avg_rating = mean(avg_rating))
+
+
+# TO DO: Look into different method of weighting to more heavily weight poorer performing
+  

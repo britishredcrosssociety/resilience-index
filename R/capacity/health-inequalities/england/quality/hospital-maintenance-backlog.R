@@ -93,7 +93,7 @@ high_risk_cost_open |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
-# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per captia level
+# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
 high_risk_cost_msoa <- high_risk_cost_open |>
   inner_join(lookup_trust_msoa) |>
