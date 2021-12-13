@@ -8,7 +8,7 @@ library(sf)
 source("R/utils.R") # for download_file()
 source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
 
-# Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory 
+# Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
 # Download the data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_December_2021_Latest_ratings.ods", "ods")
 
@@ -48,7 +48,7 @@ cqc_nhs_trusts_overall |>
 # Check spread of scores
 cqc_nhs_trusts_overall |>
   group_by(`Latest Rating`) |>
-  summarise(prop = round(n()/nrow(cqc_nhs_trusts_overall), 2))
+  summarise(prop = round(n() / nrow(cqc_nhs_trusts_overall), 2))
 
 
 # NHS Trust table in geographr package -----
@@ -76,7 +76,7 @@ cqc_score_trusts_not_matched <- cqc_nhs_trusts_overall |>
   pull(`Provider ID`)
 
 cqc_score_trusts_not_matched
-# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ") 
+# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ")
 
 # Check not in full trusts table (i.e. maybe closed)
 points_nhs_trusts |>
@@ -103,10 +103,10 @@ rating_msoa <- open_trusts |>
 # TO DO: Look into different method of weighting to more heavily weight poorer performing
 # (So have code to amend later will convert ordinal to numeric and average)
 
-rating_msoa_numeric <- rating_msoa |> 
-  mutate(rating_numeric =  recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
+rating_msoa_numeric <- rating_msoa |>
+  mutate(rating_numeric = recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
   group_by(msoa_code) |>
-  summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric))/n())
+  summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric)) / n())
 
 # Check if any MSOA have a high prop of missing as may be better to keep as NA rather than take single value as the average
 rating_msoa_numeric |>
@@ -114,7 +114,7 @@ rating_msoa_numeric |>
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
-    
+
 rating_lad <- rating_msoa_numeric |>
   select(msoa_code, avg_rating) |>
   left_join(lookup_msoa_lad) |>
@@ -123,8 +123,7 @@ rating_lad <- rating_msoa_numeric |>
     var = avg_rating,
     higher_level_geography = lad_code,
     population = total_population
-  ) 
+  )
 
 
 # TO DO: Look into different method of weighting to more heavily weight poorer performing
-  

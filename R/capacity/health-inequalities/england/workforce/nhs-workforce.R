@@ -66,7 +66,15 @@ open_trusts |>
 
 fte_staff_msoa <- open_trusts |>
   left_join(raw_fte_clean, by = c("trust_code")) |>
-  inner_join(lookup_trust_msoa) |>
+  inner_join(lookup_trust_msoa)
+
+# Check missings
+fte_staff_msoa |>
+  distinct(trust_code, `Provider Primary Inspection Category`, staff_fte) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_missing = sum(is.na(staff_fte)) / n())
+
+fte_staff_msoa_weighted <- fte_staff_msoa |>
   mutate(fte_staff_prop = staff_fte * proportion) |>
   group_by(msoa_code) |>
   summarise(fte_staff_per_msoa = sum(fte_staff_prop))
@@ -74,11 +82,17 @@ fte_staff_msoa <- open_trusts |>
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-fte_staff_lad <- fte_staff_msoa |>
+# Normalise 
+fte_staff_msoa_normalised <- fte_staff_msoa_weighted |>
+  left_join(msoa_pop) |>
+  mutate(fte_staff_rate = fte_staff_per_msoa / total_population * 100) |>
+  select(msoa_code, fte_staff_rate, total_population)
+
+fte_staff_lad <- fte_staff_msoa_normalised  |>
   left_join(lookup_msoa_lad) |>
   left_join(msoa_pop) |>
   calculate_extent(
-    var = fte_staff_per_msoa,
+    var = fte_staff_rate,
     higher_level_geography = lad_code,
     population = total_population
   ) 

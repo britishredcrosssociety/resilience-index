@@ -1,6 +1,6 @@
+#Load packages
 library(tidyverse)
 library(readxl)
-library(covid19.nhs.data)
 library(httr)
 library(geographr)
 
@@ -13,6 +13,7 @@ source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 
+# Load data ----
 
 # - Night -
 tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Overnight-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
@@ -124,6 +125,12 @@ beds_weights <- open_trusts |>
   left_join(beds_mean) |>
   inner_join(lookup_trust_msoa) |>
   mutate(beds_prop = beds_occupied * proportion) 
+
+# Check missings
+beds_weights |>
+  distinct(trust_code, `Provider Primary Inspection Category`, beds_occupied) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_missing = sum(is.na(beds_occupied)) / n())
 
 beds_msoa <- beds_weights |>
   group_by(msoa_code) |>

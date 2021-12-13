@@ -167,6 +167,7 @@ rating_lad <- avg_survey_scores_msoa |>
     var = avg_score_msoa,
     higher_level_geography = lad_code,
     population = total_population
-  ) 
+  )
 
 # TO DO: Think about the combining of the scores (i.e. averaging of averages) as CI is also available.
+# TO DO: Get the re proportioning checked (due to not all open trusts, who have a look up, not having a survey score)
