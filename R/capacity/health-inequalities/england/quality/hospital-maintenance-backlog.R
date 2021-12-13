@@ -4,7 +4,7 @@ library(geographr)
 library(sf)
 library(readODS)
 
-source("R/utils.R") # for download_file()
+source("R/utils.R") # for download_file() & calculate_extent()
 source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # There was trust level data for 'Investment to reduce backlog maintenance (£)' but investment != cost and so have used the site level data for
@@ -94,7 +94,15 @@ high_risk_cost_open |>
 # For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
 high_risk_cost_msoa <- high_risk_cost_open |>
-  inner_join(lookup_trust_msoa) |>
+  inner_join(lookup_trust_msoa) 
+
+# Check missings
+high_risk_cost_msoa |>
+  distinct(trust_code, `Provider Primary Inspection Category`, `Cost to eradicate high risk backlog (£)`) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_missing = sum(is.na(`Cost to eradicate high risk backlog (£)`)) / n())
+
+high_risk_cost_msoa_weighted <- high_risk_cost_msoa |>
   mutate(cost_prop = `Cost to eradicate high risk backlog (£)` * proportion) |>
   group_by(msoa_code) |>
   summarise(cost_per_msoa = sum(cost_prop))
@@ -102,11 +110,17 @@ high_risk_cost_msoa <- high_risk_cost_open |>
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-high_risk_cost_lad <- high_risk_cost_msoa |>
+# Normalise cost by population
+high_risk_cost_msoa_normalised <- high_risk_cost_msoa_weighted |>
+  left_join(msoa_pop) |>
+  mutate(cost_rate = cost_per_msoa / total_population * 100) |>
+  select(msoa_code, cost_rate, total_population)
+
+high_risk_cost_lad <- high_risk_cost_msoa_normalised |>
   left_join(lookup_msoa_lad) |>
   left_join(msoa_pop) |>
   calculate_extent(
-    var = cost_per_msoa,
+    var = cost_rate,
     higher_level_geography = lad_code,
     population = total_population
   ) 
