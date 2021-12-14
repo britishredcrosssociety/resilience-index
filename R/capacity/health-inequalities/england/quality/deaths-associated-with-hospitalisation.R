@@ -129,3 +129,6 @@ deaths_lad |>
 # 63% : extent = 0
 # 5%: extent = 1
 
+# Save ----
+deaths_lad |>
+  write_rds("data/capacity/health-inequalities/england/deaths-associated-with-hospitalisation.rds")
