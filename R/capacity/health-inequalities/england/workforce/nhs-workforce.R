@@ -20,17 +20,15 @@ raw_fte <-
   )
 
 
-# To check: do we want to include those not defined as 'Professionally qualified clinical staff' i.e. 'Scientific, therapeutic & technical staff', 'Support to clinical staff' & 'NHS infrastructure support'
-# Professionally qualified clinical staff: includes all HCHS doctors, qualified nurses and health visitors, midwives, qualified scientific, therapeutic and technical staff and qualified ambulance staff.
-# For now will take all staff
+# Only taking those defined as 'Professionally qualified clinical staff' (includes all HCHS doctors, qualified nurses and health visitors, midwives, qualified scientific, therapeutic and technical staff and qualified ambulance staff).
+# So excluding: 'Scientific, therapeutic & technical staff', 'Support to clinical staff' & 'NHS infrastructure support'.
 
 raw_fte_clean <- raw_fte |>
-  rename("trust_code" = "...4", "trust_name" = "...3") |>
+  rename("trust_code" = "...4", "trust_name" = "...3", "staff_fte" = "Professionally qualified clinical staff") |>
   filter(!is.na(trust_code)) %>%
-  select(trust_code, trust_name, Total) %>%
-  rename("staff_fte" = "Total")
+  select(trust_code, trust_name, staff_fte)
 
-# There is 
+# There is rows in the data for CCGs. These make up 0.7% of the total staff in the data and currently don't have a method to map these back to MSOA/LA level. 
 raw_fte_clean |>
   mutate(trust_flag = str_detect(trust_name, "NHS Trust|NHS Foundation Trust"))|>
   mutate(ccg_flag = str_detect(trust_name, "CCG")) |>
@@ -43,13 +41,13 @@ raw_fte_clean |>
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 # Check the matching of cost data & trust table in geographr package --------
-open_trust_types |>
+open_trusts |>
   anti_join(raw_fte_clean)
 # 3 trusts missing from staff data
 
 raw_fte_clean |>
-  anti_join(open_trust_types)
-# mainly CCG (and 2 Trusts) - don't currently have a way to map these to MSOA/LA
+  anti_join(open_trusts)
+# mainly CCG (and 2 Trusts) - don't currently have a way to map these to MSOA/LA (as detailed above)
 
 raw_fte_clean |>
   anti_join(open_trust_types) |>
@@ -97,14 +95,19 @@ fte_staff_msoa_normalised <- fte_staff_msoa_weighted |>
 
 fte_staff_lad <- fte_staff_msoa_normalised  |>
   left_join(lookup_msoa_lad) |>
-  left_join(msoa_pop) |>
   calculate_extent(
     var = fte_staff_rate,
     higher_level_geography = lad_code,
     population = total_population
   ) 
 
+fte_staff_lad |>
+  group_by(extent) |>
+  summarise(count = n()/nrow(fte_staff_lad)) |>
+  print(n = Inf)
+# 39% : extent = 0
+# 0.6%: extent = 1
 
-# TO DO: check about staff definition and also CCG staff
-# (Mike's note) Make sure locum/agency spend is separated and not captured in the data to
-#    differentiate the two types of care.
+# Save ----
+fte_staff_lad |>
+  write_rds("data/capacity/health-inequalities/england/nhs_workforce.rds")
