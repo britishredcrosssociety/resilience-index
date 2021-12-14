@@ -11,10 +11,7 @@ pop_lad <-
   population_lad |> 
   select(lad_code, pop = total_population)
 
-GET(
-  "https://files.digital.nhs.uk/74/93D6A1/gp-reg-pat-prac-lsoa-male-female-october-21.zip",
-  write_disk(tf <- tempfile(fileext = ".zip"))
-)
+tf <- download_file("https://files.digital.nhs.uk/74/93D6A1/gp-reg-pat-prac-lsoa-male-female-october-21.zip", ".zip")
 
 unzip(tf, exdir = tempdir())
 
@@ -59,8 +56,18 @@ lad_registrations <-
 gp_registrations <-
   lad_registrations |>
   left_join(pop_lad) |>
-  mutate(perc_registered_gp = count / pop * 100) |>
-  select(lad_code, perc_registered_gp)
+  mutate(perc_registered_gp = count / pop * 100) 
+
+
+summary(gp_registrations)
+
+gp_registrations |>
+  filter(is.na(count) | is.na(pop))
+
+gp_registrations |>
+  drop_na() |>
+  summarise(total_gp_reg = sum(count), total_pop = sum(pop))
+
 
 # TODO:
 # 1. There are four NA values in gp_registrations due to missing pop values.
