@@ -30,6 +30,13 @@ raw_fte_clean <- raw_fte |>
   select(trust_code, trust_name, Total) %>%
   rename("staff_fte" = "Total")
 
+# There is 
+raw_fte_clean |>
+  mutate(trust_flag = str_detect(trust_name, "NHS Trust|NHS Foundation Trust"))|>
+  mutate(ccg_flag = str_detect(trust_name, "CCG")) |>
+  group_by(trust_flag, ccg_flag) |>
+  summarise(count = n(), total_staff_fte = sum(staff_fte), prop = sum(staff_fte)/sum(raw_fte_clean$staff_fte))
+
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R

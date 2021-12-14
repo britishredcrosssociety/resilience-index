@@ -5,7 +5,7 @@ library(geographr)
 library(readxl)
 library(sf)
 
-source("R/utils.R") # for download_file()
+source("R/utils.R") # for download_file() & calculate_extent()
 source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
@@ -100,6 +100,12 @@ rating_msoa <- open_trusts |>
   left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
   inner_join(lookup_trust_msoa, by = "trust_code")
 
+# Check missings
+rating_msoa |>
+  distinct(trust_code, `Provider Primary Inspection Category`, `Latest Rating`) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_missing = sum(is.na(`Latest Rating`)) / n())
+
 # TO DO: Look into different method of weighting to more heavily weight poorer performing
 # (So have code to amend later will convert ordinal to numeric and average)
 
@@ -125,5 +131,8 @@ rating_lad <- rating_msoa_numeric |>
     population = total_population
   )
 
+rating_lad |>
+  group_by(extent) |>
+  summarise(count = n()/nrow(deaths_lad))
 
 # TO DO: Look into different method of weighting to more heavily weight poorer performing

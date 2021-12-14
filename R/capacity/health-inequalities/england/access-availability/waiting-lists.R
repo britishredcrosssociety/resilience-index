@@ -103,6 +103,10 @@ diagnostic_lad <-
     population = total_population
   )
 
+diagnostic_lad |>
+  group_by(extent) |>
+  summarise(count = n()/nrow(deaths_lad))
+
 # Save ----
 diagnostic_lad |>
   write_rds("data/capacity/health-inequalities/england/waiting_lists.rds")

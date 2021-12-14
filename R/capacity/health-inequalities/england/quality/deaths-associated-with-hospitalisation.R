@@ -5,6 +5,7 @@ library(readxl)
 library(sf)
 
 source("R/utils.R") # for download_file() & calculate_extent()
+source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # NHS trust deaths associated with hospitalisation -----
 # IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths
@@ -43,14 +44,9 @@ deaths_columns <- deaths_raw %>%
 
 # NHS Trust table in geographr package -----
 
-# Create trust lookup of open trusts
-open_trusts <-
-  points_nhs_trusts |>
-  as_tibble() |>
-  filter(status == "open") |>
-  select(
-    trust_code = nhs_trust_code
-  )
+# Load in open trusts table created in trust_types.R
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+
 
 # Check the matching of deaths data & trust table in geographr package --------
 
@@ -70,99 +66,66 @@ deaths_columns |>
 # Deaths related to COVID-19 are excluded from the SHMI.
 
 # Trust to MSOA (then to LA) lookup ----
-# Think about effect of not all trusts data being available
-msoa_shmi <- open_trusts |>
+
+open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
   left_join(lookup_trust_msoa, by = "trust_code") |>
-  mutate(weighted = `SHMI value` * proportion)
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
-save <- msoa_shmi |>
-  filter(msoa_code == "E02004566")
-# Since don't have all trust types in the lookup_trust_msoa table workaround is to get absolute numbers for the patients from a msoa attending
-# a trust for only non-specialist acute trusts and calculate proportions that way? Need to chat over with team if this makes sense.
+# Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
+# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
-# Below code taken and amended from https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R
-
-# Download file
-tf <- download_file("https://app.box.com/index.php?rm=box_download_shared_file&shared_name=qh8gzpzeo1firv1ezfxx2e6c4tgtrudl&file_id=f_877983829510", ".xlsx")
-
-# All admissions
-catchment_populations <-
-  read_excel(tf, sheet = "All Admissions")
-
-# Only most recent (2019) rows
-catchment_populations_columns <- catchment_populations |>
-  filter(CatchmentYear == 2019) |>
-  select(msoa, TrustCode, patients) |>
-  rename(msoa_code = msoa)
-
-# Only return acute non specialist trusts (i.e. those in the deaths dataset) and calculate the prop of acute non specialist patients for a msoa
-# that come from each particular acute non specialist trusts
-acute_nonspec_trust_msoa_trust_lookup <- catchment_populations_columns |>
-  filter(TrustCode %in% deaths_columns$`Provider code`) |>
-  group_by(msoa_code) |>
-  mutate(acute_nonspec_trust_total_patients = sum(patients)) |>
-  mutate(acute_nonspec_trust_prop = patients / acute_nonspec_trust_total_patients)
-
-# Join the proportions for weighting onto the death data and weight the shmi values
-msoa_shmi_acute_nonspec_prop_only <- open_trusts |>
+deaths_full <- open_trusts |>
   left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
-  left_join(acute_nonspec_trust_msoa_trust_lookup, by = c("trust_code" = "TrustCode")) |>
-  mutate(weighted = `SHMI value` * acute_nonspec_trust_prop)
+  inner_join(lookup_trust_msoa, by = "trust_code") |>
+  select(trust_code, `Provider Primary Inspection Category`, `Provider name`, `SHMI value`, msoa_code, proportion)
+
+# Check missings
+deaths_full |>
+  distinct(trust_code, `Provider Primary Inspection Category`, `SHMI value`) |>
+  group_by(`Provider Primary Inspection Category`) |>
+  summarise(count = n(), prop_missing = sum(is.na(`SHMI value`)) / n())
+
+# Only have death data on acute non specialist trusts (i.e. those in the deaths dataset) so re-proportion the splits and 
+# calculate the proportion  of acute non-specialist patients for a msoa that come from each particular acute non specialist trusts
+
+# Re-proportion for the trusts with no data
+deaths_full_reprop <- deaths_full |>
+  filter(!is.na(`SHMI value`)) |>
+  group_by(msoa_code) |>
+  mutate(denominator_msoa = sum(proportion)) |>
+  mutate(reweighted_proportion = proportion / denominator_msoa) |>
+  mutate(weighted_shmi = reweighted_proportion * `SHMI value`)
+
 
 # Aggregate up to MSOA level
-msoa_shmi_acute_nonspec_prop_only_weighted <- msoa_shmi_acute_nonspec_prop_only |>
+deaths_msoa <- deaths_full_reprop |>
   group_by(msoa_code) |>
-  mutate(shmi_averaged = sum(weighted, na.rm = T)) |>
-  ungroup() |>
-  select(msoa_code, shmi_averaged) |>
-  distinct()
+  summarise(shmi_averaged = sum(weighted_shmi, na.rm = T)) 
+
+# Check distributions
+summary(deaths_columns$`SHMI value`)
+summary(deaths_msoa)
 
 # Get MSOA pop
 msoa_pop <-
   population_msoa |>
   select(msoa_code, total_population)
 
-# Join on MSOA to LAD look up
-shmi_acute_nonspec_prop_only_lad <-
-  msoa_shmi_acute_nonspec_prop_only_weighted |>
+# Join on MSOA to LAD look up & aggreagte up to LAD
+deaths_lad <-  deaths_msoa |>
   left_join(lookup_msoa_lad, by = "msoa_code") |>
-  left_join(msoa_pop, by = "msoa_code")
-
-# Aggregate to LAD ----
-shmi_extent_lad <-
-  shmi_acute_nonspec_prop_only_lad |>
+  left_join(msoa_pop, by = "msoa_code") |>
   calculate_extent(
     var = shmi_averaged,
     higher_level_geography = lad_code,
     population = total_population
   )
 
+deaths_lad |>
+  group_by(extent) |>
+  summarise(count = n()/nrow(deaths_lad))
 # 63% : extent = 0
 # 5%: extent = 1
 
-###################################################
-
-## Extra checks  ----
-# Downloading CQC rating data as has information on what is the primary type of care trust provides ---
-# This is used to check against the trusts with no death data
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_November_2021_Latest_ratings.ods", "ods")
-
-raw_providers <-
-  read_ods(
-    tf,
-    sheet = "Providers",
-  )
-
-trust_categories <- raw_providers |>
-  select(`Provider ID`, `Provider Name`, `Provider Type`, `Provider Primary Inspection Category`) |>
-  distinct()
-
-combined_table <- open_trusts |>
-  left_join(trust_categories, by = c("trust_code" = "Provider ID")) |>
-  left_join(deaths_columns, by = c("trust_code" = "Provider code"))
-
-# Check missing death data for each care category
-combined_table |>
-  group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), count_death_data = sum(!is.na(`SHMI value`)))

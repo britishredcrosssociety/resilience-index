@@ -57,7 +57,7 @@ high_risk_cost_open <- open_trusts |>
   left_join(site_agg_columns, by = c("trust_code" = "Trust Code"))
 
 trusts_missing_maint_backlog <- high_risk_cost_open |>
-  keep_na() |>
+  filter(is.na(`Cost to eradicate high risk backlog (£)`)) |>
   pull(trust_code)
 
 points_nhs_trusts |>
@@ -75,11 +75,8 @@ points_nhs_trusts |>
 trusts_missing_geographr <- site_agg_columns |>
   anti_join(open_trusts, by = c("Trust Code" = "trust_code"))
 
-trusts_open_closed <- points_nhs_trusts |>
-  as_tibble()
-
 trusts_missing_geographr |>
-  left_join(trusts_open_closed, by = c("Trust Code" = "nhs_trust_code"))
+  left_join(points_nhs_trusts, by = c("Trust Code" = "nhs_trust_code"))
 # 5 are closed ones and then 10 remaining - TAD, TAF, TAH, TAJ, RA3, RBA, RC1, RDD, RQ6, RQ8
 
 # Join trust to MSOA lookup --------
