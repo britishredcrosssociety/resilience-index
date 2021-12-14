@@ -1,4 +1,4 @@
-#Load packages
+# Load packages
 library(tidyverse)
 library(readxl)
 library(httr)
@@ -16,104 +16,68 @@ open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust
 # Load data ----
 
 # - Night -
-tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Overnight-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/11/Beds-Open-Overnight-Web_File-Q4-2020-21-Final-1.xlsx", ".xlsx")
 
-beds_nights_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
+avial_beds_nights_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
 
 # remove first two entries (one is totals, other is blank)
-beds_nights_sliced <-
-  beds_nights_raw %>%
+avial_beds_nights_sliced <-
+  avial_beds_nights_raw %>%
   slice(-(1:2))
 
 # Select cols
-beds_nights_selected <-
-  beds_nights_sliced %>%
+avial_beds_nights_selected <-
+  avial_beds_nights_sliced %>%
   select(
     trust_code = `Org Code`,
-    percentage_occupied_night = Total...18,
+    available_night = Total...6,
   )
 
-# Replace '-' character with NA
-beds_nights_na <-
-  beds_nights_selected %>%
-  mutate(
-    percentage_occupied_night = str_replace_all(
-      percentage_occupied_night,
-      "-",
-      NA_character_
-    )
-  )
-
-# Change col to double
-beds_nights_formatted <-
-  beds_nights_na %>%
-  mutate(
-    percentage_occupied_night = as.double(percentage_occupied_night)
-  )
 
 # - Day -
-tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/avial_beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
 
-beds_days_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
+avial_beds_days_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
 
 # remove first two entries (one is totals, other is blank)
-beds_days_sliced <-
-  beds_days_raw %>%
+avial_beds_days_sliced <-
+  avial_beds_days_raw %>%
   slice(-(1:2))
 
 # Select cols
-beds_days_selected <-
-  beds_days_sliced %>%
+avial_beds_days_selected <-
+  avial_beds_days_sliced %>%
   select(
     trust_code = `Org Code`,
-    percentage_occupied_day = Total...18,
+    available_day = Total...6,
   )
 
-# Replace '-' character with NA
-beds_days_na <-
-  beds_days_selected %>%
-  mutate(
-    percentage_occupied_day = str_replace_all(
-      percentage_occupied_day,
-      "-",
-      NA_character_
-    )
-  )
-
-# Change cols to double
-beds_days_formatted <-
-  beds_days_na %>%
-  mutate(
-    percentage_occupied_day = as.double(percentage_occupied_day)
-  )
 
 # - Join -
-beds_joined <-
-  beds_nights_formatted %>%
+avial_beds_joined <-
+  avial_beds_nights_selected %>%
   left_join(
-    beds_days_formatted,
+    avial_beds_days_selected,
     by = "trust_code"
   )
 
-beds_mean <-
-  beds_joined %>%
+avial_beds_mean <-
+  avial_beds_joined %>%
   rowwise() %>%
   mutate(
-    beds_occupied = mean(
-      c(percentage_occupied_night, percentage_occupied_day),
+    avial_beds_available = mean(
+      c(available_night, available_day),
       na.rm = TRUE
     )
   ) %>%
   ungroup() %>%
-  select(trust_code, beds_occupied) %>%
-  drop_na()
-
+  select(trust_code, avial_beds_available)
 
 # Join trust to MSOA lookup --------
 
 # Trust to MSOA table only has data for acute trusts
 open_trusts |>
-  left_join(beds_mean) |>
+  left_join(avial_beds_mean) |>
   left_join(lookup_trust_msoa) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
@@ -121,36 +85,51 @@ open_trusts |>
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
-beds_weights <- open_trusts |>
-  left_join(beds_mean) |>
+avial_beds_weights <- open_trusts |>
+  left_join(avial_beds_mean) |>
   inner_join(lookup_trust_msoa) |>
-  mutate(beds_prop = beds_occupied * proportion) 
+  mutate(avial_beds_prop = avial_beds_available * proportion)
 
 # Check missings
-beds_weights |>
-  distinct(trust_code, `Provider Primary Inspection Category`, beds_occupied) |>
+avial_beds_weights |>
+  distinct(trust_code, `Provider Primary Inspection Category`, avial_beds_available) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_missing = sum(is.na(beds_occupied)) / n())
+  summarise(count = n(), prop_missing = sum(is.na(avial_beds_available)) / n())
 
-beds_msoa <- beds_weights |>
+avial_beds_msoa <- avial_beds_weights |>
   group_by(msoa_code) |>
-  summarise(beds_per_msoa = sum(beds_prop))
+  summarise(avial_beds_per_msoa = sum(avial_beds_available))
 
 # Check distributions
-summary(beds_msoa)
-summary(beds_mean)
+summary(avial_beds_msoa)
+summary(avial_beds_mean)
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-beds_lad <- beds_msoa  |>
-  left_join(lookup_msoa_lad) |>
+
+# Normalise
+avial_beds_msoa_normalised <- avial_beds_msoa |>
   left_join(msoa_pop) |>
+  mutate(avial_beds_rate = avial_beds_per_msoa / total_population * 100) |>
+  select(msoa_code, avial_beds_rate, total_population)
+
+
+avial_beds_lad <- avial_beds_msoa_normalised |>
+  left_join(lookup_msoa_lad) |>
   calculate_extent(
-    var = beds_per_msoa,
+    var = avial_beds_rate,
     higher_level_geography = lad_code,
     population = total_population
-  ) 
+  )
 
-# TO DO: Ask if proportion of available better measure than the number of available beds proportioned to population
-# since could be a high prop but a low number
+avial_beds_lad |>
+  group_by(extent) |>
+  summarise(count = n() / nrow(avial_beds_lad)) |>
+  print(n = Inf)
+# 27% : extent = 0
+# 0%: extent = 1
+
+# Save ----
+avial_beds_lad |>
+  write_rds("data/capacity/health-inequalities/england/avial_avial_beds-availability.rds")
