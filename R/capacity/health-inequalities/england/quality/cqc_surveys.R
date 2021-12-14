@@ -114,10 +114,18 @@ combined_survey_data |>
 
 # Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores - or maybe this is overkill?
 # Will combine the means for just now (consider if medians would be more appropriate)
-avg_survey_scores <- combined_survey_data |>
-  select(trust_code, `Provider Primary Inspection Category`, meaninp, meanmh, meanae, meanmin) |>
-  mutate(avg_survey_score = rowSums(across(where(is.numeric)), na.rm = T) / rowSums(!is.na(across(where(is.numeric)))))
+response_columns <- str_subset(colnames(combined_survey_data), "num_respon")
 
+# TO DO: Will be better way to write this - come back to this
+avg_survey_scores <- combined_survey_data |>
+  select(trust_code, `Provider Primary Inspection Category`, num_respon_inp, meaninp, num_respon_mh, meanmh, num_respon_ae, meanae, num_respon_min, meanmin) |>
+  rowwise() %>%
+  mutate(total_responders = sum(c(num_respon_inp, num_respon_mh, num_respon_ae, num_respon_min), na.rm = T)) |>
+  mutate_at(vars(contains('num_respon')), ~ ./total_responders) |>
+  mutate(avg_survey_score = sum(c(num_respon_inp * meaninp, num_respon_mh * meanmh, num_respon_ae * meanae, num_respon_min * meanmin), na.rm = T)) |>
+  mutate(avg_score = ifelse(is.na(meaninp) & is.na(meanmh) & is.na(meanae) & is.na(meanmin), NA, avg_survey_score))
+
+ 
 avg_survey_scores |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
@@ -156,6 +164,9 @@ avg_survey_scores_msoa <- avg_survey_scores_reprop |>
   mutate(avg_survey_score_prop = avg_survey_score * reweighted_proportion) |>
   group_by(msoa_code) |>
   summarise(avg_score_msoa = sum(avg_survey_score_prop))
+
+summary(avg_survey_scores_full$avg_survey_score)
+summary(avg_survey_scores_msoa$avg_score_msoa)
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
