@@ -9,6 +9,7 @@ source("R/utils.R") # for download_file() & calculate_extent()
 source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
+# Info on how is rated https://www.cqc.org.uk/what-we-do/how-we-do-our-job/how-we-rate-trusts-their-use-resources
 # Download the data
 tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_December_2021_Latest_ratings.ods", "ods")
 
@@ -106,8 +107,7 @@ rating_msoa |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(`Latest Rating`)) / n())
 
-# TO DO: Look into different method of weighting to more heavily weight poorer performing
-# (So have code to amend later will convert ordinal to numeric and average)
+# Turn into numeric 
 
 rating_msoa_numeric <- rating_msoa |>
   mutate(rating_numeric = recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
@@ -128,11 +128,18 @@ rating_lad <- rating_msoa_numeric |>
   calculate_extent(
     var = avg_rating,
     higher_level_geography = lad_code,
-    population = total_population
+    population = total_population,
+    invert_percentiles = FALSE # lower score is worse outcome
   )
 
 rating_lad |>
   group_by(extent) |>
-  summarise(count = n()/nrow(deaths_lad))
+  summarise(count = n()/nrow(rating_lad)) |>
+  print(n = Inf)
+# 40% : extent = 0
+# 0.3%: extent = 1
 
-# TO DO: Look into different method of weighting to more heavily weight poorer performing
+# Save ----
+rating_lad |>
+  write_rds("data/capacity/health-inequalities/england/nhs-trust-cqc-rating.rds")
+
