@@ -120,16 +120,17 @@ avial_beds_lad <- avial_beds_msoa_normalised |>
   calculate_extent(
     var = avial_beds_rate,
     higher_level_geography = lad_code,
-    population = total_population
+    population = total_population,
+    invert_percentiles = FALSE # lower score is worse outcome
   )
 
 avial_beds_lad |>
   group_by(extent) |>
   summarise(count = n() / nrow(avial_beds_lad)) |>
   print(n = Inf)
-# 27% : extent = 0
-# 0%: extent = 1
+# 44% : extent = 0
+# 0.3%: extent = 1
 
 # Save ----
 avial_beds_lad |>
-  write_rds("data/capacity/health-inequalities/england/avial_avial_beds-availability.rds")
+  write_rds("data/capacity/health-inequalities/england/bed-availability.rds")
