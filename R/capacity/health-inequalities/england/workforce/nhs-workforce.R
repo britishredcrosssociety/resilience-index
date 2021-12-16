@@ -87,6 +87,18 @@ fte_staff_msoa_weighted <- fte_staff_msoa |>
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
+# Checking totals at each stage -----
+sum(raw_fte_clean$staff_fte)
+
+fte_staff_msoa |>
+  distinct(trust_code, staff_fte) |>
+  summarise(sum(staff_fte))
+# Will be lower as not all trusts have a lookup to MSOA
+
+sum(fte_staff_msoa_weighted$fte_staff_per_msoa)
+
+
+
 # Normalise 
 fte_staff_msoa_normalised <- fte_staff_msoa_weighted |>
   left_join(msoa_pop) |>

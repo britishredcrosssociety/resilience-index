@@ -142,7 +142,8 @@ ae_waiting_trusts_reprop <- ae_waiting_trusts |>
   filter(!is.na(`% Total <= 4 hours`)) |>
   group_by(msoa_code) |>
   mutate(denominator_msoa = sum(proportion)) |>
-  mutate(reweighted_proportion = proportion / denominator_msoa)
+  mutate(reweighted_proportion = proportion / denominator_msoa) |>
+  ungroup()
 
 ae_waiting_scores_msoa <- ae_waiting_trusts_reprop |>
   mutate(ae_waiting_prop = `% Total <= 4 hours` * reweighted_proportion) |>
