@@ -28,7 +28,7 @@ avial_beds_nights_selected <-
 
 
 # - Day -
-tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/avial_beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/05/Beds-Open-Day-Only-Web_File-Final-Q4-2020-21-Final-THSDF.xlsx", ".xlsx")
 
 avial_beds_days_raw <- read_excel(tf, sheet = "NHS Trust by Sector", skip = 14)
 

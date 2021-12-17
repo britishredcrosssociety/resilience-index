@@ -17,27 +17,10 @@ lookup_counties_lad <-
   select(-lad_name, -county_ua_code)
 
 # 2019 LAD populations
-GET(
-  "https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2019april2019localauthoritydistrictcodes/ukmidyearestimates20192019ladcodes.xls",
-  write_disk(tf <- tempfile(fileext = ".xls"))
-)
-
-raw_pop <-
-  read_excel(
-    tf,
-    sheet = "MYE2 - Persons",
-    skip = 4
-  )
-
-pop_lad <-
-  raw_pop |>
-  inner_join(
-    lad_lookup,
-    by = c("Code" = "lad_code")
-  ) |>
+pop_lad <- geographr::population_lad |>
   select(
-    lad_code = Code,
-    total_pop = `All ages`
+    lad_code,
+    total_pop = total_population
   )
 
 GET(
@@ -103,11 +86,15 @@ lad_means <-
     )
   )
 
+# Only take vacancy as proxy for inverse of the total workforce
+lad_vacancy <- lad_means |>
+  select(lad_name, vacancy)
+
 # ---- Match LAD Codes ----
 # The Local Authorities are a mixture of UTLA's & LTLA's
 # - Match LTLA's -
 match_ltlas <-
-  lad_means |>
+  lad_vacancy |>
   inner_join(lad_lookup) |>
   select(
     -lad_name
@@ -117,7 +104,7 @@ match_ltlas <-
 # - Match counties, weighting figures by population -
 # Match counties
 match_county <-
-  lad_means |>
+  lad_vacancy |>
   anti_join(lad_lookup) |>
   inner_join(
     lookup_counties_lad,
@@ -143,12 +130,7 @@ match_county_weighted <-
     -total_pop,
     -pop_sum
   ) |>
-  mutate(
-    across(
-      turnover:zero_hour_yes,
-      ~ . * weight
-    )
-  ) |>
+  mutate(vacancy = vacancy * weight) |>
   select(
     -lad_name,
     -weight
@@ -156,7 +138,7 @@ match_county_weighted <-
 
 # - Manually match anything that didn't match to an LA or county -
 match_remainder <-
-  lad_means |>
+  lad_vacancy |>
   anti_join(lad_lookup) |>
   anti_join(
     lookup_counties_lad,
@@ -202,12 +184,7 @@ match_remainder_weighted <-
     -total_pop,
     -pop_sum
   ) |>
-  mutate(
-    across(
-      turnover:zero_hour_yes,
-      ~ . * weight
-    )
-  ) |>
+  mutate(vacancy = vacancy * weight) |>
   select(
     -lad_name,
     -weight
@@ -221,64 +198,3 @@ match_all <-
     match_remainder_weighted
   )
 
-# TODO:
-# 1. Review the above weighting methods after matching LADS. Does it make sense
-#    to weight areas by population when the indicator values are relative and not
-#    absolute? I think not...
-# 2. Review commented-out code below
-
-
-# ===================
-# ==== TO REVIEW ====
-# ===================
-
-# # ---- Calculate social score ----
-# # Create two domains:
-# # - (1) Coping capacity
-# # - (2) Workforce flexibility
-
-# # - Coping capacity domain -
-# # PCA to weight indicators
-# # Note: the higher the score, the worse the coping capacity is
-# coping <-
-#   social |>
-#   select(LAD19CD, `Staff turnover rate` = turnover, `Mean sickness days` = sickness_days_mean) |>
-#   weighted_domain_scores(model = "PCA") |>
-#   rename_with(str_replace, pattern = "Vulnerability", replacement = "Adult Social Care - Coping", matches("Vulnerability"))
-
-# # - Workforce flexibility -
-# # PCA to weight indicators
-# # Note: the higher the score, the better the flexibility is, so invert.
-# flexibility <-
-#   social |>
-#   select(LAD19CD, `Vacancy rate` = vacancy, zero_hour_yes) |>
-#   # invert zero hour contracts rate so higher number = worse (because fewer zero hours contracts means less flexibility)
-#   mutate(`Mean % of non-zero-hours contracts` = 1 - zero_hour_yes) |>
-#   select(-zero_hour_yes) |>
-#   weighted_domain_scores(model = "PCA") |>
-#   rename_with(str_replace, pattern = "Vulnerability", replacement = "Adult Social Care - Flexibility", matches("Vulnerability"))
-
-# coping |>
-#   left_join(flexibility, by = "LAD19CD") |>
-#   write_csv("data/raw/health/adult-social-care-workforce.csv")
-
-# # ---- Save a copy with overall scores/ranks/deciles for Adult Social Care workforce ----
-# lad_names <- read_csv("https://opendata.arcgis.com/datasets/c3ddcd23a15c4d7985d8b36f1344b1db_0.csv") |>
-#   select(LAD19CD, LAD19NM)
-
-# coping |>
-#   left_join(flexibility, by = "LAD19CD") |>
-#   select(
-#     LAD19CD,
-#     ends_with("rank")
-#   ) |>
-#   calc_domain_scores(bespoke.domains = TRUE, rank.indicators = FALSE) |>
-#   left_join(lad_names, by = "LAD19CD") |>
-#   select(
-#     Code = LAD19CD,
-#     `Local Authority Name` = LAD19NM,
-#     # `Adult Social Care workforce score` = `Vulnerability score`,
-#     `Adult Social Care workforce rank` = `Vulnerability rank`,
-#     `Adult Social Care workforce decile` = `Vulnerability decile`
-#   ) |>
-#   arrange(desc(`Adult Social Care workforce rank`))

@@ -5,8 +5,7 @@ library(readxl)
 library(sf)
 library(geographr)
 
-source("R/utils.R") # for download_file() & calculate_extent()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
+source("R/utils.R") # for download_file() 
 
 # Load raw data
 tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/June-2021-AE-by-provider-j47iI.xls", ".xls")
@@ -33,7 +32,7 @@ ae_vars <-
   ae_remove_empty |>
   select(
     trust_code = Code,
-    `% Total <= 4 hours` = `Percentage in 4 hours or less (all)`
+    ae_over_4_hours_wait = `Total Attendances > 4 hours`
   )
 
 # Replace '-' character with NA
@@ -77,38 +76,38 @@ raw |>
 # States 'Data are shown at provider organisation level, from NHS Trusts, NHS Foundation Trusts and Independent Sector Organisations' https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/
 
 
-# Join trust to MSOA lookup --------
+# Join trust to LAD lookup --------
 
-# Trust to MSOA table only has data for acute trusts
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+
+# Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(ae_double) |>
-  left_join(lookup_trust_msoa) |>
+  left_join(lookup_trust_lad) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
+  summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
-ae_waiting_trusts <- open_trusts |>
+# For the acute trusts data proportion these to LAD and calculate per capita level
+ae_wait_joined <- open_trusts |>
   left_join(ae_double) |>
-  inner_join(lookup_trust_msoa)
+  inner_join(lookup_trust_lad)
 
-ae_waiting_trusts |>
-  distinct(trust_code, `Provider Primary Inspection Category`, `% Total <= 4 hours`) |>
+# Check missings
+ae_wait_joined |>
+  distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_missing = sum(is.na(`% Total <= 4 hours`)) / n())
+  summarise(count = n(), prop_missing = sum(is.na(ae_over_4_hours_wait)) / n())
 
 # Some of the open trusts don't have the A&E waiting data 
-missing_ae_waiting <- ae_waiting_trusts |>
-  filter(is.na(`% Total <= 4 hours`)) |>
-  pull(trust_code)
-
-geographr::points_nhs_trusts |>
-  filter(nhs_trust_code %in% missing_ae_waiting) |>
-  arrange(nhs_trust_name) |>
-  print(n = Inf)
+ae_wait_joined |>
+  filter(is.na(ae_over_4_hours_wait)) |>
+  distinct(trust_code) |>
+  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 
 # Notes state that 14 Trusts are not required to report on the number of attendances over 4 hours from May 2019
 # Notes here: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/12/Statistical-commentary-November-2021-jf8.pdf
-
+# TO DO: Try to find this data
 not_reporting_trusts <- c(
   "BEDFORDSHIRE HOSPITALS NHS FOUNDATION TRUST",
   "CAMBRIDGE UNIVERSITY HOSPITALS NHS FOUNDATION TRUST",
@@ -126,42 +125,38 @@ not_reporting_trusts <- c(
   "WEST SUFFOLK NHS FOUNDATION TRUST"
 )
 
-geographr::points_nhs_trusts |>
-  filter(nhs_trust_code %in% missing_ae_waiting) |>
+ae_wait_joined |>
+  filter(is.na(ae_over_4_hours_wait)) |>
+  distinct(trust_code) |>
+  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code")) |>
   filter(!nhs_trust_name %in% not_reporting_trusts) |>
-  arrange(nhs_trust_name) |>
-  left_join(open_trusts, by = c("nhs_trust_code" = "trust_code")) |>
-  print(n = Inf)
-# Remaining 10 are specialist Trusts and so perhaps do not have A&E services
+  left_join(open_trusts) 
+# Remaining 5 are specialist Trusts and so perhaps do not have A&E services
 
 # So have 14 cases where have A&E but don't have data and 10 cases where no data since potentially no A&E
 
-# Re-proportion for the trusts with no data
-# TO DO: get this checked
-ae_waiting_trusts_reprop <- ae_waiting_trusts |>
-  filter(!is.na(`% Total <= 4 hours`)) |>
-  group_by(msoa_code) |>
-  mutate(denominator_msoa = sum(proportion)) |>
-  mutate(reweighted_proportion = proportion / denominator_msoa) |>
-  ungroup()
 
-ae_waiting_scores_msoa <- ae_waiting_trusts_reprop |>
-  mutate(ae_waiting_prop = `% Total <= 4 hours` * reweighted_proportion) |>
-  group_by(msoa_code) |>
-  summarise(avg_ae_waiting_msoa = sum(ae_waiting_prop))
+ae_wait_lad <- ae_wait_joined |>
+  filter(!is.na(ae_over_4_hours_wait)) |>
+  mutate(ae_over_4_hours_wait_prop = ae_over_4_hours_wait * trust_prop_by_lad) |>
+  group_by(lad_code) |>
+  summarise(ae_over_4_hours_wait_per_lad = sum(ae_over_4_hours_wait_prop))
 
-# Check distributions
-summary(ae_waiting_scores_msoa)
-summary(ae_double)
+# Check totals
+# Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
+sum(ae_wait_lad$ae_over_4_hours_wait_per_lad)
+sum(ae_double$ae_over_4_hours_wait, na.rm = T)
 
-msoa_pop <- geographr::population_msoa |>
-  select(msoa_code, total_population)
 
-ae_waiting_lad <- ae_waiting_scores_msoa |>
-  left_join(lookup_msoa_lad) |>
-  left_join(msoa_pop) |>
-  calculate_extent(
-    var = avg_ae_waiting_msoa,
-    higher_level_geography = lad_code,
-    population = total_population
-  )
+# Normalise for LAD pop ----
+lad_pop <- geographr::population_lad |>
+  select(lad_code, lad_name, total_population)
+
+ae_wait_normalised <- ae_wait_lad |>
+  left_join(lad_pop) |>
+  mutate(ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / total_population * 100) |>
+  select(lad_code, ae_over_4_hours_wait_rate)
+
+# Save ----
+ae_wait_normalised |>
+  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
