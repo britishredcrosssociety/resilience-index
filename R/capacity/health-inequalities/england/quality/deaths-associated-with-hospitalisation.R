@@ -5,7 +5,6 @@ library(readxl)
 library(sf)
 
 source("R/utils.R") # for download_file() & calculate_extent()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # NHS trust deaths associated with hospitalisation -----
 # IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths

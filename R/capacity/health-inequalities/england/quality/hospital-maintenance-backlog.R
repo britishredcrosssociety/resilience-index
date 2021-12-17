@@ -68,6 +68,9 @@ trust_maint_cost |>
 
 lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
 
+lookup_trust_lad <- lookup_trust_lad |>
+  select(-lad_prop_by_trust)
+
 # Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(trust_maint_cost) |>

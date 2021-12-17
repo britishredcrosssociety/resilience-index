@@ -29,6 +29,11 @@ lookup_trust_lad <- lookup_trust_msoa_full |>
   group_by(trust_code) |>
   mutate(trust_catchment = sum(lad_catchment_for_trust)) |> 
   mutate(trust_prop_by_lad = lad_catchment_for_trust/trust_catchment) |>
-  select(trust_code, lad_code, lad_name, trust_prop_by_lad) 
+  ungroup() |>
+  group_by(lad_code) |>
+  mutate(lad_pop = sum(lad_catchment_for_trust)) |> 
+  mutate(lad_prop_by_trust = lad_catchment_for_trust/lad_pop) |>
+  ungroup() |>
+  select(lad_code, lad_name, trust_prop_by_lad, lad_prop_by_trust)
 
 write_feather(lookup_trust_lad, "R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")

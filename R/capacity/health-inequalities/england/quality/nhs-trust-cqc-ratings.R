@@ -5,8 +5,7 @@ library(geographr)
 library(readxl)
 library(sf)
 
-source("R/utils.R") # for download_file() & calculate_extent()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code
+source("R/utils.R") # for download_file() 
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
 # Info on how is rated https://www.cqc.org.uk/what-we-do/how-we-do-our-job/how-we-rate-trusts-their-use-resources
@@ -58,31 +57,17 @@ cqc_nhs_trusts_overall |>
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 
-# Check the matching of CQC scores & trust table in geographr package --------
+# Check the matching of CQC scores & trust table in geographr package 
 
 # Join CQC scores onto the open trusts table and check for any missing
-trusts_missing_cqc_score <- open_trusts |>
-  anti_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
-  pull(trust_code)
-
-# Check those with no score
-points_nhs_trusts |>
-  as_tibble() |>
-  filter(nhs_trust_code %in% trusts_missing_cqc_score)
-# 5 Trusts with no score - R0D, RQF, RT4, RW6, RYT
+open_trusts |>
+  anti_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) 
+# 5 Trusts missing R0D, RQF, RT4, RW6, RYT
 
 # Check of any trusts that are in the CQC ratings but not in open trusts
-cqc_score_trusts_not_matched <- cqc_nhs_trusts_overall |>
-  anti_join(open_trusts, by = c("Provider ID" = "trust_code")) |>
-  pull(`Provider ID`)
-
-cqc_score_trusts_not_matched
-# missing 4 trusts ("TAD" "TAF" "TAH" "TAJ")
-
-# Check not in full trusts table (i.e. maybe closed)
-points_nhs_trusts |>
-  as_tibble() |>
-  filter(nhs_trust_code %in% cqc_score_trusts_not_matched)
+cqc_nhs_trusts_overall |>
+  anti_join(open_trusts, by = c("Provider ID" = "trust_code"))
+# missing 4 trusts - "TAD" "TAF" "TAH" "TAJ"
 
 
 # Trust to MSOA lookup ----
@@ -96,7 +81,6 @@ open_trusts |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
-
 rating_msoa <- open_trusts |>
   left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
   inner_join(lookup_trust_msoa, by = "trust_code")
@@ -107,14 +91,13 @@ rating_msoa |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(`Latest Rating`)) / n())
 
-# Turn into numeric 
-
+# Convert ratings numeric 
 rating_msoa_numeric <- rating_msoa |>
   mutate(rating_numeric = recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
   group_by(msoa_code) |>
   summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric)) / n())
 
-# Check if any MSOA have a high prop of missing as may be better to keep as NA rather than take single value as the average
+# Check if any MSOA have a high prop of missing 
 rating_msoa_numeric |>
   arrange(desc(prop_missing))
 
