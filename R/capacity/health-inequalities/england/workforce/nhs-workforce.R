@@ -64,7 +64,6 @@ open_trusts |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to LAD
 # For the acute trusts data proportion these to LAD and calculate per capita level
-
 fte_staff_joined <- open_trusts |>
   left_join(fte_clean, by = c("trust_code")) |>
   inner_join(lookup_trust_lad)

@@ -4,7 +4,7 @@ library(readxl)
 library(httr)
 library(geographr)
 
-source("R/utils.R")
+source("R/utils.R") # for download_file()
 
 # Load data ----
 
@@ -74,7 +74,7 @@ open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust
 # Check the matching of indicator data & trust table in geographr package 
 open_trusts |>
   anti_join(avial_beds_mean) |>
-  print(n =  Inf)
+  print(n = Inf)
 # 26 ambulance or community trusts which may not have beds as service
 
 avial_beds_mean |>
@@ -95,10 +95,9 @@ open_trusts |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts data proportion these to LAD and calculate per capita level
-
 avial_beds_joined <- open_trusts |>
   left_join(avial_beds_mean) |>
-  inner_join(lookup_trust_lad) 
+  inner_join(lookup_trust_lad)
 
 # Check missings
 avial_beds_joined |>
@@ -111,7 +110,7 @@ avial_beds_lad <- avial_beds_joined |>
   group_by(lad_code) |>
   summarise(avial_beds_per_lad = sum(avial_beds_prop))
 
-# Check totals 
+# Check totals
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
 sum(avial_beds_lad$avial_beds_per_lad)
 sum(avial_beds_mean$avial_beds)
