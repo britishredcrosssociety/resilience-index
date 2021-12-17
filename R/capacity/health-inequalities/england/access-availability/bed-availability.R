@@ -5,13 +5,6 @@ library(httr)
 library(geographr)
 
 source("R/utils.R")
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
-
-# NHS Trust table in geographr package -----
-
-# Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
-
 
 # Load data ----
 
@@ -30,7 +23,7 @@ avial_beds_nights_selected <-
   avial_beds_nights_sliced %>%
   select(
     trust_code = `Org Code`,
-    available_night = Total...6,
+    avail_night = Total...6,
   )
 
 
@@ -49,7 +42,7 @@ avial_beds_days_selected <-
   avial_beds_days_sliced %>%
   select(
     trust_code = `Org Code`,
-    available_day = Total...6,
+    avail_day = Total...6,
   )
 
 
@@ -65,72 +58,74 @@ avial_beds_mean <-
   avial_beds_joined %>%
   rowwise() %>%
   mutate(
-    avial_beds_available = mean(
-      c(available_night, available_day),
+    avial_beds = mean(
+      c(avail_night, avail_day),
       na.rm = TRUE
     )
   ) %>%
   ungroup() %>%
-  select(trust_code, avial_beds_available)
+  select(trust_code, avial_beds)
 
-# Join trust to MSOA lookup --------
+# NHS Trust table in geographr package -----
 
-# Trust to MSOA table only has data for acute trusts
+# Load in open trusts table created in trust_types.R
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+
+# Check the matching of indicator data & trust table in geographr package 
+open_trusts |>
+  anti_join(avial_beds_mean) |>
+  print(n =  Inf)
+# 26 ambulance or community trusts which may not have beds as service
+
+avial_beds_mean |>
+  anti_join(open_trusts) |>
+  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
+# 6 missing - 2 of which are closed, 4 remaining TAF, TAJ, TAD, TAH
+
+# Join trust to LAD lookup --------
+
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+
+# Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(avial_beds_mean) |>
-  left_join(lookup_trust_msoa) |>
+  left_join(lookup_trust_lad) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
+  summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
-# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
+# For the acute trusts data proportion these to LAD and calculate per capita level
 
-avial_beds_weights <- open_trusts |>
+avial_beds_joined <- open_trusts |>
   left_join(avial_beds_mean) |>
-  inner_join(lookup_trust_msoa) |>
-  mutate(avial_beds_prop = avial_beds_available * proportion)
+  inner_join(lookup_trust_lad) 
 
 # Check missings
-avial_beds_weights |>
-  distinct(trust_code, `Provider Primary Inspection Category`, avial_beds_available) |>
+avial_beds_joined |>
+  distinct(trust_code, `Provider Primary Inspection Category`, avial_beds) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_missing = sum(is.na(avial_beds_available)) / n())
+  summarise(count = n(), prop_missing = sum(is.na(avial_beds)) / n())
 
-avial_beds_msoa <- avial_beds_weights |>
-  group_by(msoa_code) |>
-  summarise(avial_beds_per_msoa = sum(avial_beds_available))
+avial_beds_lad <- avial_beds_joined |>
+  mutate(avial_beds_prop = avial_beds * trust_prop_by_lad) |>
+  group_by(lad_code) |>
+  summarise(avial_beds_per_lad = sum(avial_beds_prop))
 
-# Check distributions
-summary(avial_beds_msoa)
-summary(avial_beds_mean)
-
-msoa_pop <- geographr::population_msoa |>
-  select(msoa_code, total_population)
-
-
-# Normalise
-avial_beds_msoa_normalised <- avial_beds_msoa |>
-  left_join(msoa_pop) |>
-  mutate(avial_beds_rate = avial_beds_per_msoa / total_population * 100) |>
-  select(msoa_code, avial_beds_rate, total_population)
+# Check totals 
+# Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
+sum(avial_beds_lad$avial_beds_per_lad)
+sum(avial_beds_mean$avial_beds)
 
 
-avial_beds_lad <- avial_beds_msoa_normalised |>
-  left_join(lookup_msoa_lad) |>
-  calculate_extent(
-    var = avial_beds_rate,
-    higher_level_geography = lad_code,
-    population = total_population,
-    invert_percentiles = FALSE # lower score is worse outcome
-  )
+# Normalise for LAD pop ----
+lad_pop <- geographr::population_lad |>
+  select(lad_code, lad_name, total_population)
 
-avial_beds_lad |>
-  group_by(extent) |>
-  summarise(count = n() / nrow(avial_beds_lad)) |>
-  print(n = Inf)
-# 44% : extent = 0
-# 0.3%: extent = 1
+avial_beds_msoa_normalised <- avial_beds_lad |>
+  left_join(lad_pop) |>
+  mutate(avial_beds_rate = avial_beds_per_lad / total_population * 100) |>
+  select(lad_code, avial_beds_rate)
 
 # Save ----
-avial_beds_lad |>
+avial_beds_msoa_normalised |>
   write_rds("data/capacity/health-inequalities/england/bed-availability.rds")

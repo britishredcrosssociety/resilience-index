@@ -4,7 +4,8 @@ library(geographr)
 library(sf)
 
 source("R/utils.R") # for download_file()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
+
+# Load data ----
 
 # Source https://digital.nhs.uk/data-and-information/publications/statistical/nhs-workforce-statistics/may-2021
 
@@ -40,7 +41,7 @@ fte_clean |>
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Check the matching of cost data & trust table in geographr package --------
+# Check the matching of indicator data & trust table in geographr package 
 open_trusts |>
   anti_join(fte_clean)
 # 3 trusts missing from staff data
@@ -50,11 +51,11 @@ fte_clean |>
 # mainly CCG (and 2 Trusts) - don't currently have a way to map these to MSOA/LA (as detailed above)
 
 
-# Join trust to LA lookup --------
+# Join trust to LAD lookup --------
 
 lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
 
-# Trust to MSOA table only has data for acute trusts
+# Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(fte_clean, by = c("trust_code")) |>
   left_join(lookup_trust_lad) |>
@@ -62,7 +63,7 @@ open_trusts |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to LAD
-# For the acute trusts proportion these to LAD and proportion to per capita level
+# For the acute trusts data proportion these to LAD and calculate per capita level
 
 fte_staff_joined <- open_trusts |>
   left_join(fte_clean, by = c("trust_code")) |>
@@ -80,15 +81,16 @@ fte_staff_lad <- fte_staff_joined |>
   summarise(fte_staff_per_lad = sum(fte_staff_prop)) |>
   ungroup()
 
-# Checking totals at each stage -----
+# Checking totals at each stage 
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
 sum(raw_fte_clean$staff_fte)
 sum(fte_staff_lad$fte_staff_per_lad)
 
+
+# Normalise for LAD pop ----
 lad_pop <- geographr::population_lad |>
   select(lad_code, lad_name, total_population)
 
-# Normalise for LAD pop
 fte_staff_lad_normalised <- fte_staff_lad |>
   left_join(lad_pop) |>
   mutate(fte_staff_rate = fte_staff_per_lad / total_population * 100) |>
