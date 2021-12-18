@@ -109,7 +109,7 @@ summary(gp_registrations_clean$perc_registered_gp)
 gp_registrations_clean |>
   summarise(total_gp_reg = sum(count), total_pop = sum(pop))
 
-# May need to assume that the over registrations (perhaps by people that have left country or died) is constient across all LADs (as don't have info to test this) and use as relative comparison between LADs
+# May need to assume that the over registrations (perhaps by people that have left country or died) is consistent across all LADs (as don't have info to test this) and use as relative comparison between LADs
 # ONS did some analysis in 2016 on the difference between GP regs and pop but found mix of over and under differences https://commonslibrary.parliament.uk/population-estimates-gp-registers-why-the-difference/
 # Not sure if can resister with more than 1 GP but perhaps is temporary regs? https://www.nhs.uk/common-health-questions/nhs-services-and-treatments/how-do-i-register-as-a-temporary-resident-with-a-gp/
 
