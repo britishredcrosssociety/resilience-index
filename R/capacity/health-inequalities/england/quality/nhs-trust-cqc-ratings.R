@@ -81,35 +81,42 @@ open_trusts |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
-rating_msoa <- open_trusts |>
+rating_joined <- open_trusts |>
   left_join(cqc_nhs_trusts_overall, by = c("trust_code" = "Provider ID")) |>
   inner_join(lookup_trust_msoa, by = "trust_code")
 
 # Check missings
-rating_msoa |>
+rating_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, `Latest Rating`) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(`Latest Rating`)) / n())
 
-# Convert ratings numeric 
-rating_msoa_numeric <- rating_msoa |>
+# Convert ratings numeric and the weight by the proportions of each MSOA pop come from each Trust
+rating_msoa <- rating_joined |>
   mutate(rating_numeric = recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
+  mutate(rating_msoa_weighted = proportion * rating_numeric) |>
   group_by(msoa_code) |>
-  summarise(avg_rating = mean(rating_numeric, na.rm = T), num_trusts = n(), prop_missing = sum(is.na(rating_numeric)) / n())
+  summarise(weighted_rating = sum(rating_msoa_weighted))
 
-# Check if any MSOA have a high prop of missing 
-rating_msoa_numeric |>
-  arrange(desc(prop_missing))
+# Check distribtions
+summary(rating_msoa$weighted_rating)
+
+cqc_nhs_trusts_overall |>
+  mutate(rating_numeric = recode(`Latest Rating`, "Outstanding" = 5, "Good" = 4, "Inadequate" = 2, "Requires improvement" = 1, .default = NA_real_)) |>
+  select(rating_numeric) |>
+  summary()
+
+# Aggregate from MSOA to LA ----
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-rating_lad <- rating_msoa_numeric |>
-  select(msoa_code, avg_rating) |>
+rating_lad <- rating_msoa |>
+  select(msoa_code, weighted_rating) |>
   left_join(lookup_msoa_lad) |>
   left_join(msoa_pop) |>
   calculate_extent(
-    var = avg_rating,
+    var = weighted_rating,
     higher_level_geography = lad_code,
     population = total_population,
     invert_percentiles = FALSE # lower score is worse outcome
@@ -119,8 +126,8 @@ rating_lad |>
   group_by(extent) |>
   summarise(count = n()/nrow(rating_lad)) |>
   print(n = Inf)
-# 40% : extent = 0
-# 0.3%: extent = 1
+# 58% : extent = 0
+# 2%: extent = 1
 
 # Save ----
 rating_lad |>

@@ -108,7 +108,7 @@ ae_wait_joined |>
   left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 
 # Notes state that 14 Trusts are not required to report on the number of attendances over 4 hours from May 2019
-# Notes here: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/12/Statistical-commentary-November-2021-jf8.pdf
+# Notes here (page 3): https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/12/Statistical-commentary-November-2021-jf8.pdf
 # TO DO: Try to find this data
 not_reporting_trusts <- c(
   "BEDFORDSHIRE HOSPITALS NHS FOUNDATION TRUST",

@@ -1,3 +1,5 @@
+# Note: once decided approach for A&E waiting times repeat here.
+
 # Load libs
 library(tidyverse)
 library(httr)

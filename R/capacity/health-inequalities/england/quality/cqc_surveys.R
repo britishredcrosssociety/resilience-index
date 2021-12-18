@@ -5,7 +5,6 @@ library(sf)
 library(readODS)
 
 source("R/utils.R") # for download_file()
-source("R/capacity/health-inequalities/england/trust_types/trust_types.R") # run trust types code to create open_trust_types.feather
 
 # Info ----
 
@@ -72,113 +71,79 @@ mental_health_survey <- survey_data_download("https://www.cqc.org.uk/sites/defau
 outpatient_ae <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type1_benchmark-data.ods", 47, "UEC20_Trust_Scores", "q", "ae")
 outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type3_benchmark-data.ods", 39, "UEC20_Trust_Scores", "t", "min")
 
+# Since not all Trusts provide all the services (so for different surveys will have different missing Trusts)
+# Complete for one of the surveys as starter
+ae_survey <- outpatient_ae |>
+  select(trust_code = trustcode, num_respon_ae, meanae)
+
+
 # NHS Trusts table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Check the matching of survey data & trust table in geographr package --------
-
+# Check the matching of survey data & trust table in geographr package 
 open_trusts |>
-  anti_join(avg_survey_scores, by = c("trust_code"))
-# all matched
-
-avg_survey_scores |>
-  anti_join(open_trusts, by = c("trust_code"))
-# all matched
-
-# Join data survey data to open trust data --------
-
-combined_survey_data <- open_trusts |>
-  left_join(inpatient_survey, by = c("trust_code" = "trustcode")) |>
-  left_join(mental_health_survey, by = c("trust_code" = "trustcode")) |>
-  left_join(outpatient_ae, by = c("trust_code" = "trustcode")) |>
-  left_join(outpatient_minor_inj, by = c("trust_code" = "trustcode"))
-
-# Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
-
-# Checking the types of trusts that have missing data for each category --------
-
-# Downloading CQC rating data as has information on what is the primary type of care trust provides
-# This is used to check against the trusts with no survey data for each survey type
-
-# Check missing data for each category
-combined_survey_data |>
-  select(trust_code, `Provider Primary Inspection Category`, starts_with("num_respon")) |>
+  anti_join(ae_survey, by = c("trust_code")) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(across(where(is.numeric), ~ sum(!is.na(.x))), count = n())
+  summarise(count = n())
+# 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services. 
 
-# Ambulance services primary providers haven't completed any of the surveys since they don't provide any of the services in the 4 surveys currently including.
+ae_survey |>
+  anti_join(open_trusts, by = c("trust_code")) |>
+  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
+# 3 missing but are all closed
 
-# Combining the survey scores ---------
-
-# Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores - or maybe this is overkill?
-# Will combine the means for just now (consider if medians would be more appropriate)
-response_columns <- str_subset(colnames(combined_survey_data), "num_respon")
-
-# TO DO: Will be better way to write this - come back to this
-avg_survey_scores <- combined_survey_data |>
-  select(trust_code, `Provider Primary Inspection Category`, num_respon_inp, meaninp, num_respon_mh, meanmh, num_respon_ae, meanae, num_respon_min, meanmin) |>
-  rowwise() %>%
-  mutate(total_responders = sum(c(num_respon_inp, num_respon_mh, num_respon_ae, num_respon_min), na.rm = T)) |>
-  mutate_at(vars(contains('num_respon')), ~ ./total_responders) |>
-  mutate(avg_survey_score = sum(c(num_respon_inp * meaninp, num_respon_mh * meanmh, num_respon_ae * meanae, num_respon_min * meanmin), na.rm = T)) |>
-  mutate(avg_score = ifelse(is.na(meaninp) & is.na(meanmh) & is.na(meanae) & is.na(meanmin), NA, avg_survey_score))
-
- 
-avg_survey_scores |>
-  group_by(`Provider Primary Inspection Category`) |>
-  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
-# some trusts have no survey score (consider after join on MSOA lookup)
 
 # Trust to MSOA (then to LA) lookup ----
 
 # Trust to MSOA table only has data for acute trusts
-avg_survey_scores |>
+ae_survey |>
+  left_join(open_trusts) |>
   left_join(lookup_trust_msoa) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
-# For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
-avg_survey_scores_full <- avg_survey_scores |>
-  inner_join(lookup_trust_msoa, by = "trust_code")
+# For the acute trusts proportion these to MSOA and then aggregate to LAD
+ae_survey_joined <- ae_survey |>
+  left_join(open_trusts) |>
+  inner_join(lookup_trust_msoa)
 
 # Check is any of acute trusts don't have a survey score
-avg_survey_scores_full |>
-  distinct(trust_code, `Provider Primary Inspection Category`, avg_survey_score) |>
+ae_survey_joined |>
+  distinct(trust_code, `Provider Primary Inspection Category`, meanae) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
-# 20% of specialists trusts (i.e. 3 trusts) have no survey score - affected 2.5k MSOAs they map into
+  summarise(prop_no_survey = sum(is.na(meanae)) / n(), count = n())
 
-
-# Re-proportion for the trusts with no data
-# TO DO: get this checked
-avg_survey_scores_reprop <- avg_survey_scores_full |>
-  filter(!is.na(avg_survey_score)) |>
+ae_survey_msoa <- ae_survey_joined |>
+  mutate(meanae_weighted = proportion * meanae) |>
   group_by(msoa_code) |>
-  mutate(denominator_msoa = sum(proportion)) |>
-  mutate(reweighted_proportion = proportion / denominator_msoa)
+  summarise(weighted_score = sum(meanae_weighted))
 
-avg_survey_scores_msoa <- avg_survey_scores_reprop |>
-  mutate(avg_survey_score_prop = avg_survey_score * reweighted_proportion) |>
-  group_by(msoa_code) |>
-  summarise(avg_score_msoa = sum(avg_survey_score_prop))
+# Distributions
+summary(ae_survey_msoa$weighted_score)
+summary(ae_survey$meanae)
 
-summary(avg_survey_scores_full$avg_survey_score)
-summary(avg_survey_scores_msoa$avg_score_msoa)
+# Aggregate from MSOA to LA ----
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-rating_lad <- avg_survey_scores_msoa |>
+ae_survey_lad <- ae_survey_msoa |>
   left_join(lookup_msoa_lad) |>
   left_join(msoa_pop) |>
   calculate_extent(
-    var = avg_score_msoa,
+    var = weighted_score,
     higher_level_geography = lad_code,
     population = total_population
   )
 
-# TO DO: Think about the combining of the scores (i.e. averaging of averages) as CI is also available.
-# TO DO: Get the re proportioning checked (due to not all open trusts, who have a look up, not having a survey score)
+ae_survey_lad |>
+  group_by(extent) |>
+  summarise(count = n()/nrow(ae_survey_lad)) |>
+  print(n = Inf)
+# 52% : extent = 0
+# 3%: extent = 1
+
+# TO DO: Get this checked, repeat for other surveys?
