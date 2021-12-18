@@ -32,7 +32,8 @@ ae_vars <-
   ae_remove_empty |>
   select(
     trust_code = Code,
-    ae_over_4_hours_wait = `Total Attendances > 4 hours`
+    ae_over_4_hours_wait = "Total Attendances > 4 hours",
+    ae_total_wait = "Total attendances"
   )
 
 # Replace '-' character with NA
@@ -71,8 +72,9 @@ open_trusts |>
 
 # Check if any trusts in the A&E data not in the open_trusts dataset
 raw |>
-  anti_join(open_trusts, by = c("Code" = "trust_code"))
-# 55 entries but all not NHS Trusts
+  anti_join(open_trusts, by = c("Code" = "trust_code")) |>
+  pull(Name)
+# 88 entries but all not NHS Trusts
 # States 'Data are shown at provider organisation level, from NHS Trusts, NHS Foundation Trusts and Independent Sector Organisations' https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/
 
 
@@ -138,25 +140,32 @@ ae_wait_joined |>
 
 ae_wait_lad <- ae_wait_joined |>
   filter(!is.na(ae_over_4_hours_wait)) |>
-  mutate(ae_over_4_hours_wait_prop = ae_over_4_hours_wait * trust_prop_by_lad) |>
+  mutate(ae_over_4_hours_wait_prop = ae_over_4_hours_wait * trust_prop_by_lad,
+         ae_total_wait_prop = ae_total_wait * trust_prop_by_lad) |>
   group_by(lad_code) |>
-  summarise(ae_over_4_hours_wait_per_lad = sum(ae_over_4_hours_wait_prop))
+  summarise(ae_over_4_hours_wait_per_lad = sum(ae_over_4_hours_wait_prop),
+            ae_total_wait_per_lad = sum(ae_total_wait_prop))
 
 # Check totals
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
-sum(ae_wait_lad$ae_over_4_hours_wait_per_lad)
-sum(ae_double$ae_over_4_hours_wait, na.rm = T)
+ae_wait_lad |>
+  summarise(sum(ae_over_4_hours_wait_per_lad), sum(ae_total_wait_per_lad))
+
+ae_double |>
+  summarise(sum(ae_over_4_hours_wait, na.rm = T), sum(ae_total_wait))
 
 
-# Normalise for LAD pop ----
+# Normalise  ----
+# Testing normalising by both LAD population and also attributed total waiting
 lad_pop <- geographr::population_lad |>
   select(lad_code, lad_name, total_population)
 
 ae_wait_normalised <- ae_wait_lad |>
   left_join(lad_pop) |>
-  mutate(ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / total_population * 100) |>
-  select(lad_code, ae_over_4_hours_wait_rate)
+  mutate(ae_over_4_hours_wait_per_capita = ae_over_4_hours_wait_per_lad / total_population * 100,
+         ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad * 100)
+  
 
 # Save ----
-ae_wait_normalised |>
-  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
+#ae_wait_normalised |>
+#  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
