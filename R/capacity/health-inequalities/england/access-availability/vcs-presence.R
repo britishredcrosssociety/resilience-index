@@ -1,5 +1,6 @@
 # Note: the output values are for relative comparison only and don't include income for charities which 
 # operate all across England or all across UK so shouldn't be used as a figure for total charity income at each UTLA or LTLA. 
+# And it only includes health/social VCS orgs only charities. 
 
 # ---- Load libs ----
 library(tidyverse)
