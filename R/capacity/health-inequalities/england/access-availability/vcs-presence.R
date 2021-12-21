@@ -1,3 +1,6 @@
+# Note: the output values are for relative comparison only and don't include income for charities which 
+# operate all across England or all across UK so shouldn't be used as a figure for total charity income at each UTLA or LTLA. 
+
 # ---- Load libs ----
 library(tidyverse)
 library(httr)
@@ -78,7 +81,7 @@ charity_classification_raw <-
 # ---- Clean data ----
 # Chairty list
 charity_list_cols <-
-  charity_list_raw %>%
+  charity_list_raw |>
   select(
     organisation_number,
     charity_name,
@@ -89,10 +92,10 @@ charity_list_cols <-
 
 # Keep only registered charities that are not insolvent or in administation
 charities_active <-
-  charity_list_cols %>%
-  filter(charity_registration_status == "Registered") %>%
-  filter(charity_insolvent == FALSE) %>%
-  filter(charity_in_administration == FALSE) %>%
+  charity_list_cols |>
+  filter(charity_registration_status == "Registered") |>
+  filter(charity_insolvent == FALSE) |>
+  filter(charity_in_administration == FALSE) |>
   select(
     organisation_number,
     charity_name
@@ -101,17 +104,17 @@ charities_active <-
 # Charity returns
 # Calculate annual mean income
 charity_returns_mean <-
-  charity_returns_raw %>%
+  charity_returns_raw |>
   select(
     organisation_number,
     total_gross_income
-  ) %>%
-  group_by(organisation_number) %>%
+  ) |>
+  group_by(organisation_number) |>
   summarise(mean_annual_income = mean(total_gross_income, na.rm = TRUE))
 
 # Charity areas of operation
 charity_areas <-
-  charity_areas_raw %>%
+  charity_areas_raw |>
   select(
     organisation_number,
     geographic_area_type,
@@ -120,7 +123,7 @@ charity_areas <-
 
 # Charity classification
 charity_classification <-
-  charity_classification_raw %>%
+  charity_classification_raw |>
   select(
     organisation_number,
     classification_type,
@@ -129,15 +132,15 @@ charity_classification <-
 
 # ---- Join data ----
 charities_joined <-
-  charities_active %>%
+  charities_active |>
   left_join(
     charity_returns_mean,
     by = "organisation_number"
-  ) %>%
+  ) |>
   left_join(
     charity_areas,
     by = "organisation_number"
-  ) %>%
+  ) |>
   left_join(
     charity_classification,
     by = "organisation_number"
@@ -146,7 +149,7 @@ charities_joined <-
 # ---- Keep health/social VCS orgs only ----
 # Remove classifications that are obviously not related
 charities_health <-
-  charities_joined %>%
+  charities_joined |>
   filter(
     classification_description == "Accommodation/housing" |
       classification_description == "Children/young People" |
@@ -165,11 +168,11 @@ charities_health <-
 # Assign Local Authorities to the geography_area columns:
 #   - for for geographic_area_type == "Country", remove all as presence will
 #     be indistinguishable for any UK orgs.
-#   - for geographic_area_type == "Region", remove all regions, as they do not
+#   - for geographic_area_type == "Region", currently remove all regions, as they do not
 #     provide any granular detail as they are at the devolved nation or London
-#     level.
+#     level, and will add the London level data towards the end. 
 #   - for for geographic_area_type == NA, remove all as information is needed.
-#   - for geographic_area_type == "Local Authortiy", just keep the
+#   - for geographic_area_type == "Local Authority", just keep the
 #     corresponding geographic_area_description and then match to the ONS
 #     region. Note the areas are UTLA's.
 
@@ -177,32 +180,32 @@ charities_health <-
 # Remove country, region, and NA level data
 # i.e. keep only Local Authority level data
 charities_local_authorities_not_matched <-
-  charities_health %>%
+  charities_health |>
   filter(geographic_area_type == "Local Authority")
 
 # - Local Authorities -
 # Create lists of UTLA's (2019) to compare against
 utla_list <-
-  boundaries_counties_ua %>%
-  filter(str_detect(county_ua_code, "^E")) %>%
-  mutate(county_ua_name = str_to_lower(county_ua_name)) %>%
-  arrange(county_ua_name) %>%
+  boundaries_counties_ua |>
+  filter(str_detect(county_ua_code, "^E")) |>
+  mutate(county_ua_name = str_to_lower(county_ua_name)) |>
+  arrange(county_ua_name) |>
   pull(county_ua_name)
 
 # Find Local Authority names not matched in UTLA list
-charities_local_authorities_not_matched %>%
-  mutate(geographic_area_description = str_to_lower(geographic_area_description)) %>%
-  select(geographic_area_description) %>%
-  filter(!(geographic_area_description %in% utla_list)) %>%
-  distinct() %>%
+charities_local_authorities_not_matched |>
+  mutate(geographic_area_description = str_to_lower(geographic_area_description)) |>
+  select(geographic_area_description) |>
+  filter(!(geographic_area_description %in% utla_list)) |>
+  distinct() |>
   print(n = Inf)
 
 # Match UTLA names and keep only English UTLA's
 charities_local_authorities <-
-  charities_local_authorities_not_matched %>%
+  charities_local_authorities_not_matched |>
   mutate(
     geographic_area_description = str_to_lower(geographic_area_description)
-  ) %>%
+  ) |>
   mutate(
     geographic_area_description = case_when(
       geographic_area_description == "bristol city" ~ "bristol, city of",
@@ -236,13 +239,13 @@ charities_local_authorities <-
       geographic_area_description == "portsmouth city" ~ "portsmouth",
       TRUE ~ geographic_area_description
     )
-  ) %>%
+  ) |>
   filter(geographic_area_description %in% utla_list)
 
 # Keep one record of each charity per area (multiple exist to due to the
 # multiple classifications and areas covered)
 charities_unique <-
-  charities_local_authorities %>%
+  charities_local_authorities |>
   distinct(
     organisation_number,
     charity_name,
@@ -252,41 +255,106 @@ charities_unique <-
 
 # Drop areas where mean_annual_income is NA
 charities_unique_income <-
-  charities_unique %>%
+  charities_unique |>
   drop_na(mean_annual_income)
 
 # Where charity income repeats across areas, split income across areas.
 # This is to stop areas being overweighted.
 charities_split_income <-
-  charities_unique_income %>%
-  group_by(organisation_number) %>%
-  mutate(mean_annual_income = mean_annual_income / n()) %>%
+  charities_unique_income |>
+  group_by(organisation_number) |>
+  mutate(mean_annual_income = mean_annual_income / n()) |>
   ungroup()
 
 # Calaculate capacity to respond per area as:
 # Total summed income per area / population size
-vcs_presence <-
-  charities_split_income %>%
-  group_by(geographic_area_description) %>%
-  summarise(total_area_income = sum(mean_annual_income)) %>%
-  rename(county_ua_name = geographic_area_description) %>%
+non_regional_london_county_income <-
+  charities_split_income |>
+  group_by(geographic_area_description) |>
+  summarise(total_area_income = sum(mean_annual_income)) |>
+  rename(county_ua_name = geographic_area_description) |>
   left_join(
-    boundaries_counties_ua %>%
-      filter(str_detect(county_ua_code, "^E")) %>%
-      as_tibble() %>%
-      select(-geometry) %>%
+    boundaries_counties_ua |>
+      filter(str_detect(county_ua_code, "^E")) |>
+      as_tibble() |>
+      select(-geometry) |>
       mutate(county_ua_name = str_to_lower(county_ua_name)),
     by = "county_ua_name"
-  ) %>%
-  select(-county_ua_name) %>%
+  ) |>
+  select(-county_ua_name) |>
+  filter(str_detect(county_ua_code, "^E")) 
+
+# Regional London charities -----
+london_charities <- charities_health |>
+  filter(geographic_area_type == "Region", geographic_area_description == "Throughout London")
+
+# Keep one record of each charity per area (multiple exist to due to the
+# multiple classifications)
+london_charities_unique <-
+  london_charities |>
+  distinct(
+    organisation_number,
+    charity_name,
+    mean_annual_income,
+    geographic_area_description
+  )
+
+# Drop areas where mean_annual_income is NA
+london_charities_unique_income <-
+  london_charities_unique |>
+  drop_na(mean_annual_income)
+
+london_charities_total_income <- london_charities_unique_income |>
+  summarise(total_mean_annual_income = sum(mean_annual_income)) |>
+  pull()
+
+london_counties <- geographr::lookup_lad_region |>
+  filter(region_name == "London") |>
+  left_join(lookup_counties_ua_lad) |>
+  distinct(county_ua_code) 
+
+regional_london_county_income <- london_counties |>
+  mutate(total_area_income = london_charities_total_income/n(), .before = everything())
+
+# Combining London regional and all UTLA level incomes ----
+county_income_combined <- non_regional_london_county_income |>
+  bind_rows(regional_london_county_income) |>
+  group_by(county_ua_code) |>
+  summarise(total_area_income = sum(total_area_income))
+  
+  
+county_vcs_presence <- county_income_combined |>
   left_join(
-    population_counties_ua %>%
+    population_counties_ua |>
       select(county_ua_code, total_population),
     by = "county_ua_code"
-  ) %>%
-  relocate(county_ua_code) %>%
-  mutate(vcs_presence = total_area_income / total_population) %>%
-  select(county_ua_code, vcs_presence) %>%
+  ) |>
+  relocate(county_ua_code) |>
+  mutate(vcs_presence = total_area_income / total_population) |>
+  select(county_ua_code, vcs_presence) |>
   arrange(desc(vcs_presence))
 
-# TODO: Disaggregate to LTLA?
+# Disaggreagte to LTLA level ----
+lad_pop <- geographr::population_lad |>
+  select(lad_code, total_population)
+
+lad_vcs_presence <- county_vcs_presence |>
+  left_join(lookup_counties_ua_lad) |>
+  left_join(lad_pop) |>
+  rename(lad_pop = total_population) |>
+  group_by(county_ua_code) |>
+  mutate(county_pop_prop = lad_pop / sum(lad_pop)) |>
+  ungroup() |>
+  mutate(vcs_presence_weighted = vcs_presence * county_pop_prop) |>
+  select(lad_code, vcs_presence = vcs_presence_weighted)
+
+# Save ----
+lad_vcs_presence |>
+  write_rds("data/capacity/health-inequalities/england/vsc-presence.rds")
+
+
+
+
+
+
+

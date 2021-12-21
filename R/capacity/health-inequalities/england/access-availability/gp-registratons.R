@@ -102,62 +102,70 @@ gp_registrations_clean <- gp_registrations |>
   filter(!is.na(pop)) |>
   bind_rows(gp_registrations_buck)
   
-# Check distribution
+# Check distribution & total
 summary(gp_registrations_clean$perc_registered_gp)
 
-# Total population data for England is less than the GP registrations
 gp_registrations_clean |>
   summarise(total_gp_reg = sum(count), total_pop = sum(pop))
 
+# Total population data for England is less than the GP registrations
 # May need to assume that the over registrations (perhaps by people that have left country or died) is consistent across all LADs (as don't have info to test this) and use as relative comparison between LADs
 # ONS did some analysis in 2016 on the difference between GP regs and pop but found mix of over and under differences https://commonslibrary.parliament.uk/population-estimates-gp-registers-why-the-difference/
-# Not sure if can resister with more than 1 GP but perhaps is temporary regs? https://www.nhs.uk/common-health-questions/nhs-services-and-treatments/how-do-i-register-as-a-temporary-resident-with-a-gp/
+# Commented out code at end of script tests if same issue with 2020 ONS population data and found still get majoritivly over 100%
+
+# Current assumption: over registration rate equal across LADs (would need data on this otherwise)
+
+# Save ----
+gp_registrations_clean |>
+  write_rds("data/capacity/health-inequalities/england/gp-registrations.rds")
+
+
 
 # Try the mid-2020 population figures -----
-tf <- download_file("https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2020/ukpopestimatesmid2020on2021geography.xls", "xlsx")
-
-pop_lad_2020 <-
-  read_excel(
-    tf,
-    sheet = "MYE2 - Persons",
-    skip = 7
-  )
-
-# Keep only valid 2020 LAD codes for England, Scotland, and Wales
-pop_lad_2020_clean <-  pop_lad_2020 %>%
-  select(lad_code = Code, lad_name = Name, geography = Geography, pop = `All ages`) |>
-  filter(str_detect(lad_code, "^E")) 
-
-gp_regs_pop_2020 <- gp_registrations |>
-  select(lad_code, count) |>
-  left_join(pop_lad_2020_clean)
-
-# Check missings
-gp_regs_pop_2020 |>
-  filter(is.na(pop)) 
-
-# Due to local authority restructuring (see line 68)
-combined_restructures <- buckinghamshire_restructure_2020 |>
-  bind_rows(northamptonshire_restructure_2021)
-
-gp_regs_pop_2020_restructures <- gp_regs_pop_2020 |>
-  filter(is.na(pop)) |>
-  left_join(combined_restructures, by = c("lad_code" = "pre_lad_code")) |>
-  group_by(post_ua_code) |>
-  summarise(count = sum(count)) |>
-  rename(lad_code = post_ua_code) |>
-  left_join(pop_lad_2020_clean) |>
-  mutate(perc_registered_gp = count / pop * 100) 
-  
-gp_regs_pop_2020_clean <- gp_regs_pop_2020 |>
-  filter(!is.na(pop)) |>
-  bind_rows(gp_regs_pop_2020_restructures)
-
-# Check distribution
-summary(gp_regs_pop_2020_clean$perc_registered_gp)
-
-# Total population data for England is less than the GP registrations
-gp_regs_pop_2020_clean |>
-  summarise(total_gp_reg = sum(count), total_pop = sum(pop))
-
-# Same issue with newer population data.
+# tf <- download_file("https://www.ons.gov.uk/file?uri=%2fpeoplepopulationandcommunity%2fpopulationandmigration%2fpopulationestimates%2fdatasets%2fpopulationestimatesforukenglandandwalesscotlandandnorthernireland%2fmid2020/ukpopestimatesmid2020on2021geography.xls", "xlsx")
+# 
+# pop_lad_2020 <-
+#   read_excel(
+#     tf,
+#     sheet = "MYE2 - Persons",
+#     skip = 7
+#   )
+# 
+# # Keep only valid 2020 LAD codes for England, Scotland, and Wales
+# pop_lad_2020_clean <-  pop_lad_2020 %>%
+#   select(lad_code = Code, lad_name = Name, geography = Geography, pop = `All ages`) |>
+#   filter(str_detect(lad_code, "^E")) 
+# 
+# gp_regs_pop_2020 <- gp_registrations |>
+#   select(lad_code, count) |>
+#   left_join(pop_lad_2020_clean)
+# 
+# # Check missings
+# gp_regs_pop_2020 |>
+#   filter(is.na(pop)) 
+# 
+# # Due to local authority restructuring (see line 68)
+# combined_restructures <- buckinghamshire_restructure_2020 |>
+#   bind_rows(northamptonshire_restructure_2021)
+# 
+# gp_regs_pop_2020_restructures <- gp_regs_pop_2020 |>
+#   filter(is.na(pop)) |>
+#   left_join(combined_restructures, by = c("lad_code" = "pre_lad_code")) |>
+#   group_by(post_ua_code) |>
+#   summarise(count = sum(count)) |>
+#   rename(lad_code = post_ua_code) |>
+#   left_join(pop_lad_2020_clean) |>
+#   mutate(perc_registered_gp = count / pop * 100) 
+#   
+# gp_regs_pop_2020_clean <- gp_regs_pop_2020 |>
+#   filter(!is.na(pop)) |>
+#   bind_rows(gp_regs_pop_2020_restructures)
+# 
+# # Check distribution
+# summary(gp_regs_pop_2020_clean$perc_registered_gp)
+# 
+# # Total population data for England is less than the GP registrations
+# gp_regs_pop_2020_clean |>
+#   summarise(total_gp_reg = sum(count), total_pop = sum(pop))
+# 
+# # Same issue with newer population data.
