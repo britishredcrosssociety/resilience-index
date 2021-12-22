@@ -48,8 +48,12 @@ open_trusts |>
 
 fte_clean |>
   anti_join(open_trusts)
-# mainly CCG (and 2 Trusts) - don't currently have a way to map these to MSOA/LA (as detailed above)
+# 83 are CCG and don't currently have a way to map these to MSOA/LA (as detailed above)
 
+fte_clean |>
+  anti_join(open_trusts) |>
+  filter(str_detect(trust_name, "(?i)trust"))
+# 4 Trusts TAD, TAF, TAH, TAJ (similar to other indicators)
 
 # Join trust to LAD lookup --------
 
