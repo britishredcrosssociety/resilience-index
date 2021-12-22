@@ -86,6 +86,7 @@ diagnostics_vars_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, `Waiting 13+ weeks`) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(`Waiting 13+ weeks`)) / n())
+# no missings
 
 diagnostics_vars_lad <- diagnostics_vars_joined |>
   mutate(waiting_over_13_weeks_prop = `Waiting 13+ weeks` * trust_prop_by_lad) |>

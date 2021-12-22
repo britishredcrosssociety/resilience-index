@@ -80,6 +80,7 @@ fte_staff_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, staff_fte) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(staff_fte)) / n())
+# no missing
 
 fte_staff_lad <- fte_staff_joined |>
   mutate(fte_staff_prop = staff_fte * trust_prop_by_lad) |>

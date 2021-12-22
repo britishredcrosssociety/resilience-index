@@ -126,12 +126,9 @@ trust_maint_cost_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, cost) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(cost)) / n())
+# no missing
 
-# Drop the trust R0D with missing cost data
-trust_maint_cost_joined_drop_na <- trust_maint_cost_joined |>
-  filter(!is.na(cost))
-
-maint_cost_lad <- trust_maint_cost_joined_drop_na |>
+maint_cost_lad <- trust_maint_cost_joined |>
   mutate(maint_cost_prop = cost * trust_prop_by_lad) |>
   group_by(lad_code) |>
   summarise(maint_cost_per_lad = sum(maint_cost_prop))

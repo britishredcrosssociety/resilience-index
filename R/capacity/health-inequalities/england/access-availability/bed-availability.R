@@ -150,6 +150,7 @@ avail_beds_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, avail_beds) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(avail_beds)) / n())
+# no missings
 
 avail_beds_lad <- avail_beds_joined |>
   mutate(avail_beds_prop = avail_beds * trust_prop_by_lad) |>
