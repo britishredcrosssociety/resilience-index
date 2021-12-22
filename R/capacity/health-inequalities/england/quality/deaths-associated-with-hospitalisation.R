@@ -27,7 +27,7 @@ deaths_raw <-
   )
 
 deaths_columns <- deaths_raw %>%
-  select(`Provider code`, `Provider name`, `SHMI value`, `SHMI banding`, `Number of spells`, `Observed deaths`, `Expected deaths`)
+  select(trust_code = `Provider code`, `Provider name`, `SHMI value`, `SHMI banding`, `Number of spells`, `Observed deaths`, `Expected deaths`)
 # 122 trusts
 
 # There is data for only 122 trusts (but there is over 200 open trusts) - this is because data is only available for non-specialist acute trusts (see below)
@@ -51,11 +51,11 @@ open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust
 
 # Have established not all trusts have available death data (i.e. non-specialist acute trusts).
 open_trusts |>
-  anti_join(deaths_columns, by = c("trust_code" = "Provider code"))
+  anti_join(deaths_columns)
 
 # Check death data trusts not missing in open trusts list from geographr
 deaths_columns |>
-  anti_join(open_trusts, by = c("Provider code" = "trust_code"))
+  anti_join(open_trusts)
 # all matched
 
 # From https://digital.nhs.uk/data-and-information/publications/statistical/shmi/2021-11:
@@ -67,8 +67,8 @@ deaths_columns |>
 # Trust to MSOA (then to LA) lookup ----
 
 open_trusts |>
-  left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
-  left_join(lookup_trust_msoa, by = "trust_code") |>
+  left_join(deaths_columns) |>
+  left_join(lookup_trust_msoa) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
@@ -76,8 +76,8 @@ open_trusts |>
 # For the acute trusts proportion these to MSOA and then aggregate to LSOA and proportion to per capita level
 
 deaths_full <- open_trusts |>
-  left_join(deaths_columns, by = c("trust_code" = "Provider code")) |>
-  inner_join(lookup_trust_msoa, by = "trust_code") |>
+  left_join(deaths_columns) |>
+  inner_join(lookup_trust_msoa) |>
   select(trust_code, `Provider Primary Inspection Category`, `Provider name`, `SHMI value`, msoa_code, proportion)
 
 # Check missings
