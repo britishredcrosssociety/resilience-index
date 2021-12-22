@@ -74,7 +74,7 @@ outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/defau
 # Since not all Trusts provide all the services (so for different surveys will have different missing Trusts)
 # Complete for one of the surveys as starter
 ae_survey <- outpatient_ae |>
-  select(trust_code = trustcode, num_respon_ae, meanae)
+  select(trust_code = trustcode, meanae)
 
 
 # NHS Trusts table in geographr package -----
@@ -90,15 +90,51 @@ open_trusts |>
 # 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services. 
 
 ae_survey |>
-  anti_join(open_trusts, by = c("trust_code")) |>
-  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
-# 3 missing but are all closed
+  anti_join(open_trusts, by = c("trust_code"))
+# 3 trusts missing
 
+# Some of the trusts codes in data are for old trusts which have changed code
+# Load in trust changes table created in trust_changes.R
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+
+old_new_lookup <- ae_survey |>
+  rename(old_code = trust_code) |>
+  inner_join(trust_changes, by = "old_code") |>
+  group_by(new_code) |>
+  mutate(new_code_count = n()) |>
+  ungroup() |>
+  group_by(old_code) |>
+  mutate(old_code_count = n()) |>
+  ungroup() 
+
+new_trusts <- old_new_lookup |>
+  group_by(new_code) |>
+  summarise(meanae = mean(meanae)) |>
+  rename(trust_code = new_code) 
+
+ae_survey_updated <- ae_survey |>
+  filter(!trust_code %in% old_new_lookup$old_code) |>
+  bind_rows(new_trusts)
+
+# Check duplicates now have updated
+ae_survey_updated |>
+  group_by(trust_code) |>
+  summarise(count = n()) |>
+  filter(count > 1)
+
+# Average any duplicates 
+ae_survey_updated_combined <- ae_survey_updated |>
+  group_by(trust_code) |>
+  summarise(meanae = mean(meanae)) 
+  
+ae_survey_updated_combined |>
+  anti_join(open_trusts, by = c("trust_code"))
+# No missings
 
 # Trust to MSOA (then to LA) lookup ----
 
 # Trust to MSOA table only has data for acute trusts
-ae_survey |>
+ae_survey_updated_combined |>
   left_join(open_trusts) |>
   left_join(lookup_trust_msoa) |>
   group_by(`Provider Primary Inspection Category`) |>
@@ -106,7 +142,7 @@ ae_survey |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts proportion these to MSOA and then aggregate to LAD
-ae_survey_joined <- ae_survey |>
+ae_survey_joined <- ae_survey_updated_combined |>
   left_join(open_trusts) |>
   inner_join(lookup_trust_msoa)
 
@@ -123,7 +159,7 @@ ae_survey_msoa <- ae_survey_joined |>
 
 # Distributions
 summary(ae_survey_msoa$weighted_score)
-summary(ae_survey$meanae)
+summary(ae_survey_updated_combined$meanae)
 
 # Aggregate from MSOA to LA ----
 
@@ -143,7 +179,6 @@ ae_survey_lad |>
   group_by(extent) |>
   summarise(count = n()/nrow(ae_survey_lad)) |>
   print(n = Inf)
-# 52% : extent = 0
-# 3%: extent = 1
+
 
 # TO DO: Get this checked, repeat for other surveys?

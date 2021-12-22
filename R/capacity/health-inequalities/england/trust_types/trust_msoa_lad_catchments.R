@@ -38,13 +38,44 @@ catchment_proportions |>
   group_by(trust_code) |>
   mutate(calculated_trust_total_catchment = sum(msoa_total_catchment))
 
-# Also note the total of the patietns column for an MSOA is not the same as the total_aptients column, is it that some patients for a given MSOA which can't be attributed to a Trust?
+# Also note the total of the patients column for an MSOA is not the same as the total_patients column, is it that some patients for a given MSOA which can't be attributed to a Trust?
 # This means that the proportion column does not sum to 100% when grouped by Trust
 catchment_proportions |> 
   select(msoa_code, patients, total_patients) |>
   group_by(msoa_code) |>
   mutate(calculated_total_patients = sum(patients))
 
+# Some trust codes may need updated so aligns with 'open_trust_types.feather' ----
+open_trusts<- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+
+trusts_to_update <- catchment_proportions |>
+  anti_join(open_trusts) |>
+  distinct(trust_code) |>
+  pull()
+
+updated_trusts <- catchment_proportions |>
+  filter(trust_code %in% trusts_to_update) |>
+  inner_join(trust_changes, by = c("trust_code" = "old_code")) |>
+  select(-c(trust_code, date)) |>
+  rename(trust_code = new_code) |>
+  relocate(trust_code, .after = msoa_code)
+
+catchment_proportions_updated <- catchment_proportions |>
+  filter(!trust_code %in% trusts_to_update) |>
+  bind_rows(updated_trusts)|>
+  group_by(msoa_code, trust_code) 
+
+# Check through updating trust codes may be duplicated combinations of msoa_code and trust_code 
+# so need to combine rows to only distinct combination of msoa_code and trust_code 
+# the total_patients column won't change because this is the total number of patients across all trusts for a given msoa 
+# and since it is the trust code changing (not msoa) will stay the same. 
+catchment_proportions_updated_grouped <- catchment_proportions_updated |>
+  group_by(msoa_code, trust_code, total_patients) |>
+  summarise_if(is.numeric, sum) |>
+  ungroup() |>
+  relocate(total_patients, .after = patients)
+  
 
 # Following similar logic to Victims of Maths using this data to attribute COVID deaths at Trust level to LAs
 # https://github.com/VictimOfMaths/COVID-19/blob/5803fa341b3af99e7a8d8b4eda708e6a3d2ab052/Heatmaps/COVIDAdmissionsLTLAPhasePlot.R#L73 

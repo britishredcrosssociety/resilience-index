@@ -6,6 +6,8 @@ library(readODS)
 
 source("R/utils.R") # for download_file() 
 
+# Source of data: https://digital.nhs.uk/data-and-information/publications/statistical/estates-returns-information-collection/england-2019-20
+
 # There was trust level data for 'Investment to reduce backlog maintenance (£)' but investment != cost and so have used the site level data for
 # 'Cost to eradicate high risk backlog (£)' and aggregated the cost up to trust level
 # In case needed in future the trust level investment data can be found at https://files.digital.nhs.uk/84/07227E/ERIC%20-%20201920%20-%20TrustData.csv
@@ -35,7 +37,7 @@ site_columns <- raw_site |>
 trust_maint_cost <- site_columns |>
   group_by(`Trust Code`) |>
   summarise_if(is.numeric, ~ sum(.x, na.rm = TRUE)) |>
-  select(trust_code = `Trust Code`, `Cost to eradicate high risk backlog (£)`)
+  select(trust_code = `Trust Code`, cost =  `Cost to eradicate high risk backlog (£)`)
 
 
 # NHS Trust table in geographr package -----
@@ -44,25 +46,58 @@ trust_maint_cost <- site_columns |>
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 
-# Check the matching of indicator data & trust table in geographr package
+# Check which trusts are in cost data and not geographr package 
+trust_maint_cost |>
+  anti_join(open_trusts)
 
-# Check which trusts are in geographr package and not cost data 
+# Some of the trusts codes in data are for old trusts which have changed code
+# Load in trust changes table created in trust_changes.R
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+
+old_new_lookup <- trust_maint_cost |>
+  rename(old_code = trust_code) |>
+  inner_join(trust_changes, by = "old_code") |>
+  group_by(new_code) |>
+  mutate(new_code_count = n()) |>
+  ungroup() |>
+  group_by(old_code) |>
+  mutate(old_code_count = n()) |>
+  ungroup() |>
+  mutate(split_cost = 
+           ifelse(old_code_count > 1, cost/old_code_count, cost))
+
+new_trusts <- old_new_lookup |>
+  group_by(new_code) |>
+  summarise(cost = sum(split_cost)) |>
+  rename(trust_code = new_code) 
+
+trust_main_cost_updated <- trust_maint_cost |>
+  filter(!trust_code %in% old_new_lookup$old_code) |>
+  bind_rows(new_trusts)
+
+# Check duplicates now have updated
+trust_main_cost_updated |>
+  group_by(trust_code) |>
+  summarise(count = n()) |>
+  filter(count > 1)
+
+# Average any duplicates 
+trust_main_cost_updated_combined <- trust_main_cost_updated |>
+  group_by(trust_code) |>
+  summarise(cost = sum(cost)) 
+
+# Check again which trusts are in cost data and not geographr package 
+trust_main_cost_updated_combined |>
+  anti_join(open_trusts)
+# 4 - TAD, TAF, TAH, TAJ (similar to CQC rating)
+# These are in the CQC rating data as 'Mental health - community & residential - NHS'. 
+
 # In quality report (https://files.digital.nhs.uk/4E/5A51F9/ERIC-201920%20-%20Data%20Quality%20Report%20v5.pdf) says 'All 224 trusts required to complete an ERIC return in 2019/20 did so.'
 # And there are 224 trusts in the raw data
 open_trusts |>
-  anti_join(trust_maint_cost)
-# 4 trusts missing: R0D, RQF, RT4, RYT
-# Checked the https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R for these
-# R0D used to be RD3 - which is in the cost data
-# RQF?
-# RT4 used to be RKV, RP8, RQE, RRC - which aren't in the cost data
-# RYT?
-
-# Check which trusts are in cost data and not geographr package 
-trust_maint_cost |>
-  anti_join(open_trusts) |>
-  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
-# 5 are closed ones and then 10 remaining - TAD, TAF, TAH, TAJ, RA3, RBA, RC1, RDD, RQ6, RQ8
+  anti_join(trust_main_cost_updated_combined) |>
+  inner_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
+# 4 trusts missing remaining: RQF, RT4, RW6, RYT (similar to CQC rating)
 
 # Join trust to LAD lookup --------
 
@@ -73,7 +108,7 @@ lookup_trust_lad <- lookup_trust_lad |>
 
 # Trust to LAD table only has data for acute trusts
 open_trusts |>
-  left_join(trust_maint_cost) |>
+  left_join(trust_main_cost_updated_combined) |>
   left_join(lookup_trust_lad) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
@@ -81,21 +116,21 @@ open_trusts |>
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts data proportion these to LAD and calculate per capita level
 trust_maint_cost_joined <- open_trusts |>
-  left_join(trust_maint_cost) |>
+  left_join(trust_main_cost_updated_combined) |>
   inner_join(lookup_trust_lad)
 
 # Check missings
 trust_maint_cost_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, `Cost to eradicate high risk backlog (£)`) |>
+  distinct(trust_code, `Provider Primary Inspection Category`, cost) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_missing = sum(is.na(`Cost to eradicate high risk backlog (£)`)) / n())
+  summarise(count = n(), prop_missing = sum(is.na(cost)) / n())
 
 # Drop the trust R0D with missing cost data
 trust_maint_cost_joined_drop_na <- trust_maint_cost_joined |>
-  filter(!is.na(`Cost to eradicate high risk backlog (£)`))
+  filter(!is.na(cost))
 
 maint_cost_lad <- trust_maint_cost_joined_drop_na |>
-  mutate(maint_cost_prop = `Cost to eradicate high risk backlog (£)` * trust_prop_by_lad) |>
+  mutate(maint_cost_prop = cost * trust_prop_by_lad) |>
   group_by(lad_code) |>
   summarise(maint_cost_per_lad = sum(maint_cost_prop))
 
@@ -103,7 +138,7 @@ maint_cost_lad <- trust_maint_cost_joined_drop_na |>
 # Check totals
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
 sum(maint_cost_lad$maint_cost_per_lad)
-sum(trust_maint_cost$`Cost to eradicate high risk backlog (£)`)
+sum(trust_main_cost_updated_combined$cost)
 
 
 # Normalise for LAD pop ----
