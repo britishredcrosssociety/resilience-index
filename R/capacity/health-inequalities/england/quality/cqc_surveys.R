@@ -90,14 +90,16 @@ open_trusts |>
 # 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services. 
 
 ae_survey |>
-  anti_join(open_trusts, by = c("trust_code"))
+  anti_join(open_trusts)
 # 3 trusts missing
 
 # Some of the trusts codes in data are for old trusts which have changed code
+# Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
 trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
 
 old_new_lookup <- ae_survey |>
+  anti_join(open_trusts) |>
   rename(old_code = trust_code) |>
   inner_join(trust_changes, by = "old_code") |>
   group_by(new_code) |>

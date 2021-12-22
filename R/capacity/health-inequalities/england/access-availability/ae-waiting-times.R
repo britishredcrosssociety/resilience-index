@@ -77,6 +77,11 @@ raw |>
 # 88 entries but all not NHS Trusts
 # States 'Data are shown at provider organisation level, from NHS Trusts, NHS Foundation Trusts and Independent Sector Organisations' https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/
 
+raw |>
+  anti_join(open_trusts, by = c("Code" = "trust_code")) |>
+  filter(str_detect(Name, "(?i)trust")) |>
+  pull(Name)
+# No NHS or NHS Foundation Trusts 
 
 # Join trust to LAD lookup --------
 

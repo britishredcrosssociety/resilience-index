@@ -50,11 +50,13 @@ open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust
 trust_maint_cost |>
   anti_join(open_trusts)
 
-# Some of the trusts codes in data are for old trusts which have changed code
+# Some of the trusts codes in data are for old trusts which have changed code 
+# Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
 trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
 
 old_new_lookup <- trust_maint_cost |>
+  anti_join(open_trusts) |>
   rename(old_code = trust_code) |>
   inner_join(trust_changes, by = "old_code") |>
   group_by(new_code) |>
@@ -81,7 +83,7 @@ trust_main_cost_updated |>
   summarise(count = n()) |>
   filter(count > 1)
 
-# Average any duplicates 
+# Sum any duplicates 
 trust_main_cost_updated_combined <- trust_main_cost_updated |>
   group_by(trust_code) |>
   summarise(cost = sum(cost)) 
