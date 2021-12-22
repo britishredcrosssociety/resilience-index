@@ -1,4 +1,5 @@
 # Note: once decided approach for A&E waiting times repeat here.
+# Potentially split the total waiting list counts between LADs and porportion at end?
 
 # Load libs
 library(tidyverse)
@@ -47,6 +48,13 @@ raw |>
 # There are many 243 missing in open trusts but notes say 'Data are shown at provider organisation level, from NHS Trusts, NHS Foundation Trusts and Independent Sector Providers'
 # So from names look to be independent providers (e.g. Nuffield, Spire etc)
 # Note here: https://www.england.nhs.uk/statistics/statistical-work-areas/diagnostics-waiting-times-and-activity/monthly-diagnostics-waiting-times-and-activity/
+
+raw |>
+  anti_join(open_trusts, by = c("Provider Code" = "trust_code")) |>
+  select(`Regional Team Name`, `Provider Name`) |>
+  filter(str_detect(`Provider Name`, "(?i)trust"))
+  print(n = Inf)
+# No NHS Foundation Trusts
 
 open_trusts |>
   anti_join(diagnostics_vars) |>
