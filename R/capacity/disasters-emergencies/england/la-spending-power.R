@@ -43,15 +43,16 @@ lads_pop |>
 # no missings
 
 cps |>
-  anti_join(lad_pop) |>
+  anti_join(lads_pop) |>
   print(n = Inf)
 
 # Investigate not matches in LAD population data (Fire & Counties) ----
 
-# Many are relating to Fire services
+# Many are actually Fire & Rescue Authorities
 fire_lads <- cps |>
   anti_join(lads_pop, by = "lad_code") |>
-  filter(str_detect(lad_name, "Fire"))
+  filter(str_detect(lad_name, "Fire")) |>
+  rename(far_auth_code = lad_code, far_auth_name = lad_name)
 
 # Check for matches at county (i.e. UTLA) level
 cps_counties <- cps |>
@@ -104,7 +105,7 @@ cps_updated <- cps |>
 # Remaining unmatched is a Combined Authority (don't currently have this lookup in geographr package)
 cps |>
   anti_join(lads_pop, by = "lad_code") |>
-  anti_join(fire_lads, by = "lad_code") |>
+  anti_join(fire_lads, by = c("lad_code" = "far_auth_code")) |>
   anti_join(cps_counties_updated, by = c("lad_code" = "county_ua_code"))
 
 # Load in Combined Authority lookup data ----
@@ -156,8 +157,8 @@ cps_combined <- cps_updated |>
   bind_rows(cps_counties_split) |>
   group_by(lad_code, lad_name) |>
   summarise(cps_millions = sum(cps_millions))
-
-# TO DO: Fire areas?
+ 
+# TO DO: Fire & Rescue Authorities? Lookup to LAD is here: https://geoportal.statistics.gov.uk/datasets/ons::local-authority-district-to-fire-and-rescue-authority-april-2021-lookup-in-england-and-wales/about
 # Should UTLA/Combined Auth be included? This is a adjusted version of the data where these are removed?
 # https://pldr.org/dataset/20mjj/local-authority-finance-core-spending-power-fin0759
 
