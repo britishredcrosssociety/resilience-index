@@ -1,19 +1,20 @@
 # Note: once decided approach for A&E waiting times repeat here.
-# Potentially split the total waiting list counts between LADs and porportion at end?
+# Potentially split the total waiting list counts between LADs and proportion at end?
 
-# Load libs
+# Load packages
 library(tidyverse)
 library(httr)
 library(readxl)
 library(sf)
 library(geographr)
+library(arrow)
 
-source("R/utils.R") #for download_file() 
+source("R/utils.R") # for download_file()
 
 # Load data ----
 
 # Data from https://www.england.nhs.uk/statistics/statistical-work-areas/diagnostics-waiting-times-and-activity/monthly-diagnostics-waiting-times-and-activity/monthly-diagnostics-data-2021-22/
-tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/Monthly-Diagnostics-Web-File-Provider-May-2021_84CSC.xls",".xls")
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/Monthly-Diagnostics-Web-File-Provider-May-2021_84CSC.xls", ".xls")
 
 raw <-
   read_excel(
@@ -40,7 +41,7 @@ diagnostics_vars <-
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Check those in the waiting times data and not in the trusts data 
+# Check those in the waiting times data and not in the trusts data
 raw |>
   anti_join(open_trusts, by = c("Provider Code" = "trust_code")) |>
   select(`Regional Team Name`, `Provider Name`) |>
@@ -52,7 +53,7 @@ raw |>
 raw |>
   anti_join(open_trusts, by = c("Provider Code" = "trust_code")) |>
   select(`Regional Team Name`, `Provider Name`) |>
-  filter(str_detect(`Provider Name`, "(?i)trust"))
+  filter(str_detect(`Provider Name`, "(?i)trust")) |>
   print(n = Inf)
 # No NHS Foundation Trusts
 
@@ -61,7 +62,7 @@ open_trusts |>
   print(n = Inf)
 # 51 missing that are ambulance and community trusts
 # In note (https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2013/08/DM01-FAQs-v-3.0.pdf) says
-# 'All trusts that provide any of the diagnostic tests that are on the monthly template should complete a return' - so these trusts may not provide these tests. 
+# 'All trusts that provide any of the diagnostic tests that are on the monthly template should complete a return' - so these trusts may not provide these tests.
 
 # Join trust to LAD lookup --------
 
@@ -105,10 +106,9 @@ lad_pop <- geographr::population_lad |>
 
 diagnostics_vars_normalised <- diagnostics_vars_lad |>
   left_join(lad_pop) |>
-  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_population * 100) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_population) |>
   select(lad_code, waiting_over_13_weeks_rate)
 
 # Save ----
 diagnostics_vars_normalised |>
   write_rds("data/capacity/health-inequalities/england/waiting-lists.rds")
-

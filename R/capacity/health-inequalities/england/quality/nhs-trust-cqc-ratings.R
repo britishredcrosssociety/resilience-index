@@ -5,7 +5,7 @@ library(geographr)
 library(readxl)
 library(sf)
 
-source("R/utils.R") # for download_file() 
+source("R/utils.R") # for download_file()
 
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
 # Info on how is rated https://www.cqc.org.uk/what-we-do/how-we-do-our-job/how-we-rate-trusts-their-use-resources
@@ -35,7 +35,7 @@ cqc_nhs_trusts_overall <- raw_providers |>
   filter(`Provider Type` == "NHS Healthcare Organisation") |>
   filter(Domain == "Overall") |>
   filter(`Service / Population Group` == "Overall") |>
-  select(trust_code = `Provider ID`, latest_rating = `Latest Rating`) 
+  select(trust_code = `Provider ID`, latest_rating = `Latest Rating`)
 
 # Check distinct mapping i.e. only 1 score for 1 provider due to comment in the rating documentation stating:
 # 'In some cases, a location or provider may have had more than one rating published on the same date, and in this case both ratings are shown in this file. It will be necessary to check on the CQC website to see which is the current rating for these organisations.'
@@ -57,7 +57,7 @@ cqc_nhs_trusts_overall |>
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 
-# Check the matching of CQC scores & trust table in geographr package 
+# Check the matching of CQC scores & trust table in geographr package
 
 # Check of any trusts that are in the CQC ratings but not in open trusts
 cqc_nhs_trusts_overall |>
@@ -66,7 +66,7 @@ cqc_nhs_trusts_overall |>
 
 # Check if any trusts in CQC scores not in open trusts
 open_trusts |>
-  anti_join(cqc_nhs_trusts_overall) 
+  anti_join(cqc_nhs_trusts_overall)
 # 5 Trusts missing R0D, RQF, RT4, RW6, RYT (similar to hospital maint. backlog)
 
 
@@ -124,7 +124,7 @@ rating_lad <- rating_msoa |>
 
 rating_lad |>
   group_by(extent) |>
-  summarise(count = n()/nrow(rating_lad)) |>
+  summarise(count = n() / nrow(rating_lad)) |>
   print(n = Inf)
 # 58% : extent = 0
 # 2%: extent = 1
@@ -132,4 +132,3 @@ rating_lad |>
 # Save ----
 rating_lad |>
   write_rds("data/capacity/health-inequalities/england/nhs-trust-cqc-rating.rds")
-

@@ -4,8 +4,9 @@ library(httr)
 library(readxl)
 library(sf)
 library(geographr)
+library(arrow)
 
-source("R/utils.R") # for download_file() 
+source("R/utils.R") # for download_file()
 
 # Load raw data
 tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/June-2021-AE-by-provider-j47iI.xls", ".xls")
@@ -81,37 +82,38 @@ raw |>
   anti_join(open_trusts, by = c("Code" = "trust_code")) |>
   filter(str_detect(Name, "(?i)trust")) |>
   pull(Name)
-# No NHS or NHS Foundation Trusts 
+# No NHS or NHS Foundation Trusts
 
-# Deal with 14 trusts that don't report number waiting over 4 hours ---- 
+# Deal with 14 trusts that don't report number waiting over 4 hours ----
 
 # Notes state that 14 Trusts are not required to report on the number of attendances over 4 hours from May 2019
 # Bu they do report the total number of patients waiting
 # Notes here (page 3): https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/12/Statistical-commentary-November-2021-jf8.pdf
 not_reporting_trusts <- tibble(
   name = c(
-  "BEDFORDSHIRE HOSPITALS NHS FOUNDATION TRUST",
-  "CAMBRIDGE UNIVERSITY HOSPITALS NHS FOUNDATION TRUST",
-  "CHELSEA AND WESTMINSTER HOSPITAL NHS FOUNDATION TRUST",
-  "FRIMLEY HEALTH NHS FOUNDATION TRUST",
-  "IMPERIAL COLLEGE HEALTHCARE NHS TRUST",
-  "KETTERING GENERAL HOSPITAL NHS FOUNDATION TRUST",
-  "MID YORKSHIRE HOSPITALS NHS TRUST",
-  "NORTH TEES AND HARTLEPOOL NHS FOUNDATION TRUST",
-  "NOTTINGHAM UNIVERSITY HOSPITALS NHS TRUST",
-  "PORTSMOUTH HOSPITALS UNIVERSITY NATIONAL HEALTH SERVICE TRUST",
-  "THE ROTHERHAM NHS FOUNDATION TRUST",
-  "UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST",
-  "UNIVERSITY HOSPITALS PLYMOUTH NHS TRUST",
-  "WEST SUFFOLK NHS FOUNDATION TRUST")
-  ) |>
+    "BEDFORDSHIRE HOSPITALS NHS FOUNDATION TRUST",
+    "CAMBRIDGE UNIVERSITY HOSPITALS NHS FOUNDATION TRUST",
+    "CHELSEA AND WESTMINSTER HOSPITAL NHS FOUNDATION TRUST",
+    "FRIMLEY HEALTH NHS FOUNDATION TRUST",
+    "IMPERIAL COLLEGE HEALTHCARE NHS TRUST",
+    "KETTERING GENERAL HOSPITAL NHS FOUNDATION TRUST",
+    "MID YORKSHIRE HOSPITALS NHS TRUST",
+    "NORTH TEES AND HARTLEPOOL NHS FOUNDATION TRUST",
+    "NOTTINGHAM UNIVERSITY HOSPITALS NHS TRUST",
+    "PORTSMOUTH HOSPITALS UNIVERSITY NATIONAL HEALTH SERVICE TRUST",
+    "THE ROTHERHAM NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS DORSET NHS FOUNDATION TRUST",
+    "UNIVERSITY HOSPITALS PLYMOUTH NHS TRUST",
+    "WEST SUFFOLK NHS FOUNDATION TRUST"
+  )
+) |>
   left_join(points_nhs_trusts, by = c("name" = "nhs_trust_name")) |>
   rename(trust_name = name, trust_code = nhs_trust_code)
 
 
-# Aim to get the 14 missing trusts data but current approach is to impute a value for these 14. 
+# Aim to get the 14 missing trusts data but current approach is to impute a value for these 14.
 # Approach: load the last reported value (April 2019), calculate the % waited over 4 hours
-# Check the median % change of waits between April 2019 and now and apply for the missing trust data  
+# Check the median % change of waits between April 2019 and now and apply for the missing trust data
 tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2020/08/Monthly-AE-April-2019-revised-220720-632O5.xls", "xls")
 
 raw_april_2019 <-
@@ -145,12 +147,12 @@ ae_april_2019 <- raw_april_2019 |>
 
 
 ae_april_2019_prop <- ae_april_2019 |>
-  mutate(old_wait_prop = ae_over_4_hours_wait/ae_total_wait) |>
+  mutate(old_wait_prop = ae_over_4_hours_wait / ae_total_wait) |>
   select(trust_code, old_wait_prop)
 
 change_in_wait_prop <- ae_double |>
   inner_join(open_trusts) |>
-  mutate(latest_wait_prop = ae_over_4_hours_wait/ae_total_wait) |>
+  mutate(latest_wait_prop = ae_over_4_hours_wait / ae_total_wait) |>
   select(trust_code, latest_wait_prop) |>
   left_join(ae_april_2019_prop) |>
   mutate(change = latest_wait_prop - old_wait_prop) |>
@@ -162,7 +164,7 @@ change_in_wait_prop |>
 
 mising_trusts_estimates <- not_reporting_trusts |>
   left_join(ae_april_2019, by = "trust_code") |>
-  mutate(old_wait_prop = ae_over_4_hours_wait/ae_total_wait) |>
+  mutate(old_wait_prop = ae_over_4_hours_wait / ae_total_wait) |>
   mutate(updated_prop = old_wait_prop + median(change_in_wait_prop$change, na.rm = T)) |>
   select(trust_code, updated_prop)
 # Have checked trust changes and can't find the previous trust codes for R0D (i.e. RD3 & RDZ) in the 2019 data
@@ -171,7 +173,7 @@ mising_trusts_estimates <- not_reporting_trusts |>
 ae_double_updated <- ae_double |>
   left_join(mising_trusts_estimates) |>
   mutate(ae_over_4_hours_wait = ifelse(!is.na(updated_prop), ae_total_wait * updated_prop, ae_over_4_hours_wait)) |>
-  mutate(over_4_hours_wait_prop = ae_over_4_hours_wait/ae_total_wait) |>
+  mutate(over_4_hours_wait_prop = ae_over_4_hours_wait / ae_total_wait) |>
   mutate(ae_over_4_hours_wait = ifelse(trust_code == "R0D", ae_total_wait * median(over_4_hours_wait_prop, na.rm = T), ae_over_4_hours_wait)) |>
   select(-updated_prop, -over_4_hours_wait_prop)
 
@@ -199,24 +201,28 @@ ae_wait_joined |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(ae_over_4_hours_wait)) / n())
 
-# Some of the open trusts don't have the A&E waiting data 
+# Some of the open trusts don't have the A&E waiting data
 ae_wait_joined |>
   filter(is.na(ae_over_4_hours_wait)) |>
   distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait, ae_total_wait) |>
-  left_join(points_nhs_trusts, by = c("trust_code" = "nhs_trust_code")) 
+  left_join(points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 # Are specialist and may not have an A&E facility
 
-# need to re-weight the trust_prop_to_lad due to Trusts which don't have A&E 
+# need to re-weight the trust_prop_to_lad due to Trusts which don't have A&E
 ae_wait_lad <- ae_wait_joined |>
   filter(!is.na(ae_over_4_hours_wait)) |>
   group_by(lad_code) |>
-  mutate(trust_prop_by_lad_reweight = trust_prop_by_lad/ sum(trust_prop_by_lad)) |>
+  mutate(trust_prop_by_lad_reweight = trust_prop_by_lad / sum(trust_prop_by_lad)) |>
   ungroup() |>
-  mutate(ae_over_4_hours_wait_prop = ae_over_4_hours_wait * trust_prop_by_lad_reweight,
-         ae_total_wait_prop = ae_total_wait * trust_prop_by_lad_reweight) |>
+  mutate(
+    ae_over_4_hours_wait_prop = ae_over_4_hours_wait * trust_prop_by_lad_reweight,
+    ae_total_wait_prop = ae_total_wait * trust_prop_by_lad_reweight
+  ) |>
   group_by(lad_code) |>
-  summarise(ae_over_4_hours_wait_per_lad = sum(ae_over_4_hours_wait_prop),
-            ae_total_wait_per_lad = sum(ae_total_wait_prop))
+  summarise(
+    ae_over_4_hours_wait_per_lad = sum(ae_over_4_hours_wait_prop),
+    ae_total_wait_per_lad = sum(ae_total_wait_prop)
+  )
 
 # Check totals
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
@@ -234,10 +240,12 @@ lad_pop <- geographr::population_lad |>
 
 ae_wait_normalised <- ae_wait_lad |>
   left_join(lad_pop) |>
-  mutate(ae_over_4_hours_wait_per_capita = ae_over_4_hours_wait_per_lad / total_population * 100,
-         ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad * 100)
-  
+  mutate(
+    ae_over_4_hours_wait_per_capita = ae_over_4_hours_wait_per_lad / total_population,
+    ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad
+  )
+
 
 # Save ----
-#ae_wait_normalised |>
+# ae_wait_normalised |>
 #  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")

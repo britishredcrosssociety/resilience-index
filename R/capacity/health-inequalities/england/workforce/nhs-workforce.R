@@ -2,6 +2,8 @@
 library(tidyverse)
 library(geographr)
 library(sf)
+library(readxl)
+library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -34,7 +36,7 @@ fte_clean |>
   mutate(trust_flag = str_detect(trust_name, "NHS Trust|NHS Foundation Trust")) |>
   mutate(ccg_flag = str_detect(trust_name, "CCG")) |>
   group_by(trust_flag, ccg_flag) |>
-  summarise(count = n(), total_staff_fte = sum(staff_fte), prop = sum(staff_fte) / sum(raw_fte_clean$staff_fte))
+  summarise(count = n(), total_staff_fte = sum(staff_fte), prop = sum(staff_fte) / sum(fte_clean$staff_fte))
 
 # NHS Trust table in geographr package -----
 
@@ -90,7 +92,7 @@ fte_staff_lad <- fte_staff_joined |>
 
 # Checking totals at each stage 
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
-sum(raw_fte_clean$staff_fte)
+sum(fte_clean$staff_fte)
 sum(fte_staff_lad$fte_staff_per_lad)
 
 
@@ -100,9 +102,9 @@ lad_pop <- geographr::population_lad |>
 
 fte_staff_lad_normalised <- fte_staff_lad |>
   left_join(lad_pop) |>
-  mutate(fte_staff_rate = fte_staff_per_lad / total_population * 100) |>
+  mutate(fte_staff_rate = fte_staff_per_lad / total_population) |>
   select(lad_code, fte_staff_rate)
 
 # Save ----
 fte_staff_lad_normalised |>
-  write_rds("data/capacity/health-inequalities/england/nhs_workforce.rds")
+  write_rds("data/capacity/health-inequalities/england/nhs-workforce.rds")

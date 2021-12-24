@@ -82,12 +82,12 @@ ae_survey <- outpatient_ae |>
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Check the matching of survey data & trust table in geographr package 
+# Check the matching of survey data & trust table in geographr package
 open_trusts |>
   anti_join(ae_survey, by = c("trust_code")) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n())
-# 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services. 
+# 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services.
 
 ae_survey |>
   anti_join(open_trusts)
@@ -107,12 +107,12 @@ old_new_lookup <- ae_survey |>
   ungroup() |>
   group_by(old_code) |>
   mutate(old_code_count = n()) |>
-  ungroup() 
+  ungroup()
 
 new_trusts <- old_new_lookup |>
   group_by(new_code) |>
   summarise(meanae = mean(meanae)) |>
-  rename(trust_code = new_code) 
+  rename(trust_code = new_code)
 
 ae_survey_updated <- ae_survey |>
   filter(!trust_code %in% old_new_lookup$old_code) |>
@@ -124,11 +124,11 @@ ae_survey_updated |>
   summarise(count = n()) |>
   filter(count > 1)
 
-# Average any duplicates 
+# Average any duplicates
 ae_survey_updated_combined <- ae_survey_updated |>
   group_by(trust_code) |>
-  summarise(meanae = mean(meanae)) 
-  
+  summarise(meanae = mean(meanae))
+
 ae_survey_updated_combined |>
   anti_join(open_trusts, by = c("trust_code"))
 # No missings
@@ -179,7 +179,7 @@ ae_survey_lad <- ae_survey_msoa |>
 
 ae_survey_lad |>
   group_by(extent) |>
-  summarise(count = n()/nrow(ae_survey_lad)) |>
+  summarise(count = n() / nrow(ae_survey_lad)) |>
   print(n = Inf)
 
 

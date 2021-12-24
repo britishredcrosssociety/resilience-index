@@ -3,8 +3,9 @@ library(tidyverse)
 library(geographr)
 library(sf)
 library(readODS)
+library(arrow)
 
-source("R/utils.R") # for download_file() 
+source("R/utils.R") # for download_file()
 
 # Source of data: https://digital.nhs.uk/data-and-information/publications/statistical/estates-returns-information-collection/england-2019-20
 
@@ -37,7 +38,7 @@ site_columns <- raw_site |>
 trust_maint_cost <- site_columns |>
   group_by(`Trust Code`) |>
   summarise_if(is.numeric, ~ sum(.x, na.rm = TRUE)) |>
-  select(trust_code = `Trust Code`, cost =  `Cost to eradicate high risk backlog (£)`)
+  select(trust_code = `Trust Code`, cost = `Cost to eradicate high risk backlog (£)`)
 
 
 # NHS Trust table in geographr package -----
@@ -46,11 +47,11 @@ trust_maint_cost <- site_columns |>
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
 
-# Check which trusts are in cost data and not geographr package 
+# Check which trusts are in cost data and not geographr package
 trust_maint_cost |>
   anti_join(open_trusts)
 
-# Some of the trusts codes in data are for old trusts which have changed code 
+# Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
 trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
@@ -65,13 +66,15 @@ old_new_lookup <- trust_maint_cost |>
   group_by(old_code) |>
   mutate(old_code_count = n()) |>
   ungroup() |>
-  mutate(split_cost = 
-           ifelse(old_code_count > 1, cost/old_code_count, cost))
+  mutate(
+    split_cost =
+      ifelse(old_code_count > 1, cost / old_code_count, cost)
+  )
 
 new_trusts <- old_new_lookup |>
   group_by(new_code) |>
   summarise(cost = sum(split_cost)) |>
-  rename(trust_code = new_code) 
+  rename(trust_code = new_code)
 
 trust_main_cost_updated <- trust_maint_cost |>
   filter(!trust_code %in% old_new_lookup$old_code) |>
@@ -83,16 +86,16 @@ trust_main_cost_updated |>
   summarise(count = n()) |>
   filter(count > 1)
 
-# Sum any duplicates 
+# Sum any duplicates
 trust_main_cost_updated_combined <- trust_main_cost_updated |>
   group_by(trust_code) |>
-  summarise(cost = sum(cost)) 
+  summarise(cost = sum(cost))
 
-# Check again which trusts are in cost data and not geographr package 
+# Check again which trusts are in cost data and not geographr package
 trust_main_cost_updated_combined |>
   anti_join(open_trusts)
 # 4 - TAD, TAF, TAH, TAJ (similar to CQC rating)
-# These are in the CQC rating data as 'Mental health - community & residential - NHS'. 
+# These are in the CQC rating data as 'Mental health - community & residential - NHS'.
 
 # In quality report (https://files.digital.nhs.uk/4E/5A51F9/ERIC-201920%20-%20Data%20Quality%20Report%20v5.pdf) says 'All 224 trusts required to complete an ERIC return in 2019/20 did so.'
 # And there are 224 trusts in the raw data
@@ -146,10 +149,10 @@ lad_pop <- geographr::population_lad |>
 
 maint_cost_msoa_normalised <- maint_cost_lad |>
   left_join(lad_pop) |>
-  mutate(maint_cost_rate = maint_cost_per_lad / total_population * 100) |>
+  mutate(maint_cost_rate = maint_cost_per_lad / total_population) |>
   select(lad_code, maint_cost_rate)
 
 
 # Save ----
-maint_cost_msoa_normalised  |>
+maint_cost_msoa_normalised |>
   write_rds("data/capacity/health-inequalities/england/hospital-maintanance-backlog-cost.rds")

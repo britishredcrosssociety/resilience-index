@@ -86,7 +86,7 @@ deaths_full |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(`SHMI value`)) / n())
 
-# Only have death data on acute non specialist trusts (i.e. those in the deaths dataset) so re-proportion the splits and 
+# Only have death data on acute non specialist trusts (i.e. those in the deaths dataset) so re-proportion the splits and
 # calculate the proportion  of acute non-specialist patients for a msoa that come from each particular acute non specialist trusts
 
 # Re-proportion for the trusts with no data
@@ -101,7 +101,7 @@ deaths_full_reprop <- deaths_full |>
 # Aggregate up to MSOA level
 deaths_msoa <- deaths_full_reprop |>
   group_by(msoa_code) |>
-  summarise(shmi_averaged = sum(weighted_shmi, na.rm = T)) 
+  summarise(shmi_averaged = sum(weighted_shmi, na.rm = T))
 
 # Check distributions
 summary(deaths_columns$`SHMI value`)
@@ -113,7 +113,7 @@ msoa_pop <-
   select(msoa_code, total_population)
 
 # Join on MSOA to LAD look up & aggreagte up to LAD
-deaths_lad <-  deaths_msoa |>
+deaths_lad <- deaths_msoa |>
   left_join(lookup_msoa_lad, by = "msoa_code") |>
   left_join(msoa_pop, by = "msoa_code") |>
   calculate_extent(
@@ -124,7 +124,7 @@ deaths_lad <-  deaths_msoa |>
 
 deaths_lad |>
   group_by(extent) |>
-  summarise(count = n()/nrow(deaths_lad))
+  summarise(count = n() / nrow(deaths_lad))
 # 63% : extent = 0
 # 5%: extent = 1
 

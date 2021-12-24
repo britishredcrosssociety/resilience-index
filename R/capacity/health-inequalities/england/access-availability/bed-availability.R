@@ -3,6 +3,8 @@ library(tidyverse)
 library(readxl)
 library(httr)
 library(geographr)
+library(sf)
+library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -71,7 +73,7 @@ avail_beds_mean <-
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
 
-# Check the matching of indicator data & trust table in geographr package 
+# Check the matching of indicator data & trust table in geographr package
 open_trusts |>
   anti_join(avail_beds_mean) |>
   print(n = Inf)
@@ -79,11 +81,11 @@ open_trusts |>
 
 avail_beds_mean |>
   anti_join(open_trusts) |>
-  left_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
+  left_join(points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 # 6 missing - 4 of which are TAF, TAJ, TAD, TAH (which appear across other indicators)
-# 2 other are old trusts that will have updated codes 
+# 2 other are old trusts that will have updated codes
 
-# Some of the trusts codes in data are for old trusts which have changed code 
+# Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
 trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
@@ -98,13 +100,15 @@ old_new_lookup <- avail_beds_mean |>
   group_by(old_code) |>
   mutate(old_code_count = n()) |>
   ungroup() |>
-  mutate(split_bed = 
-           ifelse(old_code_count > 1, avail_beds/old_code_count, avail_beds))
+  mutate(
+    split_bed =
+      ifelse(old_code_count > 1, avail_beds / old_code_count, avail_beds)
+  )
 
 new_trusts <- old_new_lookup |>
   group_by(new_code) |>
   summarise(avail_beds = sum(split_bed)) |>
-  rename(trust_code = new_code) 
+  rename(trust_code = new_code)
 
 avail_beds_updated <- avail_beds_mean |>
   filter(!trust_code %in% old_new_lookup$old_code) |>
@@ -116,12 +120,12 @@ avail_beds_updated |>
   summarise(count = n()) |>
   filter(count > 1)
 
-# Sum any duplicates 
+# Sum any duplicates
 avail_beds_updated_combined <- avail_beds_updated |>
   group_by(trust_code) |>
-  summarise(avail_beds = sum(avail_beds)) 
+  summarise(avail_beds = sum(avail_beds))
 
-# Check again which trusts are in cost data and not geographr package 
+# Check again which trusts are in cost data and not geographr package
 avail_beds_updated_combined |>
   anti_join(open_trusts)
 
@@ -169,7 +173,7 @@ lad_pop <- geographr::population_lad |>
 
 avail_beds_msoa_normalised <- avail_beds_lad |>
   left_join(lad_pop) |>
-  mutate(avail_beds_rate = avail_beds_per_lad / total_population * 100) |>
+  mutate(avail_beds_rate = avail_beds_per_lad / total_population) |>
   select(lad_code, avail_beds_rate)
 
 # Save ----
