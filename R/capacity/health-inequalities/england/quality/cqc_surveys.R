@@ -133,9 +133,9 @@ ae_survey_updated_combined |>
   anti_join(open_trusts, by = c("trust_code"))
 # No missings
 
-# Trust to MSOA (then to LA) lookup ----
+# Trust to LAD lookup ----
 
-# Trust to MSOA table only has data for acute trusts
+# Trust to LAD table only has data for acute trusts
 ae_survey_updated_combined |>
   left_join(open_trusts) |>
   left_join(lookup_trust_msoa) |>

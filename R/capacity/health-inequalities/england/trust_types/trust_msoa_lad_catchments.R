@@ -76,6 +76,11 @@ catchment_proportions_updated_grouped <- catchment_proportions_updated |>
   ungroup() |>
   relocate(total_patients, .after = patients)
   
+# Check in open trusts and not in PHE data (although know PHE data does not include non-acute services e.g. ambulance, community, mental health etc)
+open_trusts |> 
+  anti_join(catchment_proportions) |>
+  arrange(`Provider Primary Inspection Category`) |> 
+  print(n = Inf)
 
 # Following similar logic to Victims of Maths using this data to attribute COVID deaths at Trust level to LAs
 # https://github.com/VictimOfMaths/COVID-19/blob/5803fa341b3af99e7a8d8b4eda708e6a3d2ab052/Heatmaps/COVIDAdmissionsLTLAPhasePlot.R#L73 
