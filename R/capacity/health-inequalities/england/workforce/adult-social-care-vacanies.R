@@ -90,18 +90,18 @@ lad_means <-
 lad_vacancy <- lad_means |>
   select(lad_name, vacancy)
 
+
 # ---- Match LAD Codes ----
 # The Local Authorities are a mixture of UTLA's & LTLA's
 # - Match LTLA's -
 match_ltlas <-
   lad_vacancy |>
   inner_join(lad_lookup) |>
-  select(
-    -lad_name
-  ) |>
   relocate(lad_code)
 
 # - Match counties, weighting figures by population -
+# Assumption: apply the vacancy value for the county to all LADs within the county
+
 # Match counties
 match_county <-
   lad_vacancy |>
@@ -112,29 +112,6 @@ match_county <-
   ) |>
   relocate(lad_code)
 
-# Join to population data
-match_county_pop <-
-  match_county |>
-  left_join(pop_lad)
-
-# Weight by population
-match_county_weighted <-
-  match_county_pop |>
-  group_by(lad_name) |>
-  mutate(
-    pop_sum = sum(total_pop),
-    weight = total_pop / pop_sum
-  ) |>
-  ungroup() |>
-  select(
-    -total_pop,
-    -pop_sum
-  ) |>
-  mutate(vacancy = vacancy * weight) |>
-  select(
-    -lad_name,
-    -weight
-  )
 
 # - Manually match anything that didn't match to an LA or county -
 match_remainder <-
@@ -170,38 +147,18 @@ match_remainder <-
   separate_rows(lad_code, sep = "/") |>
   relocate(lad_code)
 
-# Create population weighted values for Cornwall and Isles of Scilly
-match_remainder_weighted <-
-  match_remainder |>
-  left_join(pop_lad) |>
-  group_by(lad_name) |>
-  mutate(
-    pop_sum = sum(total_pop),
-    weight = total_pop / pop_sum
-  ) |>
-  ungroup() |>
-  select(
-    -total_pop,
-    -pop_sum
-  ) |>
-  mutate(vacancy = vacancy * weight) |>
-  select(
-    -lad_name,
-    -weight
-  )
-
 # Join all LAD19CD
 match_all <-
   bind_rows(
     match_ltlas,
-    match_county_weighted,
-    match_remainder_weighted
+    match_county,
+    match_remainder
   )
 
 # Check any duplicates/missings
 boundaries_lad |> 
   filter(str_detect(lad_code, "^E")) |>
-  anti_join(match_all)
+  anti_join(match_all, by = "lad_code")
 
 match_all |>
   group_by(lad_code) |>
