@@ -198,3 +198,16 @@ match_all <-
     match_remainder_weighted
   )
 
+# Check any duplicates/missings
+boundaries_lad |> 
+  filter(str_detect(lad_code, "^E")) |>
+  anti_join(match_all)
+
+match_all |>
+  group_by(lad_code) |>
+  summarise(count = n()) |>
+  filter(count > 1)
+
+# Save ----
+match_all |>
+  write_rds("data/capacity/health-inequalities/england/adult-social-care-vacanies.rds")

@@ -58,7 +58,7 @@ gp_registrations <-
   lad_registrations |>
   left_join(pop_lad) |>
   rename(pop = pop) |>
-  mutate(perc_registered_gp = count / pop * 100) 
+  mutate(perc_registered_gp = count / pop) 
 
 # Check missings 
 gp_registrations |>
@@ -96,7 +96,7 @@ gp_registrations_buck <- gp_registrations |>
   summarise(count = sum(count)) |>
   rename(lad_code = post_ua_code) |>
   left_join(pop_lad) |>
-  mutate(perc_registered_gp = count / pop * 100) 
+  mutate(perc_registered_gp = count / pop) 
 
 gp_registrations_clean <- gp_registrations |>
   filter(!is.na(pop)) |>
