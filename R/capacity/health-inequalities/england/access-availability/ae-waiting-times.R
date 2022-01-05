@@ -241,7 +241,6 @@ lad_pop <- geographr::population_lad |>
 ae_wait_normalised <- ae_wait_lad |>
   left_join(lad_pop) |>
   mutate(
-    ae_over_4_hours_wait_per_capita = ae_over_4_hours_wait_per_lad / total_population,
     ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad
   )
 

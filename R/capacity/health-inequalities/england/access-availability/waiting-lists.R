@@ -1,6 +1,3 @@
-# Note: once decided approach for A&E waiting times repeat here.
-# Potentially split the total waiting list counts between LADs and proportion at end?
-
 # Load packages
 library(tidyverse)
 library(httr)
@@ -33,7 +30,8 @@ diagnostics_vars <-
   diagnostics_sliced |>
   select(
     trust_code = `Provider Code`,
-    `Waiting 13+ weeks` = `Number waiting 13+ Weeks`
+    waiting_over_13_weeks = `Number waiting 13+ Weeks`,
+    total_waiting = `Total Waiting List`
   )
 
 # NHS Trust table in geographr package -----
@@ -84,20 +82,22 @@ diagnostics_vars_joined <- open_trusts |>
 
 # Check missings
 diagnostics_vars_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, `Waiting 13+ weeks`) |>
+  distinct(trust_code, `Provider Primary Inspection Category`, waiting_over_13_weeks) |>
   group_by(`Provider Primary Inspection Category`) |>
-  summarise(count = n(), prop_missing = sum(is.na(`Waiting 13+ weeks`)) / n())
+  summarise(count = n(), prop_missing = sum(is.na(waiting_over_13_weeks)) / n())
 # no missings
 
 diagnostics_vars_lad <- diagnostics_vars_joined |>
-  mutate(waiting_over_13_weeks_prop = `Waiting 13+ weeks` * trust_prop_by_lad) |>
+  mutate(waiting_over_13_weeks_prop = waiting_over_13_weeks * trust_prop_by_lad,
+         total_waiting_prop = total_waiting * trust_prop_by_lad) |>
   group_by(lad_code) |>
-  summarise(waiting_over_13_weeks_per_lad = sum(waiting_over_13_weeks_prop))
+  summarise(waiting_over_13_weeks_per_lad = sum(waiting_over_13_weeks_prop),
+            total_waiting_per_lad = sum(total_waiting_prop))
 
 # Check totals
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
 sum(diagnostics_vars_lad$waiting_over_13_weeks_per_lad)
-sum(diagnostics_vars$`Waiting 13+ weeks`)
+sum(diagnostics_vars$waiting_over_13_weeks)
 
 
 # Normalise for LAD pop ----
@@ -106,8 +106,28 @@ lad_pop <- geographr::population_lad |>
 
 diagnostics_vars_normalised <- diagnostics_vars_lad |>
   left_join(lad_pop) |>
-  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_population) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_waiting_per_lad) |>
   select(lad_code, waiting_over_13_weeks_rate)
+
+# Check totals
+# Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
+summary(diagnostics_vars_normalised$waiting_over_13_weeks_rate)
+
+diagnostics_vars_normalised |>
+  ggplot(aes(x = waiting_over_13_weeks_rate)) +
+  geom_boxplot()
+
+diagnostics_vars_joined |>
+  distinct(trust_code, waiting_over_13_weeks, total_waiting) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks / total_waiting) |>
+  pull(waiting_over_13_weeks_rate) |>
+  summary()
+
+diagnostics_vars_joined |>
+  distinct(trust_code, waiting_over_13_weeks, total_waiting) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks / total_waiting) |>
+  ggplot(aes(x = waiting_over_13_weeks_rate)) +
+  geom_boxplot()
 
 # Save ----
 diagnostics_vars_normalised |>
