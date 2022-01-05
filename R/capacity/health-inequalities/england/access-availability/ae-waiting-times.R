@@ -190,7 +190,7 @@ open_trusts |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
-# For the acute trusts data proportion these to LAD and calculate per capita level
+# For the acute trusts data proportion these to LAD and normalise by total A&E count
 ae_wait_joined <- open_trusts |>
   left_join(ae_double_updated) |>
   inner_join(lookup_trust_lad)
@@ -200,6 +200,7 @@ ae_wait_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait) |>
   group_by(`Provider Primary Inspection Category`) |>
   summarise(count = n(), prop_missing = sum(is.na(ae_over_4_hours_wait)) / n())
+# 5 trusts with no A&E data
 
 # Some of the open trusts don't have the A&E waiting data
 ae_wait_joined |>
@@ -207,6 +208,14 @@ ae_wait_joined |>
   distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait, ae_total_wait) |>
   left_join(points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 # Are specialist and may not have an A&E facility
+
+# Check highest % of a LAD missing info due to these Trusts with no A&E data
+ae_wait_joined |>
+  mutate(prop_missing = is.na(ae_over_4_hours_wait) * trust_prop_by_lad) |>
+  group_by(lad_code) |>
+  summarise(prop_missing = sum(prop_missing)) |>
+  arrange(desc(prop_missing))
+# 7 LADs between 10 - 50% missing, rest below 10%
 
 # need to re-weight the trust_prop_to_lad due to Trusts which don't have A&E
 ae_wait_lad <- ae_wait_joined |>
@@ -234,17 +243,21 @@ ae_double |>
 
 
 # Normalise  ----
-# Testing normalising by both LAD population and also attributed total waiting
-lad_pop <- geographr::population_lad |>
-  select(lad_code, lad_name, total_population)
-
+# Normalising by proportioned total in A&E per LAD
 ae_wait_normalised <- ae_wait_lad |>
-  left_join(lad_pop) |>
   mutate(
     ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad
-  )
+  ) |>
+  select(lad_code, ae_over_4_hours_wait_rate)
 
+# Check distributions
+summary(ae_wait_normalised$ae_over_4_hours_wait_rate)
+
+ae_double |>
+  mutate(ae_over_4_hours_wait_rate = ae_over_4_hours_wait / ae_total_wait) |>
+  pull(ae_over_4_hours_wait_rate) |>
+  summary()
 
 # Save ----
-# ae_wait_normalised |>
-#  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
+ae_wait_normalised |>
+  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
