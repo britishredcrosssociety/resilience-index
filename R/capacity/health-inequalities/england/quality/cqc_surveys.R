@@ -80,12 +80,12 @@ ae_survey <- outpatient_ae |>
 # NHS Trusts table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 # Check the matching of survey data & trust table in geographr package
 open_trusts |>
   anti_join(ae_survey, by = c("trust_code")) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n())
 # 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services.
 
@@ -96,7 +96,7 @@ ae_survey |>
 # Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
 
 old_new_lookup <- ae_survey |>
   anti_join(open_trusts) |>
@@ -139,7 +139,7 @@ ae_survey_updated_combined |>
 ae_survey_updated_combined |>
   left_join(open_trusts) |>
   left_join(lookup_trust_msoa) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -150,8 +150,8 @@ ae_survey_joined <- ae_survey_updated_combined |>
 
 # Check is any of acute trusts don't have a survey score
 ae_survey_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, meanae) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, meanae) |>
+  group_by(primary_category) |>
   summarise(prop_no_survey = sum(is.na(meanae)) / n(), count = n())
 
 ae_survey_msoa <- ae_survey_joined |>

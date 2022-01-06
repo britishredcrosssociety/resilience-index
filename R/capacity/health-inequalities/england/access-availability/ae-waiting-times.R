@@ -61,12 +61,12 @@ ae_double <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 # Check if any open trusts missing from ae data
 open_trusts |>
   anti_join(ae_double) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n())
 # Data is for all A&E types, including minor injury units and walk-in centers, so not all non acute trusts will have have these services and therefore not have data
 # on this. Lookup data is not available to map these non acute trusts back to MSOA so will be getting dropped at the next stage.
@@ -180,13 +180,13 @@ ae_double_updated <- ae_double |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
 
 # Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(ae_double_updated) |>
   left_join(lookup_trust_lad) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -197,15 +197,15 @@ ae_wait_joined <- open_trusts |>
 
 # Check missings
 ae_wait_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, ae_over_4_hours_wait) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(ae_over_4_hours_wait)) / n())
 # 5 trusts with no A&E data
 
 # Some of the open trusts don't have the A&E waiting data
 ae_wait_joined |>
   filter(is.na(ae_over_4_hours_wait)) |>
-  distinct(trust_code, `Provider Primary Inspection Category`, ae_over_4_hours_wait, ae_total_wait) |>
+  distinct(trust_code, primary_category, ae_over_4_hours_wait, ae_total_wait) |>
   left_join(points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
 # Are specialist and may not have an A&E facility
 

@@ -71,7 +71,7 @@ avail_beds_mean <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calcualtions/open_trust_types.feather")
 
 # Check the matching of indicator data & trust table in geographr package
 open_trusts |>
@@ -88,7 +88,7 @@ avail_beds_mean |>
 # Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calcualtions/trust_changes.feather")
 
 old_new_lookup <- avail_beds_mean |>
   anti_join(open_trusts) |>
@@ -131,7 +131,7 @@ avail_beds_updated_combined |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calcualtions/lookup_trust_lad.feather")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)
@@ -140,7 +140,7 @@ lookup_trust_lad <- lookup_trust_lad |>
 open_trusts |>
   left_join(avail_beds_mean) |>
   left_join(lookup_trust_lad) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -151,8 +151,8 @@ avail_beds_joined <- open_trusts |>
 
 # Check missings
 avail_beds_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, avail_beds) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, avail_beds) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(avail_beds)) / n())
 # no missings
 

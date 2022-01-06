@@ -41,7 +41,7 @@ fte_clean |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 # Check the matching of indicator data & trust table in geographr package 
 open_trusts |>
@@ -59,7 +59,7 @@ fte_clean |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)
@@ -68,7 +68,7 @@ lookup_trust_lad <- lookup_trust_lad |>
 open_trusts |>
   left_join(fte_clean, by = c("trust_code")) |>
   left_join(lookup_trust_lad) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to LAD
@@ -79,8 +79,8 @@ fte_staff_joined <- open_trusts |>
 
 # Check missings
 fte_staff_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, staff_fte) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, staff_fte) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(staff_fte)) / n())
 # no missing
 

@@ -44,7 +44,7 @@ trust_maint_cost <- site_columns |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 
 # Check which trusts are in cost data and not geographr package
@@ -54,7 +54,7 @@ trust_maint_cost |>
 # Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
 
 old_new_lookup <- trust_maint_cost |>
   anti_join(open_trusts) |>
@@ -112,7 +112,7 @@ trust_changes |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)
@@ -121,7 +121,7 @@ lookup_trust_lad <- lookup_trust_lad |>
 open_trusts |>
   left_join(trust_main_cost_updated_combined) |>
   left_join(lookup_trust_lad) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -132,8 +132,8 @@ trust_maint_cost_joined <- open_trusts |>
 
 # Check missings
 trust_maint_cost_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, cost) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, cost) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(cost)) / n())
 # no missing
 

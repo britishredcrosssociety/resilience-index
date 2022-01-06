@@ -1,3 +1,4 @@
+# Load libraries
 library(geographr)
 library(sf)
 library(tidyverse)
@@ -46,8 +47,8 @@ catchment_proportions |>
   mutate(calculated_total_patients = sum(patients))
 
 # Some trust codes may need updated so aligns with 'open_trust_types.feather' ----
-open_trusts<- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+open_trusts<- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
 
 trusts_to_update <- catchment_proportions |>
   anti_join(open_trusts) |>
@@ -79,7 +80,7 @@ catchment_proportions_updated_grouped <- catchment_proportions_updated |>
 # Check in open trusts and not in PHE data (although know PHE data does not include non-acute services e.g. ambulance, community, mental health etc)
 open_trusts |> 
   anti_join(catchment_proportions) |>
-  arrange(`Provider Primary Inspection Category`) |> 
+  arrange(primary_category) |> 
   print(n = Inf)
 
 # Following similar logic to Victims of Maths using this data to attribute COVID deaths at Trust level to LAs
@@ -107,4 +108,4 @@ lookup_trust_lad <- lookup_trust_msoa_full |>
   ungroup() |>
   select(lad_code, lad_name, trust_code, trust_prop_by_lad, lad_prop_by_trust)
 
-write_feather(lookup_trust_lad, "R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+write_feather(lookup_trust_lad, "R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")

@@ -18,7 +18,6 @@ providers <- raw_providers |>
   distinct(`Provider ID`, `Provider Primary Inspection Category`) 
 
 # Joining onto open trusts geographr data
-
 open_trusts <-
   geographr::points_nhs_trusts |>
   as_tibble() |>
@@ -28,6 +27,7 @@ open_trusts <-
   )
 
 open_trust_types <- open_trusts |>
-  left_join(providers, by = c("trust_code" = "Provider ID"))
+  left_join(providers, by = c("trust_code" = "Provider ID")) |>
+  rename(primary_category = `Provider Primary Inspection Category`)
 
-arrow::write_feather(open_trust_types, "open_trust_types.feather")
+arrow::write_feather(open_trust_types, "R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")

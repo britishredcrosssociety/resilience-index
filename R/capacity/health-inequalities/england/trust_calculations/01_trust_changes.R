@@ -79,4 +79,4 @@ trust_changes <-
     successor_archived
   )
 
-arrow::write_feather(trust_changes, "R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+arrow::write_feather(trust_changes, "R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")

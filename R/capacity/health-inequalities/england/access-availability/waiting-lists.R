@@ -37,7 +37,7 @@ diagnostics_vars <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 # Check those in the waiting times data and not in the trusts data
 raw |>
@@ -64,14 +64,14 @@ open_trusts |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_types/lookup_trust_lad.feather")
+lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
 
 
 # Trust to LAD table only has data for acute trusts
 open_trusts |>
   left_join(diagnostics_vars) |>
   left_join(lookup_trust_lad) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -82,8 +82,8 @@ diagnostics_vars_joined <- open_trusts |>
 
 # Check missings
 diagnostics_vars_joined |>
-  distinct(trust_code, `Provider Primary Inspection Category`, waiting_over_13_weeks) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, waiting_over_13_weeks) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(waiting_over_13_weeks)) / n())
 # no missings
 

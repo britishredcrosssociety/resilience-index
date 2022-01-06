@@ -54,8 +54,8 @@ cqc_nhs_trusts_overall |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/trust_changes.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
 
 # Check the matching of CQC scores & trust table in geographr package
 
@@ -85,7 +85,7 @@ trust_changes |>
 open_trusts |>
   left_join(cqc_nhs_trusts_overall) |>
   left_join(lookup_trust_msoa) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -122,14 +122,14 @@ rating_joined_updated <- rating_joined |>
   filter(trust_code != "RW6") |>
   bind_rows(rm3_add) |>
   bind_rows(r0a_add) |>
-  group_by(trust_code, `Provider Primary Inspection Category`, latest_rating, msoa_code) |>
+  group_by(trust_code, primary_category, latest_rating, msoa_code) |>
   summarise(proportion = sum(proportion)) |>
   ungroup()
 
 # Check missings
 rating_joined_updated |>
-  distinct(trust_code, `Provider Primary Inspection Category`, latest_rating) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, latest_rating) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(latest_rating)) / n())
 
 rating_joined_updated |>

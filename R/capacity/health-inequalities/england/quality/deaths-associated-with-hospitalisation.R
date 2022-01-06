@@ -44,7 +44,7 @@ deaths_columns <- deaths_raw %>%
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_types/open_trust_types.feather")
+open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
 
 # Check the matching of deaths data & trust table in geographr package --------
@@ -69,7 +69,7 @@ deaths_columns |>
 open_trusts |>
   left_join(deaths_columns) |>
   left_join(lookup_trust_msoa) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_with_lookup = sum(!is.na(msoa_code)) / n())
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
@@ -78,12 +78,12 @@ open_trusts |>
 deaths_full <- open_trusts |>
   left_join(deaths_columns) |>
   inner_join(lookup_trust_msoa) |>
-  select(trust_code, `Provider Primary Inspection Category`, `Provider name`, `SHMI value`, msoa_code, proportion)
+  select(trust_code, primary_category, `Provider name`, `SHMI value`, msoa_code, proportion)
 
 # Check missings
 deaths_full |>
-  distinct(trust_code, `Provider Primary Inspection Category`, `SHMI value`) |>
-  group_by(`Provider Primary Inspection Category`) |>
+  distinct(trust_code, primary_category, `SHMI value`) |>
+  group_by(primary_category) |>
   summarise(count = n(), prop_missing = sum(is.na(`SHMI value`)) / n())
 
 # Only have death data on acute non specialist trusts (i.e. those in the deaths dataset) so re-proportion the splits and
