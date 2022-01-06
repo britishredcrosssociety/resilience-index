@@ -18,10 +18,10 @@
 | Workforce | Agency spend/locums |  |  |  | :x: - can't find data | :x: |
 | Workforce | Hospital cancellation rates of appointments |  |  |  | :x: - can't find data | :x: |
 | Workforce | Urgent operations cancelled |  |  |  | :x: - data paused in March 2020 | :x: |
-| Workforce | Primary & secondary care - health spend per head |  |  |  | :x: | :x: |
-| Workforce | Emergency care - health spend per head |  |  |  | :x: | :x: |
-| Quality | Social care - CQC ratings |  |  |  | :x: | :x: |
-| Quality | Primary & secondary care - CQC ratings | 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) |  | :heavy_check_mark: | :heavy_check_mark: |
-| Quality | Quality & Outcomes Framework| 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) |  | :x: - at CCG/STP level | :x: |
-| Quality | CQC surveys |  | [CQC](https://www.cqc.org.uk/publications/surveys/surveys) |  | :heavy_check_mark: | :heavy_check_mark: |
-| Quality | Deaths within 30 days of non-elective procedure  | 2021 | [NHS](https://digital.nhs.uk/data-and-information/publications/statistical/shmi) |  | :heavy_check_mark: | :heavy_check_mark: |
+| Workforce | Primary & secondary care - health spend per head |  |  |  | :x: - can't find data| :x: |
+| Workforce | Emergency care - health spend per head |  |  |  | :x: - can't find data | :x: |
+| Quality | Social care - CQC ratings |  |  |  | :x: - can't find data| :x: |
+| Quality | Primary & secondary care - CQC ratings | 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) |  [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)| :heavy_check_mark: | :heavy_check_mark: |
+| Quality | Quality & Outcomes Framework| 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) | [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | :x: - at CCG/STP level | :x: |
+| Quality | CQC surveys |  | [CQC](https://www.cqc.org.uk/publications/surveys/surveys) | [TBC]  | :heavy_check_mark: | :heavy_check_mark: |
+| Quality | Deaths within 30 days of non-elective procedure  | 2021 | [NHS](https://digital.nhs.uk/data-and-information/publications/statistical/shmi) |  [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/) | :heavy_check_mark: | :heavy_check_mark: |
