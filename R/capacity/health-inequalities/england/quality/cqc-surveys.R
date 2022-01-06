@@ -4,7 +4,7 @@ library(geographr)
 library(sf)
 library(readODS)
 
-source("R/utils.R") # for download_file()
+source("R/utils.R") # for download_file(), survey_data_download() & updating_trusts_for_survey_data()
 
 # Info ----
 
@@ -27,39 +27,6 @@ source("R/utils.R") # for download_file()
 # Weights were calculated to adjust for any variation between trusts that resulted from differences in the age, sex and route of admission groupings of respondents.
 # The reason for weighting the data was that respondents may answer questions differently, depending on certain characteristics
 
-
-
-# Function ----
-
-#' Survey data download and filtering
-#'
-#' @param url url to data download (assumes ODS file)
-#' @param question_num Which question in the survey is the ‘overall’ question
-#' @param question_coding Which encoding used in the sheet (for outpatient_minor_inj seems to be 't1', 't2' etc. rather than 'q1' etc. which is what is meant to be from the key)
-#' @param category What survey is it (mental health etc.) so can have in column names
-
-
-survey_data_download <- function(url, question_num, sheet_name, question_coding, category) {
-  tf <- download_file(url, "ods")
-
-  raw <-
-    read_ods(
-      tf,
-      sheet = sheet_name,
-    )
-
-  q_col_name <- paste0(question_coding, question_num)
-  new_num_respon_name <- paste0("num_respon_", category)
-
-  subset_data <- raw |>
-    rename_with(tolower) |>
-    select(`trustcode`, `trustname`, `n_tpat`, contains(q_col_name)) |>
-    rename(!!new_num_respon_name := `n_tpat`) |>
-    rename_with(str_replace_all, pattern = q_col_name, replacement = category)
-
-  return(subset_data)
-}
-
 # Download survey datasets ----
 
 inpatient_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210917%20IP20%20Trust-level%20benchmark%20ODS%20V1.ods", 45, "Trust_Scores", "q", "inp")
@@ -71,72 +38,72 @@ mental_health_survey <- survey_data_download("https://www.cqc.org.uk/sites/defau
 outpatient_ae <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type1_benchmark-data.ods", 47, "UEC20_Trust_Scores", "q", "ae")
 outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type3_benchmark-data.ods", 39, "UEC20_Trust_Scores", "t", "min")
 
-# Since not all Trusts provide all the services (so for different surveys will have different missing Trusts)
-# Complete for one of the surveys as starter
-ae_survey <- outpatient_ae |>
-  select(trust_code = trustcode, meanae)
-
-
-# NHS Trusts table in geographr package -----
-
 # Load in open trusts table created in trust_types.R
 open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
 
-# Check the matching of survey data & trust table in geographr package
-open_trusts |>
-  anti_join(ae_survey, by = c("trust_code")) |>
-  group_by(primary_category) |>
-  summarise(count = n())
-# 90 missing - community, mental health, ambulance and specialist trusts. These may not provide A&E services.
-
-ae_survey |>
+# Check if any trusts in the surveys not in open_trusts dataset in case any changed trust codes
+# Surveys at different years so may have different stages of trust changes
+inpatient_survey |>
   anti_join(open_trusts)
-# 3 trusts missing
 
-# Some of the trusts codes in data are for old trusts which have changed code
-# Want to align with the open_trusts file (so only check those returned in the anti_join above)
-# Load in trust changes table created in trust_changes.R
+mental_health_survey |>
+  anti_join(open_trusts)
+
+outpatient_ae |>
+  anti_join(open_trusts)
+
+outpatient_minor_inj |>
+  anti_join(open_trusts)
+# No updated needed
+
 trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
 
-old_new_lookup <- ae_survey |>
-  anti_join(open_trusts) |>
-  rename(old_code = trust_code) |>
-  inner_join(trust_changes, by = "old_code") |>
-  group_by(new_code) |>
-  mutate(new_code_count = n()) |>
-  ungroup() |>
-  group_by(old_code) |>
-  mutate(old_code_count = n()) |>
-  ungroup()
+# Update trust codes using updating_trusts_for_survey_data() function
+inpatient_survey_updated <- updating_trusts_for_survey_data(inpatient_survey, num_respon_inp, meaninp, open_trusts, trust_changes)
+mental_health_survey_updated <- updating_trusts_for_survey_data(mental_health_survey, num_respon_mh, meanmh, open_trusts, trust_changes)
+outpatient_ae_updated <- updating_trusts_for_survey_data(outpatient_ae, num_respon_ae, meanae, open_trusts, trust_changes)
 
-new_trusts <- old_new_lookup |>
-  group_by(new_code) |>
-  summarise(meanae = mean(meanae)) |>
-  rename(trust_code = new_code)
+outpatient_minor_inj__updated <- outpatient_minor_inj |>
+  select(trust_code, num_respon = num_respon_min, mean = meanmin)
 
-ae_survey_updated <- ae_survey |>
-  filter(!trust_code %in% old_new_lookup$old_code) |>
-  bind_rows(new_trusts)
+# Join data survey data to open trust data --------
+combined_survey_data <- open_trusts |>
+  left_join(inpatient_survey_updated, by = "trust_code") |>
+  left_join(mental_health_survey_updated, by = "trust_code") |>
+  left_join(outpatient_ae_updated, by = "trust_code") |>
+  left_join(outpatient_minor_inj_updated, by = "trust_code") 
 
-# Check duplicates now have updated
-ae_survey_updated |>
-  group_by(trust_code) |>
-  summarise(count = n()) |>
-  filter(count > 1)
+# Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
+combined_survey_data |>
+  select(trust_code, primary_category, starts_with("num_respon")) |>
+  group_by(primary_category) |>
+  summarise(across(where(is.numeric), ~ sum(!is.na(.x))), count = n())
+# Ambulance services primary providers haven't completed any of the surveys since they don't provide any of the services in the 4 surveys currently including.
+# May be similar for others
 
-# Average any duplicates
-ae_survey_updated_combined <- ae_survey_updated |>
-  group_by(trust_code) |>
-  summarise(meanae = mean(meanae))
+# Combining the survey scores ---------
 
-ae_survey_updated_combined |>
-  anti_join(open_trusts, by = c("trust_code"))
-# No missings
+# Have a think/research if way to combine the variability (i.e the upper and lower confidence intervals) for the scores
+response_columns <- str_subset(colnames(combined_survey_data), "num_respon")
 
-# Trust to LAD lookup ----
+# Come up with a better/more reproducible way of writing this query
+avg_survey_scores <- combined_survey_data |>
+  rowwise() %>%
+  mutate(total_responders = sum(c(num_respon.x, num_respon.y, num_respon.x.x, num_respon.y.y), na.rm = T)) |>
+  mutate_at(vars(contains("num_respon")), ~ . / total_responders) |>
+  mutate(avg_survey_score = sum(c(num_respon.x * mean.x, num_respon.y * mean.y, num_respon.x.x * mean.x.x, num_respon.y.y * mean.y.y), na.rm = T)) |>
+  mutate(avg_survey_score = ifelse(is.na(mean.x) & is.na(mean.y) & is.na(mean.x.x) & is.na(mean.y.y), NA, avg_survey_score)) |>
+  select(trust_code, primary_category, total_responders, avg_survey_score)
+
+avg_survey_scores |>
+  group_by(primary_category) |>
+  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
+# some Trusts have no survey score, likely due to the service provide (consider after join on MSOA lookup)
+
+# Trust to MSOA (then to LA) lookup ----
 
 # Trust to LAD table only has data for acute trusts
-ae_survey_updated_combined |>
+avg_survey_scores |>
   left_join(open_trusts) |>
   left_join(lookup_trust_msoa) |>
   group_by(primary_category) |>
@@ -144,31 +111,41 @@ ae_survey_updated_combined |>
 
 # Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
 # For the acute trusts proportion these to MSOA and then aggregate to LAD
-ae_survey_joined <- ae_survey_updated_combined |>
+avg_survey_scores_joined <- avg_survey_scores |>
   left_join(open_trusts) |>
   inner_join(lookup_trust_msoa)
 
 # Check is any of acute trusts don't have a survey score
-ae_survey_joined |>
-  distinct(trust_code, primary_category, meanae) |>
+avg_survey_scores_joined  |>
+  distinct(trust_code, primary_category, avg_survey_score) |>
   group_by(primary_category) |>
-  summarise(prop_no_survey = sum(is.na(meanae)) / n(), count = n())
+  summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
 
-ae_survey_msoa <- ae_survey_joined |>
-  mutate(meanae_weighted = proportion * meanae) |>
+avg_survey_scores_joined |>
+  filter(is.na(avg_survey_score)) |>
+  distinct(trust_code)
+
+# Since Trusts with no survey score re-proportion to deal with missing Trust data
+avg_survey_scores_msoa <- avg_survey_scores_joined |>
+  filter(!is.na(avg_survey_score)) |>
   group_by(msoa_code) |>
-  summarise(weighted_score = sum(meanae_weighted))
+  mutate(reweighted_proportion = proportion / sum(proportion)) |>
+  mutate(weighted_survey_score = reweighted_proportion * avg_survey_score) |>
+  summarise(weighted_score = sum(weighted_survey_score))
 
 # Distributions
-summary(ae_survey_msoa$weighted_score)
-summary(ae_survey_updated_combined$meanae)
+summary(avg_survey_scores_msoa$weighted_score)
+summary(inpatient_survey_updated$mean)
+summary(mental_health_survey_updated$mean)
+summary(outpatient_ae_updated$mean)
+summary(outpatient_minor_inj_updated$mean)
 
 # Aggregate from MSOA to LA ----
 
 msoa_pop <- geographr::population_msoa |>
   select(msoa_code, total_population)
 
-ae_survey_lad <- ae_survey_msoa |>
+avg_survey_lad <- avg_survey_scores_msoa |>
   left_join(lookup_msoa_lad) |>
   left_join(msoa_pop) |>
   calculate_extent(
@@ -177,10 +154,10 @@ ae_survey_lad <- ae_survey_msoa |>
     population = total_population
   )
 
-ae_survey_lad |>
+avg_survey_lad |>
   group_by(extent) |>
-  summarise(count = n() / nrow(ae_survey_lad)) |>
-  print(n = Inf)
+  summarise(count = n() / nrow(ae_survey_lad)) 
 
-
-# TO DO: Get this checked, repeat for other surveys?
+# Save ----
+avg_survey_lad |>
+  write_rds("data/capacity/health-inequalities/england/cqc-surveys.rds")
