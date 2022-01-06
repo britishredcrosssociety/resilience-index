@@ -9,6 +9,7 @@ source("R/utils.R") # for download_file() & calculate_extent()
 # NHS trust deaths associated with hospitalisation -----
 # IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths
 
+# Source: https://digital.nhs.uk/data-and-information/publications/statistical/shmi
 # Download the data
 tf <- download_file("https://files.digital.nhs.uk/A6/0F708F/SHMI%20data%20files%2C%20Jul20-Jun21.zip", "zip")
 
