@@ -96,13 +96,19 @@ trust_main_cost_updated_combined |>
   anti_join(open_trusts)
 # 4 - TAD, TAF, TAH, TAJ (similar to CQC rating)
 # These are in the CQC rating data as 'Mental health - community & residential - NHS'.
+# Not found in the PHE data that allows mapping from Trust to MSOA so would not be able to proportion back to LA. 
 
 # In quality report (https://files.digital.nhs.uk/4E/5A51F9/ERIC-201920%20-%20Data%20Quality%20Report%20v5.pdf) says 'All 224 trusts required to complete an ERIC return in 2019/20 did so.'
 # And there are 224 trusts in the raw data
-open_trusts |>
+missing_trusts <- open_trusts |>
   anti_join(trust_main_cost_updated_combined) |>
   inner_join(geographr::points_nhs_trusts, by = c("trust_code" = "nhs_trust_code"))
-# 4 trusts missing remaining: RQF, RT4, RW6, RYT (similar to CQC rating)
+# 3 trusts missing remaining: RQF, RT4, RYT (similar to CQC rating)
+
+trust_changes |> 
+  filter(new_code %in% missing_trusts$trust_code | old_code %in% missing_trusts$trust_code)
+# Are not recent trust changes 
+# These Trusts are not found in the data used to map from Trusts to LA so ignore for the current Trust to LA mapping. 
 
 # Join trust to LAD lookup --------
 
