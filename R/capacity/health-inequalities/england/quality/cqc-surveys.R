@@ -71,7 +71,7 @@ combined_survey_data <- open_trusts |>
   left_join(inpatient_survey_updated, by = "trust_code") |>
   left_join(mental_health_survey_updated, by = "trust_code") |>
   left_join(outpatient_ae_updated, by = "trust_code") |>
-  left_join(outpatient_minor_inj_updated, by = "trust_code") 
+  left_join(outpatient_minor_inj_updated, by = "trust_code")
 
 # Not every trust will provide all the service types (e.g. a&e service, mental health service etc) so won't have surveys for all (see next section for check)
 combined_survey_data |>
@@ -116,7 +116,7 @@ avg_survey_scores_joined <- avg_survey_scores |>
   inner_join(lookup_trust_msoa)
 
 # Check is any of acute trusts don't have a survey score
-avg_survey_scores_joined  |>
+avg_survey_scores_joined |>
   distinct(trust_code, primary_category, avg_survey_score) |>
   group_by(primary_category) |>
   summarise(prop_no_survey = sum(is.na(avg_survey_score)) / n(), count = n())
@@ -156,7 +156,7 @@ avg_survey_lad <- avg_survey_scores_msoa |>
 
 avg_survey_lad |>
   group_by(extent) |>
-  summarise(count = n() / nrow(ae_survey_lad)) 
+  summarise(count = n() / nrow(ae_survey_lad))
 
 # Save ----
 avg_survey_lad |>
