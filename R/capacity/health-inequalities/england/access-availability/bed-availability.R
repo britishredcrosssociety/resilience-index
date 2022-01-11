@@ -4,7 +4,6 @@ library(readxl)
 library(httr)
 library(geographr)
 library(sf)
-library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -71,7 +70,7 @@ avail_beds_mean <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calcualtions/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 # Check the matching of indicator data & trust table in geographr package
 open_trusts |>
@@ -88,7 +87,7 @@ avail_beds_mean |>
 # Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calcualtions/trust_changes.feather")
+trust_changes <- read_rds("data//trust_changes.rds")
 
 old_new_lookup <- avail_beds_mean |>
   anti_join(open_trusts) |>
@@ -131,7 +130,7 @@ avail_beds_updated_combined |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calcualtions/lookup_trust_lad.feather")
+lookup_trust_lad <- read_rds("data/lookup_trust_lad.rds")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)

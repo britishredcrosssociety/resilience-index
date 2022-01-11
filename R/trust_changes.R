@@ -1,10 +1,13 @@
-# ---- Load ----
+# This script creates a table with trust code changes 
+# The code originates from the geographr package (https://github.com/britishredcrosssociety/geographr/blob/main/data-raw/lookup_trust_msoa.R)
+
+# Load libraries 
 library(tidyverse)
 library(devtools)
 library(httr)
 library(readxl)
 
-# ---- Update trusts ----
+# Update trusts 
 # Source: https://digital.nhs.uk/services/organisation-data-service/file-downloads/miscellaneous
 # The "Successor Organisation" and "Archived Successor Organisations" document
 # Trust changes. The former covering the past financial year, and the latter all
@@ -79,4 +82,4 @@ trust_changes <-
     successor_archived
   )
 
-arrow::write_feather(trust_changes, "R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
+write_rds(trust_changes, "data/trust_changes.rds")

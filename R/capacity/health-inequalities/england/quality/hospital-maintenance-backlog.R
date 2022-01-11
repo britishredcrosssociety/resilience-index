@@ -3,7 +3,6 @@ library(tidyverse)
 library(geographr)
 library(sf)
 library(readODS)
-library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -44,7 +43,7 @@ trust_maint_cost <- site_columns |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 
 # Check which trusts are in cost data and not geographr package
@@ -54,7 +53,7 @@ trust_maint_cost |>
 # Some of the trusts codes in data are for old trusts which have changed code
 # Want to align with the open_trusts file (so only check those returned in the anti_join above)
 # Load in trust changes table created in trust_changes.R
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
+trust_changes <- read_rds("data/trust_changes.rds")
 
 old_new_lookup <- trust_maint_cost |>
   anti_join(open_trusts) |>
@@ -112,7 +111,7 @@ trust_changes |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
+lookup_trust_lad <- read_rds("data/lookup_trust_lad.rds")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)

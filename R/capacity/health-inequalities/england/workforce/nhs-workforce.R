@@ -3,7 +3,6 @@ library(tidyverse)
 library(geographr)
 library(sf)
 library(readxl)
-library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -41,7 +40,7 @@ fte_clean |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 # Check the matching of indicator data & trust table in geographr package 
 open_trusts |>
@@ -59,7 +58,7 @@ fte_clean |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
+lookup_trust_lad <- read_rds("data/lookup_trust_lad.rds")
 
 lookup_trust_lad <- lookup_trust_lad |>
   select(-lad_prop_by_trust)

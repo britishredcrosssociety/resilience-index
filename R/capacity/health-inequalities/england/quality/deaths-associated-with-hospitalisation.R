@@ -45,7 +45,7 @@ deaths_columns <- deaths_raw %>%
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 
 # Check the matching of deaths data & trust table in geographr package --------

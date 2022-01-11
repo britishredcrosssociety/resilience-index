@@ -39,7 +39,7 @@ outpatient_ae <- survey_data_download("https://www.cqc.org.uk/sites/default/file
 outpatient_minor_inj <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210915_uec20_type3_benchmark-data.ods", 39, "UEC20_Trust_Scores", "t", "min")
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 # Check if any trusts in the surveys not in open_trusts dataset in case any changed trust codes
 # Surveys at different years so may have different stages of trust changes
@@ -56,14 +56,14 @@ outpatient_minor_inj |>
   anti_join(open_trusts)
 # No updated needed
 
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
+trust_changes <- read_rds("data/trust_changes.rds")
 
 # Update trust codes using updating_trusts_for_survey_data() function
 inpatient_survey_updated <- updating_trusts_for_survey_data(inpatient_survey, num_respon_inp, meaninp, open_trusts, trust_changes)
 mental_health_survey_updated <- updating_trusts_for_survey_data(mental_health_survey, num_respon_mh, meanmh, open_trusts, trust_changes)
 outpatient_ae_updated <- updating_trusts_for_survey_data(outpatient_ae, num_respon_ae, meanae, open_trusts, trust_changes)
 
-outpatient_minor_inj__updated <- outpatient_minor_inj |>
+outpatient_minor_inj_updated <- outpatient_minor_inj |>
   select(trust_code, num_respon = num_respon_min, mean = meanmin)
 
 # Join data survey data to open trust data --------
@@ -156,7 +156,10 @@ avg_survey_lad <- avg_survey_scores_msoa |>
 
 avg_survey_lad |>
   group_by(extent) |>
-  summarise(count = n() / nrow(ae_survey_lad))
+  summarise(count = n() / nrow(avg_survey_lad)) |>
+  print(n = Inf)
+# 60% : extent = 0
+# 5%: extent = 1
 
 # Save ----
 avg_survey_lad |>

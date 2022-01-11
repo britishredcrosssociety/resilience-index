@@ -4,7 +4,6 @@ library(httr)
 library(readxl)
 library(sf)
 library(geographr)
-library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -61,7 +60,7 @@ ae_double <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 # Check if any open trusts missing from ae data
 open_trusts |>
@@ -180,7 +179,7 @@ ae_double_updated <- ae_double |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_feather("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
+lookup_trust_lad <- read_rds("data/lookup_trust_lad.rds")
 
 # Trust to LAD table only has data for acute trusts
 open_trusts |>

@@ -1,10 +1,12 @@
-# Load libraries
+# This script outputs an NHS Trust to LAD population catchment table based on Public Health England data 
+# It uses output from the scripes 'trust_types.R' and 'trust_changes.R' 
+
+# Load libraries 
 library(geographr)
 library(sf)
 library(tidyverse)
 library(httr)
 library(readxl)
-library(arrow)
 
 
 # This is the data the geapgraphr::lookup_trust_msoa is on but for this need extra columns
@@ -47,8 +49,8 @@ catchment_proportions |>
   mutate(calculated_total_patients = sum(patients))
 
 # Some trust codes may need updated so aligns with 'open_trust_types.feather' ----
-open_trusts<- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
+trust_changes <- read_rds("data/trust_changes.rds")
 
 trusts_to_update <- catchment_proportions |>
   anti_join(open_trusts) |>
@@ -108,4 +110,4 @@ lookup_trust_lad <- lookup_trust_msoa_full |>
   ungroup() |>
   select(lad_code, lad_name, trust_code, trust_prop_by_lad, lad_prop_by_trust)
 
-write_feather(lookup_trust_lad, "R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.feather")
+write_rds(lookup_trust_lad, "data/lookup_trust_lad.rds")

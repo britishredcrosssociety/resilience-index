@@ -4,7 +4,6 @@ library(httr)
 library(readxl)
 library(sf)
 library(geographr)
-library(arrow)
 
 source("R/utils.R") # for download_file()
 
@@ -37,7 +36,7 @@ diagnostics_vars <-
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
 
 # Check those in the waiting times data and not in the trusts data
 raw |>

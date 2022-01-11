@@ -54,8 +54,8 @@ cqc_nhs_trusts_overall |>
 # NHS Trust table in geographr package -----
 
 # Load in open trusts table created in trust_types.R
-open_trusts <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/open_trust_types.feather")
-trust_changes <- arrow::read_feather("R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather")
+open_trusts <- read_rds("data/open_trust_types.rds")
+trust_changes <- read_rds("data/trust_changes.rds")
 
 # Check the matching of CQC scores & trust table in geographr package
 
