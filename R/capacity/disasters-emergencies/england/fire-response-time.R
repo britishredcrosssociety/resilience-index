@@ -50,8 +50,7 @@ fra_lad_lookup <- content$features$attributes |>
 fra_lad_lookup |>
   group_by(fra_code) |>
   summarise(count = n()) |>
-  ggplot() +
-  geom_histogram(aes(x = count))
+  summary()
 
 fra_lad_lookup |>
   distinct(fra_name)
