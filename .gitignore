@@ -41,6 +41,9 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
+# DS_Store
+*.DS_Store
+
 # Data sets
 depreciated/data/raw/floods/england/
 depreciated/data/raw/floods/wales/
