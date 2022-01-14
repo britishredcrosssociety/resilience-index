@@ -3,7 +3,7 @@ library(tidyverse)
 library(readxl)
 library(geographr)
 library(sf)
-library(janitor)
+library(httr)
 
 source("R/utils.R") # for download_file()
 
@@ -20,7 +20,7 @@ raw <- read_excel(tf, sheet = "Data - annual")
 
 # 'fire_type=Primary' is the summation of the other rows (i.e. sub types such as dwellings etc).
 raw_filtered <- raw |>
-  janitor::clean_names() |>
+  rename_with(tolower, everything()) |>
   filter(fire_type == "Primary", financial_year == max(raw$FINANCIAL_YEAR))
 
 # Definitions:
@@ -88,7 +88,7 @@ fra_lad_lookup |>
   anti_join(fire_response_updated, by = c("fra_name" = "frs")) |>
   distinct(fra_name)
 
-# Join fire response time data to FRA to LAD lookup
+# Join fire response time data to FRA to LAD lookup ----
 # Assumption: all LADs within an FRS have same response time as don't currently have data at a lower geography level
 fire_response_lad <- fire_response_updated |>
   left_join(fra_lad_lookup, by = c("frs" = "fra_name")) |>
