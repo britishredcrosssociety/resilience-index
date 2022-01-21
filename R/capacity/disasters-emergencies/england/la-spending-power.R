@@ -27,40 +27,42 @@ cps <- raw |>
 # Confirm no loss of decimal information
 print(cps$cps_millions, digits = 17)
 
-# Join on LAD population data ----
-# This data uses 2021 LAD boundaries so will use LAD 2021 population figures (geographr currently uses 2019 LADs)
+# Join on LTLA population data ----
+# This data uses 2021 LTLA boundaries so will use LTLA 2021 population figures (geographr currently uses 2019 LTLAs)
 
-lads_pop <- population_lad |>
+ltla_pop <- population_lad |>
   select(lad_code, total_population)
 
-counties_pop <- population_counties_ua |>
+utla_pop <- population_counties_ua |>
   select(county_ua_code, total_population)
 
 # Check any differences in LAD codes between 2 datasets
-lads_pop |>
+ltla_pop |>
   filter(str_detect(lad_code, "^E")) |>
   anti_join(cps)
 # no missings
 
 cps |>
-  anti_join(lads_pop) |>
+  anti_join(ltla_pop) |>
   print(n = Inf)
+# 58 not matches 
 
-# Investigate not matches in LAD population data (Fire & Counties) ----
+# Investigate not matches in LTLA population data (Fire & UTLA) ----
 
 # Many are actually Fire & Rescue Authorities
-fire_lads <- cps |>
-  anti_join(lads_pop, by = "lad_code") |>
+fire_res_auth <- cps |>
+  anti_join(ltla_pop, by = "lad_code") |>
   filter(str_detect(lad_name, "Fire")) |>
   rename(far_auth_code = lad_code, far_auth_name = lad_name)
+# 30 FRS 
 
 # Check for matches at county (i.e. UTLA) level
-cps_counties <- cps |>
-  anti_join(lads_pop, by = "lad_code") |>
+cps_utla <- cps |>
+  anti_join(ltla_pop, by = "lad_code") |>
   filter(!str_detect(lad_name, "Fire")) |>
-  inner_join(counties_pop, by = c("lad_code" = "county_ua_code")) |>
+  inner_join(utla_pop, by = c("lad_code" = "county_ua_code")) |>
   rename(county_ua_code = lad_code, county_ua_name = lad_name)
-
+# 25 UTLAs
 
 # Investigate not matches in LAD population data (2021 Northampshire LAD restructure) ----
 northam_restructure <-
@@ -80,7 +82,7 @@ cps |>
   filter(lad_code %in% c(northam_restructure$pre_lad_code, northam_restructure$post_ua_code))
 
 
-northam_pop <- lads_pop |>
+northam_pop <- ltla_pop |>
   inner_join(northam_restructure, by = c("lad_code" = "pre_lad_code")) |>
   group_by(post_ua_code, post_ua_name) |>
   summarise(total_population = sum(total_population)) |>
@@ -93,20 +95,20 @@ cps_northam <- cps |>
   left_join(northam_pop)
 
 # Also remove the county of Northamptonshire (E10000021) as this was removed along with the 7 LADs being restructured
-cps_counties_updated <- cps_counties |>
+cps_utla_updated <- cps_utla |>
   filter(county_ua_code != "E10000021") |>
   bind_rows(cps_northam)
 
 # Remove the 7 old LADs from LAD level data
 cps_updated <- cps |>
-  inner_join(lads_pop, by = "lad_code") |>
+  inner_join(ltla_pop, by = "lad_code") |>
   filter(!lad_code %in% northam_restructure$pre_lad_code)
 
 # Remaining unmatched is a Combined Authority (don't currently have this lookup in geographr package)
 cps |>
-  anti_join(lads_pop, by = "lad_code") |>
-  anti_join(fire_lads, by = c("lad_code" = "far_auth_code")) |>
-  anti_join(cps_counties_updated, by = c("lad_code" = "county_ua_code"))
+  anti_join(ltla_pop, by = "lad_code") |>
+  anti_join(fire_res_auth, by = c("lad_code" = "far_auth_code")) |>
+  anti_join(cps_utla_updated, by = c("lad_code" = "county_ua_code"))
 
 # Load in Combined Authority lookup data ----
 # Combined Authority lookup source: https://geoportal.statistics.gov.uk/datasets/ons::local-authority-district-to-combined-authority-december-2020-lookup-in-england/about
@@ -119,7 +121,7 @@ combined_auth_lookup <- content$features$attributes |>
 cps_combined_auth_lookup <- cps |>
   inner_join(combined_auth_lookup, by = c("lad_code" = "CAUTH20CD")) |>
   select(cauth_code = lad_code, cauth_name = lad_name, lad_code = LAD20CD, lad_name = LAD20NM, cps_millions) |>
-  left_join(lads_pop, by = "lad_code")
+  left_join(ltla_pop, by = "lad_code")
 
 # Disaggregate the UTLA (i.e. counties) and Combined Authority CPS ----
 
@@ -138,28 +140,107 @@ counties_lads_lookup <- content$features$attributes |>
   select(-FID) |>
   select(lad_code = LTLA21CD, lad_name = LTLA21NM, county_ua_code = UTLA21CD)
 
+
 # Join LAD to County lookup and the LAD populations
-# For the 2 new Northamptonshire counties these have a 1-to-1 mapping with the LAD of the same area so same population applied
-cps_counties_split <- cps_counties_updated |>
+# For the 2 new Northamptonshire counties these have a 1-to-1 mapping with the LTLa of the same area so same population applied
+cps_utla_split <- cps_utla_updated |>
   rename(county_pop = total_population) |>
   left_join(counties_lads_lookup, by = c("county_ua_code")) |>
-  left_join(lads_pop, by = "lad_code") |>
+  left_join(ltla_pop, by = "lad_code") |>
   rename(lad_pop = total_population) |>
   mutate(lad_pop = ifelse(county_ua_code %in% c("E06000061", "E06000062"), county_pop, lad_pop)) |>
   mutate(pop_prop = lad_pop / county_pop) |>
   mutate(weighted_cps = cps_millions * pop_prop) |>
   select(lad_name, lad_code, cps_millions = weighted_cps)
 
-# Combine the LAD level and disaggregated county and combined authorities
+# Check if any LTLAs appear in more than 1 of the datasets 
+cps_combined_auth_split |>
+  inner_join(cps_updated, by = "lad_code") 
+# All those in the Combined Auth dataset already in the LTLA dataset i.e. it is additional funding
+# 10 LTLAs from 1 Combined Auth
+
+cps_counties_split |>
+  inner_join(cps_updated, by = "lad_code") 
+# All those in the UTLA dataset already in the LTLA dataset i.e. it is additional funding
+# 171 LTLAs from 25 UTLAs
+
+cps_combined_auth_split |>
+  inner_join(cps_counties_split, by = "lad_code") 
+# No LTLAs both in Combined Auth and UTLA datasets
+
+cps_updated |>
+  select(-total_population) |>
+  bind_rows(cps_combined_auth_split) |>
+  bind_rows(cps_counties_split) |>
+  group_by(lad_code) |>
+  mutate(count_lad_code = n()) |>
+  filter(count_lad_code > 1)
+
+# FRA to LAD lookup data ----
+response <- httr::GET("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD21_FRA21_EW_LU/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json")
+content <- httr::content(response, type = "application/json", simplifyVector = TRUE)
+
+fra_lad_lookup <- content$features$attributes |>
+  select(lad_code = LAD21CD, lad_name = LAD21NM, fra_code = FRA21CD, fra_name = FRA21NM) |>
+  filter(!str_detect(fra_name, "Wales"))
+
+fra_lad_lookup |>
+  distinct(fra_code, fra_name) |>
+  anti_join(fire_res_auth, by = c("fra_code" = "far_auth_code"))
+# Not all Fire Authorities are in the Spending data 
+
+fire_res_auth_ltla <- fire_res_auth |>
+ left_join(fra_lad_lookup, by = c("far_auth_code" = "fra_code")) |>
+  left_join(ltla_pop, by = c("lad_code")) |>
+  group_by(far_auth_code) |>
+  mutate(pop_weight = total_population / sum(total_population)) |>
+  ungroup() |>
+  mutate(weighted_cps = cps_millions * pop_weight) |>
+  select(lad_name, lad_code, cps_millions = weighted_cps)
+  
+  # Combine the LAD level and disaggregated county and combined authorities and fire & rescue
 cps_combined <- cps_updated |>
   select(-total_population) |>
   bind_rows(cps_combined_auth_split) |>
   bind_rows(cps_counties_split) |>
+  bind_rows(fire_res_auth_ltla) |>
   group_by(lad_code, lad_name) |>
   summarise(cps_millions = sum(cps_millions))
- 
-# TO DO: Fire & Rescue Authorities? Lookup to LAD is here: https://geoportal.statistics.gov.uk/datasets/ons::local-authority-district-to-fire-and-rescue-authority-april-2021-lookup-in-england-and-wales/about
-# Should UTLA/Combined Auth be included? This is a adjusted version of the data where these are removed?
+
+# To discuss:
+# Many of the LTLAs within the ULTAs and Combined Auth level already appear at LTLA in the data
+# However since some LTLAs & UTLAs have a 1-2-1 mapping how to distinguish which money was given at LTLA level and which at UTLA level (as may be combined in at LTLAs with 1-2-1 mapping)
+# Some analysis below to see if can distinuigh which funds given at what level
+# Not all the Fire & Rescue Authorities across England appear in the data, only a subset
+
+# Should UTLA/Combined Auth be included? This is a adjusted version of the data where these are removed maybe?
 # https://pldr.org/dataset/20mjj/local-authority-finance-core-spending-power-fin0759
 
-fire_lads
+# Extra check of which funds to what level of geography -----------
+
+# Checking which funds available to LTLAs vs. UTLAs vs Combined Auth
+
+tf <- download_file("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/945389/Core_Spending_Power_supporting_table_2021-22.xlsx",
+                    "xlsx")
+
+raw_detail <- read_excel(tf, sheet = "2021-22", skip = 4)
+
+cps_detail <- raw_detail |>
+  select(-c("...1", "...2", "...4", "...5")) |>
+  rename(geog_code = "...3", geog_name = `Local Authority`) |>
+    filter(!is.na(geog_code))
+
+ltla_codes <- population_lad |> select(lad_code) |> mutate(ltla_flag = 1)
+utla_codes <- population_counties_ua |> select(county_ua_code) |> mutate(utla_flag = 1)
+
+cps_detail_flag <- cps_detail |>
+  left_join(ltla_codes, by = c("geog_code" = "lad_code")) |>
+  left_join(utla_codes, by = c("geog_code" = "county_ua_code")) |>
+  mutate(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", as.numeric)) 
+# Some UTLAs and LTLAs have 1-2-1 mapping so will come under both ulta_flag and ltla_flag
+
+cps_detail_grouped <- cps_detail_flag |>
+  mutate(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", ~.x > 0)) |>
+  group_by(ltla_flag, utla_flag) |>
+  summarise(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", sum), count = n())
+
