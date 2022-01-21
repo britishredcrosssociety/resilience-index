@@ -1,6 +1,5 @@
 # Note: the output values are for relative comparison only and don't include income for charities which 
 # operate all across England or all across UK so shouldn't be used as a figure for total charity income at each UTLA or LTLA. 
-# And it only includes health/social VCS orgs only charities. 
 
 # Load packages ----
 library(tidyverse)
@@ -14,7 +13,8 @@ source("R/utils.R") # for download_file()
 # Charity list
 tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity.zip", ".zip")
 
-unzip(tf) 
+tf |>
+  unzip(exdir = tempdir())
 
 charity_list_raw <-
   read_tsv(
@@ -28,7 +28,8 @@ charity_list_raw <-
 # Charity returns
 tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_annual_return_history.zip", ".zip")
 
-unzip(tf) 
+tf |>
+  unzip(exdir = tempdir())
 
 charity_returns_raw <-
   read_tsv(
@@ -42,7 +43,8 @@ charity_returns_raw <-
 # Charity areas of operation
 tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip", ".zip")
 
-unzip(tf)
+tf |>
+  unzip(exdir = tempdir())
 
 charity_areas_raw <-
   read_tsv(
@@ -56,7 +58,8 @@ charity_areas_raw <-
 # Charity classification
 tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_classification.zip", ".zip")
 
-unzip(tf)
+tf |>
+  unzip(exdir = tempdir())
 
 charity_classification_raw <-
   read_tsv(
