@@ -161,14 +161,15 @@ local_eng_charities_org_nums <- charity_areas |>
 local_eng_charities <- charity_areas |>
   inner_join(local_eng_charities_org_nums, by = "organisation_number")
 
-# A charity may work in a specific LAD/Throughout London but also other areas/countries e.g.
+# A charity may work in a specific LAD/Throughout London but also other areas/countries (see example below)
+# Due to this not appropriate to take the income for that charity and allocate to that LAD since will also be split by the other operating areas potentially outside England/UK. 
 local_eng_charities |>
   filter(organisation_number == "207619")
 
 charities_joined |>
   filter(organisation_number == "207619") |>
   distinct(organisation_number, charity_name, mean_annual_income, geographic_area_type, geographic_area_description)
-# Due to this not appropriate to take the income for that charity and allocate to that LAD since will also be split by the other operating areas?
+
 
 # - Country, Region, & NA -
 # Remove country, region, and NA level data
