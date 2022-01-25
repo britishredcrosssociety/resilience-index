@@ -10,7 +10,11 @@ source("R/utils.R") # for download_file()
 
 # Downloading CQC rating data as has information on what is the primary type of care trust provides 
 # Landing page of data: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/04_January_2022_Latest_ratings.ods", "ods")
+tf <- 
+  download_file(
+    "https://www.cqc.org.uk/sites/default/files/04_January_2022_Latest_ratings.ods",
+    "ods"
+  )
 
 raw_providers <-
   read_ods(
