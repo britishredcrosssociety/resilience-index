@@ -27,7 +27,7 @@ providers <- raw_providers |>
 
 # Joining onto open trusts geographr data
 open_trusts <-
-  geographr::points_nhs_trusts |>
+  points_nhs_trusts |>
   as_tibble() |>
   filter(status == "open") |>
   select(
