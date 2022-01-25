@@ -1,6 +1,6 @@
 
 # TO DO:
-# Work on pulling shapefile directly from site
+# Work on pulling GEOJSON & convert to shapefile directly from site
 # More efficient intesection check
 # look into crs transformations
 
@@ -11,10 +11,8 @@ library(sf)
 source("R/utils.R")
 
 # Output Areas boundaries -----
-# https://geoportal.statistics.gov.uk/datasets/a76b2f87057b43d989d8f01733104d62/explore?location=52.950000%2C-2.000000%2C6.87
-bondaries_oa <- st_read("~/analysis_work/testing/output_areas_flooding/Output_Areas__December_2011__Boundaries_EW_BGC-shp/Output_Areas__December_2011__Boundaries_EW_BGC.shp")
-
-
+# Download data from: https://geoportal.statistics.gov.uk/datasets/a76b2f87057b43d989d8f01733104d62/explore?location=52.950000%2C-2.000000%2C6.87
+bondaries_oa <- st_read("data/on-disk/flooding-data/Flood_Map_for_Planning_Rivers_and_Sea_Flood_Zone_3.shp")
 
 # Check crs
 st_crs(bondaries_oa)
