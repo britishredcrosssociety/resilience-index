@@ -34,4 +34,4 @@ open_trust_types <- open_trusts |>
   left_join(providers, by = c("trust_code" = "Provider ID")) |>
   rename(primary_category = `Provider Primary Inspection Category`)
 
-write_rds(open_trust_types, "data/open_trust_types.RDS")
+write_rds(open_trust_types, "data/open_trust_types.rds")
