@@ -104,7 +104,8 @@ updating_trusts_for_survey_data <- function(data, response_column, mean_column, 
       mutate(weight = num_respon / sum(num_respon), weighted_mean = weight * mean) |>
       group_by(trust_code) |>
       summarise(mean = sum(weighted_mean), num_respon = sum(num_respon)) |>
-      select(trust_code, num_respon, mean)
+      select(trust_code, num_respon, mean) |>
+      rename(!!response_column := num_respon, !!mean_column := mean) 
     
     return(data_updated_combined)
   }
@@ -142,12 +143,12 @@ outpatient_minor_inj |>
 trust_changes <- read_rds("data/trust_changes.rds")
 
 # Update trust codes using updating_trusts_for_survey_data() function
-inpatient_survey_updated <- updating_trusts_for_survey_data(inpatient_survey, num_respon_inp, meaninp, open_trusts, trust_changes)
-mental_health_survey_updated <- updating_trusts_for_survey_data(mental_health_survey, num_respon_mh, meanmh, open_trusts, trust_changes)
-outpatient_ae_updated <- updating_trusts_for_survey_data(outpatient_ae, num_respon_ae, meanae, open_trusts, trust_changes)
+inpatient_survey_updated <- updating_trusts_for_survey_data(inpatient_survey, "num_respon_inp", "meaninp", open_trusts, trust_changes)
+mental_health_survey_updated <- updating_trusts_for_survey_data(mental_health_survey, "num_respon_mh", "meanmh", open_trusts, trust_changes)
+outpatient_ae_updated <- updating_trusts_for_survey_data(outpatient_ae, "num_respon_ae", "meanae", open_trusts, trust_changes)
 
 outpatient_minor_inj_updated <- outpatient_minor_inj |>
-  select(trust_code, num_respon = num_respon_min, mean = meanmin)
+  select(trust_code, num_respon_min, meanmin)
 
 # Join data survey data to open trust data --------
 combined_survey_data <- open_trusts |>
@@ -174,13 +175,13 @@ avg_survey_scores <- combined_survey_data |>
   rowwise() %>%
   mutate(
     total_responders = sum(
-      c_across(starts_with("num_respon.")) ,
+      c_across(starts_with("num_respon")) ,
       na.rm = T
     )
   ) |>
   mutate_at(vars(contains("num_respon")), ~ . / total_responders) |>
-  mutate(avg_survey_score = sum(c(num_respon.x * mean.x, num_respon.y * mean.y, num_respon.x.x * mean.x.x, num_respon.y.y * mean.y.y), na.rm = T)) |>
-  mutate(avg_survey_score = ifelse(is.na(mean.x) & is.na(mean.y) & is.na(mean.x.x) & is.na(mean.y.y), NA, avg_survey_score)) |>
+  mutate(avg_survey_score = sum(c(num_respon_inp * meaninp, num_respon_mh * meanmh, num_respon_ae * meanae, num_respon_min * meanmin), na.rm = T)) |>
+  mutate(avg_survey_score = ifelse(is.na(meaninp) & is.na(meanmh) & is.na(meanae) & is.na(meanmin), NA, avg_survey_score)) |>
   select(trust_code, primary_category, total_responders, avg_survey_score)
 
 avg_survey_scores |>
@@ -223,10 +224,10 @@ avg_survey_scores_msoa <- avg_survey_scores_joined |>
 
 # Distributions
 summary(avg_survey_scores_msoa$weighted_score)
-summary(inpatient_survey_updated$mean)
-summary(mental_health_survey_updated$mean)
-summary(outpatient_ae_updated$mean)
-summary(outpatient_minor_inj_updated$mean)
+summary(inpatient_survey_updated$meaninp)
+summary(mental_health_survey_updated$meanmh)
+summary(outpatient_ae_updated$meanae)
+summary(outpatient_minor_inj_updated$meanmin)
 
 # Aggregate from MSOA to LA ----
 

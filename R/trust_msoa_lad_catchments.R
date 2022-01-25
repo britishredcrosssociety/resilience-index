@@ -104,10 +104,6 @@ lookup_trust_lad <- lookup_trust_msoa_full |>
   mutate(trust_catchment = sum(lad_catchment_for_trust)) |> 
   mutate(trust_prop_by_lad = lad_catchment_for_trust/trust_catchment) |>
   ungroup() |>
-  group_by(lad_code) |>
-  mutate(lad_pop = sum(lad_catchment_for_trust)) |> 
-  mutate(lad_prop_by_trust = lad_catchment_for_trust/lad_pop) |>
-  ungroup() |>
-  select(lad_code, lad_name, trust_code, trust_prop_by_lad, lad_prop_by_trust)
+  select(lad_code, lad_name, trust_code, trust_prop_by_lad)
 
 write_rds(lookup_trust_lad, "data/lookup_trust_lad.rds")

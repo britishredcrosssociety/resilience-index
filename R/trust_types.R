@@ -34,8 +34,11 @@ open_trusts <-
     trust_code = nhs_trust_code
   )
 
+# RW6 has merged into RM3 & R0A (which are both in the dataset)
+# Category of RW6 from archive of directory https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
 open_trust_types <- open_trusts |>
   left_join(providers, by = c("trust_code" = "Provider ID")) |>
-  rename(primary_category = `Provider Primary Inspection Category`)
+  rename(primary_category = `Provider Primary Inspection Category`) |>
+  mutate(primary_category = ifelse(trust_code == "RW6", "Acute hospital - NHS non-specialist", primary_category))
 
 write_rds(open_trust_types, "data/open_trust_types.rds")
