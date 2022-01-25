@@ -75,7 +75,7 @@ catchment_proportions_updated <- catchment_proportions |>
 # and since it is the trust code changing (not msoa) will stay the same. 
 catchment_proportions_updated_grouped <- catchment_proportions_updated |>
   group_by(msoa_code, trust_code, total_patients) |>
-  summarise_if(is.numeric, sum) |>
+  summarise(across(where(is.numeric), sum)) |>
   ungroup() |>
   relocate(total_patients, .after = patients)
   
