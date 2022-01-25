@@ -89,7 +89,12 @@ response_columns <- str_subset(colnames(combined_survey_data), "num_respon")
 # Come up with a better/more reproducible way of writing this query
 avg_survey_scores <- combined_survey_data |>
   rowwise() %>%
-  mutate(total_responders = sum(c(num_respon.x, num_respon.y, num_respon.x.x, num_respon.y.y), na.rm = T)) |>
+  mutate(
+    total_responders = sum(
+      c_across(starts_with("num_respon.")) ,
+      na.rm = T
+    )
+  ) |>
   mutate_at(vars(contains("num_respon")), ~ . / total_responders) |>
   mutate(avg_survey_score = sum(c(num_respon.x * mean.x, num_respon.y * mean.y, num_respon.x.x * mean.x.x, num_respon.y.y * mean.y.y), na.rm = T)) |>
   mutate(avg_survey_score = ifelse(is.na(mean.x) & is.na(mean.y) & is.na(mean.x.x) & is.na(mean.y.y), NA, avg_survey_score)) |>
