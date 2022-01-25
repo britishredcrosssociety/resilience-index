@@ -23,10 +23,9 @@ pop_lad <- geographr::population_lad |>
     total_pop = total_population
   )
 
-GET(
-  "https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/documents/Raw-data/LA-data-download-Oct-2021.xlsx",
-  write_disk(tf <- tempfile(fileext = ".xlsx"))
-)
+# Source page https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/publications/local-information/Local-authority-comparison.aspx
+tf <- download_file("https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/documents/Raw-data/LA-data-download.xlsx",
+                   ".xlsx")
 
 raw <-
   read_excel(
@@ -59,12 +58,12 @@ all_services_sectors <-
 direct_care_roles <-
   all_services_sectors |>
   filter(
-    job_role == "Care worker" |
-      job_role == "Direct care" |
-      job_role == "Occupational therapist" |
-      job_role == "Registered nurse" |
-      job_role == "Senior care worker" |
-      job_role == "Social worker"
+    job_role == "Individual role - Care worker" |
+      job_role == "Job role group - Direct care" |
+      job_role == "Individual role - Occupational therapist" |
+      job_role == "Individual role - Registered nurse" |
+      job_role == "Individual role - Senior care worker" |
+      job_role == "Individual role - Social worker"
   )
 
 # Replace suppressed data (where there isn't enough jobs) with zero
