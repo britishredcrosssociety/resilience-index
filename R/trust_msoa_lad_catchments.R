@@ -9,7 +9,7 @@ library(httr)
 library(readxl)
 
 
-# This is the data the geapgraphr::lookup_trust_msoa is on but for this need extra columns
+# This is the data the geographr::lookup_trust_msoa is on but for this need extra columns
 query_url <- "https://app.box.com/index.php?rm=box_download_shared_file&shared_name=qh8gzpzeo1firv1ezfxx2e6c4tgtrudl&file_id=f_877983829510"
 
 # Make GET request
