@@ -168,7 +168,7 @@ charities_health <-
 
 # ---- Assign geographies ----
 # Assign Local Authorities to the geography_area columns:
-#   - for for geographic_area_type == "Country", remove all as presence will
+#   - for geographic_area_type == "Country", remove all as presence will
 #     be indistinguishable for any UK orgs.
 #   - for geographic_area_type == "Region", currently remove all regions, as they do not
 #     provide any granular detail as they are at the devolved nation or London
