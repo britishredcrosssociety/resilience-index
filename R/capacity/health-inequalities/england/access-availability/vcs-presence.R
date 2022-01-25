@@ -173,7 +173,7 @@ charities_health <-
 #   - for geographic_area_type == "Region", currently remove all regions, as they do not
 #     provide any granular detail as they are at the devolved nation or London
 #     level, and will add the London level data towards the end. 
-#   - for for geographic_area_type == NA, remove all as information is needed.
+#   - for geographic_area_type == NA, remove all as information is needed.
 #   - for geographic_area_type == "Local Authority", just keep the
 #     corresponding geographic_area_description and then match to the ONS
 #     region. Note the areas are UTLA's.
