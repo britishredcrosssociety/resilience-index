@@ -48,7 +48,7 @@ catchment_proportions |>
   group_by(msoa_code) |>
   mutate(calculated_total_patients = sum(patients))
 
-# Some trust codes may need updated so aligns with 'open_trust_types.feather' ----
+# Some trust codes may need updated so aligns with 'open_trust_types.rds' ----
 open_trusts <- read_rds("data/open_trust_types.rds")
 trust_changes <- read_rds("data/trust_changes.rds")
 
