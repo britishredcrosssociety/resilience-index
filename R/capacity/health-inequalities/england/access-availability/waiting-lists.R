@@ -1,36 +1,16 @@
-# Load libs
+# Load packages
 library(tidyverse)
 library(httr)
 library(readxl)
 library(sf)
 library(geographr)
-library(viridis)
 
-source("R/utils.R")
+source("R/utils.R") # for download_file()
 
-msoa_pop <-
-  population_msoa |>
-  select(msoa_code, total_population)
+# Load data ----
 
-# Create trust lookup of open trusts
-open_trusts <-
-  points_nhs_trusts |>
-  as_tibble() |>
-  filter(status == "open") |>
-  select(
-    `Trust Code` = nhs_trust_code,
-    `Trust Name` = nhs_trust_name
-  ) |>
-  mutate(
-    `Trust Name` = str_to_title(`Trust Name`),
-    `Trust Name` = str_replace(`Trust Name`, "Nhs", "NHS")
-  )
-
-# Load raw data
-GET(
-  "https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/Monthly-Diagnostics-Web-File-Provider-May-2021_84CSC.xls",
-  write_disk(tf <- tempfile(fileext = ".xls"))
-)
+# Data from https://www.england.nhs.uk/statistics/statistical-work-areas/diagnostics-waiting-times-and-activity/monthly-diagnostics-waiting-times-and-activity/monthly-diagnostics-data-2021-22/
+tf <- download_file("https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/07/Monthly-Diagnostics-Web-File-Provider-May-2021_84CSC.xls", ".xls")
 
 raw <-
   read_excel(
@@ -48,109 +28,107 @@ diagnostics_sliced <-
 diagnostics_vars <-
   diagnostics_sliced |>
   select(
-    `Trust Code` = `Provider Code`,
-    `Waiting 13+ weeks` = `Number waiting 13+ Weeks`
+    trust_code = `Provider Code`,
+    waiting_over_13_weeks = `Number waiting 13+ Weeks`,
+    total_waiting = `Total Waiting List`
   )
 
-# Filter to only open trusts
-diagnostic_open_trusts <-
-  open_trusts |>
-  left_join(
-    diagnostics_vars,
-    by = "Trust Code"
-  ) |>
-  select(
-    trust_code = `Trust Code`,
-    waiting_13_weeks = `Waiting 13+ weeks`
-  )
+# NHS Trust table in geographr package -----
 
-# Remove NA values
-diagnostic_drop_na <-
-  diagnostic_open_trusts |>
-  drop_na()
+# Load in open trusts table created in trust_types.R
+open_trusts <- read_rds("data/open_trust_types.rds")
 
-# Aggregate to MSOA
-# ==============================================================================
-# Notice, that 24 trusts don't have lookup data available. This is because
-# the catchment population data used in the trust to msoa lookup does not
-# include these trusts.
-not_available <-
-  diagnostic_drop_na |>
-  left_join(lookup_trust_msoa) |>
-  keep_na() |>
-  pull(trust_code) |>
-  unique()
-
-open_trusts |> 
-  filter(`Trust Code` %in% not_available) |>
+# Check those in the waiting times data and not in the trusts data
+raw |>
+  anti_join(open_trusts, by = c("Provider Code" = "trust_code")) |>
+  select(`Regional Team Name`, `Provider Name`) |>
   print(n = Inf)
+# There are many 243 missing in open trusts but notes say 'Data are shown at provider organisation level, from NHS Trusts, NHS Foundation Trusts and Independent Sector Providers'
+# So from names look to be independent providers (e.g. Nuffield, Spire etc)
+# Note here: https://www.england.nhs.uk/statistics/statistical-work-areas/diagnostics-waiting-times-and-activity/monthly-diagnostics-waiting-times-and-activity/
 
-points_available <-
-  points_nhs_trusts |>
-  left_join(
-    diagnostic_drop_na,
-    by = c("nhs_trust_code" = "trust_code")
-  ) |>
+raw |>
+  anti_join(open_trusts, by = c("Provider Code" = "trust_code")) |>
+  select(`Regional Team Name`, `Provider Name`) |>
+  filter(str_detect(`Provider Name`, "(?i)trust")) |>
+  print(n = Inf)
+# No NHS Foundation Trusts
+
+open_trusts |>
+  anti_join(diagnostics_vars) |>
+  print(n = Inf)
+# 51 missing that are ambulance and community trusts
+# In note (https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2013/08/DM01-FAQs-v-3.0.pdf) says
+# 'All trusts that provide any of the diagnostic tests that are on the monthly template should complete a return' - so these trusts may not provide these tests.
+
+# Join trust to LAD lookup --------
+
+lookup_trust_lad <- read_rds("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.rds")
+
+
+# Trust to LAD table only has data for acute trusts
+open_trusts |>
+  left_join(diagnostics_vars) |>
+  left_join(lookup_trust_lad) |>
+  group_by(primary_category) |>
+  summarise(count = n(), prop_with_lookup = sum(!is.na(lad_code)) / n())
+
+# Current approach is to drop information on non-acute trusts since can't proportion these to MSOA
+# For the acute trusts data proportion these to LAD and calculate per capita level
+diagnostics_vars_joined <- open_trusts |>
+  left_join(diagnostics_vars) |>
+  inner_join(lookup_trust_lad)
+
+# Check missings
+diagnostics_vars_joined |>
+  distinct(trust_code, primary_category, waiting_over_13_weeks) |>
+  group_by(primary_category) |>
+  summarise(count = n(), prop_missing = sum(is.na(waiting_over_13_weeks)) / n())
+# no missings
+
+diagnostics_vars_lad <- diagnostics_vars_joined |>
   mutate(
-    missing = if_else(
-      nhs_trust_code %in% not_available,
-      "yes",
-      "no"
-    )
+    waiting_over_13_weeks_prop = waiting_over_13_weeks * trust_prop_by_lad,
+    total_waiting_prop = total_waiting * trust_prop_by_lad
+  ) |>
+  group_by(lad_code) |>
+  summarise(
+    waiting_over_13_weeks_per_lad = sum(waiting_over_13_weeks_prop),
+    total_waiting_per_lad = sum(total_waiting_prop)
   )
 
-points_available |>
-  ggplot() +
-  geom_sf(
-    data = boundaries_lad |>
-      filter(str_detect(lad_code, "^E") | str_detect(lad_code, "^W")),
-    fill = NA,
-    size = 0.1
-  ) +
-  geom_sf(
-    mapping = aes(colour = missing),
-    size = 3,
-    alpha = .7,
-    fill = "black"
-  ) +
-  theme_minimal() +
-  scale_colour_viridis(
-    discrete = TRUE, 
-    option = "C",
-    end = .7
-    )
+# Check totals
+# Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
+sum(diagnostics_vars_lad$waiting_over_13_weeks_per_lad)
+sum(diagnostics_vars$waiting_over_13_weeks)
 
-# ==============================================================================
 
-# Calculate MSOA proportions
-diagnostic_msoa <-
-  diagnostic_drop_na |>
-  left_join(lookup_trust_msoa) |>
-  drop_na() |> # Because the Trust lookup table is currently incomplete
-  mutate(weighted = waiting_13_weeks * proportion) |>
-  group_by(msoa_code) |>
-  mutate(waiting_diagnostic = sum(weighted)) |>
-  ungroup() |>
-  select(msoa_code, waiting_diagnostic) |>
-  distinct()
+# Normalise  ----
+# Normalising by proportioned total in waiting list per LAD
 
-# Normalise by population
-diagnostic_msoa_normalised <-
-  diagnostic_msoa |>
-  left_join(msoa_pop) |>
-  mutate(diagnostic_rate = waiting_diagnostic / total_population * 100) |>
-  select(msoa_code, diagnostic_rate, total_population)
+diagnostics_vars_normalised <- diagnostics_vars_lad |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_waiting_per_lad) |>
+  select(lad_code, waiting_over_13_weeks_rate)
 
-# Aggregate to LAD
-diagnostic_lad <-
-  diagnostic_msoa_normalised |>
-  left_join(lookup_msoa_lad) |>
-  calculate_extent(
-    var = diagnostic_rate,
-    higher_level_geography = lad_code,
-    population = total_population
-  )
+# Check distributions
+summary(diagnostics_vars_normalised$waiting_over_13_weeks_rate)
 
-# TODO:
-# - The missing Trusts need amending otherwise the data is likely going to be
-#   skewed/inaccurate
+diagnostics_vars_normalised |>
+  ggplot(aes(x = waiting_over_13_weeks_rate)) +
+  geom_boxplot()
+
+diagnostics_vars_joined |>
+  distinct(trust_code, waiting_over_13_weeks, total_waiting) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks / total_waiting) |>
+  pull(waiting_over_13_weeks_rate) |>
+  summary()
+
+diagnostics_vars_joined |>
+  distinct(trust_code, waiting_over_13_weeks, total_waiting) |>
+  mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks / total_waiting) |>
+  ggplot(aes(x = waiting_over_13_weeks_rate)) +
+  geom_boxplot()
+
+# Save ----
+diagnostics_vars_normalised |>
+  write_rds("data/capacity/health-inequalities/england/waiting-lists.rds")
