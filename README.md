@@ -65,7 +65,7 @@ Old code that was written before this repository got refactored to an R package 
 
 | Nation | Strategic Cause | Vulnerability | Capacity |
 | --- | --- | --- | --- |
-| England | Health Inequalities | :heavy_check_mark: | :keyboard: - Under development |
+| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
 | England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development |
 | Scotland | Health Inequalities | :heavy_check_mark: | :x: |
 | Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: |
