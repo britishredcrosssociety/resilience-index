@@ -27,8 +27,8 @@ source("R/utils.R")
 # Load indicators
 access_availability_indicators <-
   load_indicators(
-    path = "data/capacity/health-inequalities/northern-ireland/access-availability",
-    key = "trust_code"
+    path = "data/capacity/health-inequalities/england/access-availability",
+    key = "lad_code"
   )
 
 # 1. Scale (align) indicators - Higher value = Higher capacity.
