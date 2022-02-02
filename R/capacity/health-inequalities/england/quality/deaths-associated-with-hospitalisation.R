@@ -121,10 +121,11 @@ deaths_lad <- deaths_msoa |>
     var = shmi_averaged,
     higher_level_geography = lad_code,
     population = total_population
-  )
+  ) |>
+  rename(deaths_associated_hospitalisation_extent = extent)
 
 deaths_lad |>
-  group_by(extent) |>
+  group_by(deaths_associated_hospitalisation_extent) |>
   summarise(count = n() / nrow(deaths_lad))
 # 63% : extent = 0
 # 5%: extent = 1
