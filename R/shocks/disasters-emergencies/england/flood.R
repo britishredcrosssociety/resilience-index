@@ -24,7 +24,7 @@ bondaries_oa_trans <- bondaries_oa |>
 # England: Flood Map for Planning (Rivers and Sea) - Flood Zone 3
 # Source: https://environment.data.gov.uk/DefraDataDownload/?mapService=EA/FloodMapForPlanningRiversAndSeaFloodZone3&Mode=spatial
 # ** You might need to generate a new download URL from ^ *
-tf <- download_file("https://environment.data.gov.uk/UserDownloads/interactive/fddd046ad3f848a9971a8d757fafa59856676/EA_FloodMapForPlanningRiversAndSeaFloodZone3_SHP_Full.zip   ",
+tf <- download_file("https://environment.data.gov.uk/UserDownloads/interactive/3291431646d5489593f5e400eed2a01633228/EA_FloodMapForPlanningRiversAndSeaFloodZone3_SHP_Full.zip",
                     ".zip")
 
 tf |>
