@@ -10,7 +10,7 @@ source("R/utils.R") # for download_file()
 # Source page: https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory
 # Info on how is rated https://www.cqc.org.uk/what-we-do/how-we-do-our-job/how-we-rate-trusts-their-use-resources
 # Download the data
-tf <- download_file("https://www.cqc.org.uk/sites/default/files/04_January_2022_Latest_ratings.ods", "ods")
+tf <- download_file("https://www.cqc.org.uk/sites/default/files/01_February_2022_Latest_ratings.ods", "ods")
 
 raw_providers <-
   read_ods(

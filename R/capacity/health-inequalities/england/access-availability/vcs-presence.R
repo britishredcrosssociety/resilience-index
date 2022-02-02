@@ -276,7 +276,7 @@ charities_local_authorities_updated <-
 
 # Check
 charities_local_authorities_updated |>
-  filter(!geographic_area_description %in% utla_list) |>
+  filter(!county_ua_name %in% utla_list_eng) |>
   print(n = Inf)
 
 

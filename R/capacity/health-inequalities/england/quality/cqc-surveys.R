@@ -113,7 +113,7 @@ updating_trusts_for_survey_data <- function(data, response_column, mean_column, 
 
 # Download survey datasets ----
 
-inpatient_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20210917%20IP20%20Trust-level%20benchmark%20ODS%20V1.ods", 45, "Trust_Scores", "q", "inp")
+inpatient_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20220128_aip20_trust-benchmark-data.ods", 46, "Trust_Scores", "q", "inp")
 mental_health_survey <- survey_data_download("https://www.cqc.org.uk/sites/default/files/20201124_cmh20_trustresults.ods", 35, "CMH20_Trust_Scores", "q", "mh")
 
 # For the outpatient survey there was 2 separate surveys:
