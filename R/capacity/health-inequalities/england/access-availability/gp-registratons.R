@@ -9,7 +9,7 @@ source("R/utils.R")
 
 # ---- Load data ----
 pop_lad <-
-  population_lad |> 
+  population_lad |>
   select(lad_code, pop = total_population)
 
 tf <- download_file("https://files.digital.nhs.uk/74/93D6A1/gp-reg-pat-prac-lsoa-male-female-october-21.zip", ".zip")
@@ -58,9 +58,9 @@ gp_registrations <-
   lad_registrations |>
   left_join(pop_lad) |>
   rename(pop = pop) |>
-  mutate(perc_registered_gp = count / pop) 
+  mutate(perc_registered_gp = count / pop)
 
-# Check missings 
+# Check missings
 gp_registrations |>
   filter(is.na(count) | is.na(pop))
 # 4 LADs with missing population data
@@ -96,12 +96,12 @@ gp_registrations_buck <- gp_registrations |>
   summarise(count = sum(count)) |>
   rename(lad_code = post_ua_code) |>
   left_join(pop_lad) |>
-  mutate(perc_registered_gp = count / pop) 
+  mutate(perc_registered_gp = count / pop)
 
 gp_registrations_clean <- gp_registrations |>
   filter(!is.na(pop)) |>
   bind_rows(gp_registrations_buck)
-  
+
 # Check distribution & total
 summary(gp_registrations_clean$perc_registered_gp)
 
@@ -117,4 +117,5 @@ gp_registrations_clean |>
 
 # Save ----
 gp_registrations_clean |>
+  select(lad_code, perc_registered_gp) |>
   write_rds("data/capacity/health-inequalities/england/access-availability/gp-registrations.rds")
