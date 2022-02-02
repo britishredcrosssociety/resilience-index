@@ -63,7 +63,7 @@ open_trusts |>
 
 # Join trust to LAD lookup --------
 
-lookup_trust_lad <- read_rds("R/capacity/health-inequalities/england/trust_calculations/lookup_trust_lad.rds")
+lookup_trust_lad <- read_rds("data/lookup_trust_lad.rds")
 
 
 # Trust to LAD table only has data for acute trusts
