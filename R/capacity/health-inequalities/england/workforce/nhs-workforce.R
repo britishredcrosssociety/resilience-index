@@ -21,7 +21,6 @@ raw_fte <-
     skip = 6
   )
 
-
 # Only taking those defined as 'Professionally qualified clinical staff' (includes all HCHS doctors, qualified nurses and health visitors, midwives, qualified scientific, therapeutic and technical staff and qualified ambulance staff).
 # So excluding: 'Scientific, therapeutic & technical staff', 'Support to clinical staff' & 'NHS infrastructure support'.
 
@@ -42,7 +41,7 @@ fte_clean |>
 # Load in open trusts table created in trust_types.R
 open_trusts <- read_rds("data/open_trust_types.rds")
 
-# Check the matching of indicator data & trust table in geographr package 
+# Check the matching of indicator data & trust table in geographr package
 open_trusts |>
   anti_join(fte_clean)
 # 3 trusts missing from staff data
@@ -89,11 +88,10 @@ fte_staff_lad <- fte_staff_joined |>
   summarise(fte_staff_per_lad = sum(fte_staff_prop)) |>
   ungroup()
 
-# Checking totals at each stage 
+# Checking totals at each stage
 # Will be difference as had to drop staff from non-acute trusts that couldn't map back to LA
 sum(fte_clean$staff_fte)
 sum(fte_staff_lad$fte_staff_per_lad)
-
 
 # Normalise for LAD pop ----
 lad_pop <- geographr::population_lad |>
