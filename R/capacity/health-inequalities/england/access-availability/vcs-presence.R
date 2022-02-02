@@ -320,4 +320,4 @@ ltla_vcs_presence <- ltla_combined |>
 
 # Save ----
 ltla_vcs_presence |>
-  write_rds("data/capacity/health-inequalities/england/vsc-presence.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/vsc-presence.rds")

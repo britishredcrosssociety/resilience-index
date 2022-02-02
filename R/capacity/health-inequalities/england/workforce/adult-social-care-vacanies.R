@@ -166,4 +166,4 @@ match_all |>
 
 # Save ----
 match_all |>
-  write_rds("data/capacity/health-inequalities/england/adult-social-care-vacanies.rds")
+  write_rds("data/capacity/health-inequalities/england/workforce/adult-social-care-vacanies.rds")

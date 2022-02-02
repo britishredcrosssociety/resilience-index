@@ -177,4 +177,4 @@ avail_beds_msoa_normalised <- avail_beds_lad |>
 
 # Save ----
 avail_beds_msoa_normalised |>
-  write_rds("data/capacity/health-inequalities/england/bed-availability.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/bed-availability.rds")

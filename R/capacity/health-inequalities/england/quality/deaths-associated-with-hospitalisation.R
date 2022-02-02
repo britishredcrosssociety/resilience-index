@@ -131,4 +131,4 @@ deaths_lad |>
 
 # Save ----
 deaths_lad |>
-  write_rds("data/capacity/health-inequalities/england/deaths-associated-with-hospitalisation.rds")
+  write_rds("data/capacity/health-inequalities/england/quality/deaths-associated-with-hospitalisation.rds")

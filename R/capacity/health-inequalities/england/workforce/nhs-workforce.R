@@ -106,4 +106,4 @@ fte_staff_lad_normalised <- fte_staff_lad |>
 
 # Save ----
 fte_staff_lad_normalised |>
-  write_rds("data/capacity/health-inequalities/england/nhs-workforce.rds")
+  write_rds("data/capacity/health-inequalities/england/workforce/nhs-workforce.rds")

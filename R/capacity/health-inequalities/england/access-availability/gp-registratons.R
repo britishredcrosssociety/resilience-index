@@ -117,4 +117,4 @@ gp_registrations_clean |>
 
 # Save ----
 gp_registrations_clean |>
-  write_rds("data/capacity/health-inequalities/england/gp-registrations.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/gp-registrations.rds")

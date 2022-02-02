@@ -160,4 +160,4 @@ maint_cost_msoa_normalised <- maint_cost_lad |>
 
 # Save ----
 maint_cost_msoa_normalised |>
-  write_rds("data/capacity/health-inequalities/england/hospital-maintanance-backlog-cost.rds")
+  write_rds("data/capacity/health-inequalities/england/quality/hospital-maintanance-backlog-cost.rds")

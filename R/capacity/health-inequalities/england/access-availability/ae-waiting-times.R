@@ -259,4 +259,4 @@ ae_double |>
 
 # Save ----
 ae_wait_normalised |>
-  write_rds("data/capacity/health-inequalities/england/ae-waiting-times.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/ae-waiting-times.rds")

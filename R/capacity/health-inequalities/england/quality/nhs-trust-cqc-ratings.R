@@ -182,4 +182,4 @@ rating_lad |>
 
 # Save ----
 rating_lad |>
-  write_rds("data/capacity/health-inequalities/england/nhs-trust-cqc-rating.rds")
+  write_rds("data/capacity/health-inequalities/england/quality/nhs-trust-cqc-rating.rds")

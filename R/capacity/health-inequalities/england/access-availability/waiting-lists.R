@@ -131,4 +131,4 @@ diagnostics_vars_joined |>
 
 # Save ----
 diagnostics_vars_normalised |>
-  write_rds("data/capacity/health-inequalities/england/waiting-lists.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/waiting-lists.rds")

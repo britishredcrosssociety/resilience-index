@@ -252,4 +252,4 @@ avg_survey_lad |>
 
 # Save ----
 avg_survey_lad |>
-  write_rds("data/capacity/health-inequalities/england/cqc-surveys.rds")
+  write_rds("data/capacity/health-inequalities/england/quality/cqc-surveys.rds")
