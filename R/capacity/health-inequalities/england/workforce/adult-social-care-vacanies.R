@@ -24,8 +24,10 @@ pop_lad <- geographr::population_lad |>
   )
 
 # Source page https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/publications/local-information/Local-authority-comparison.aspx
-tf <- download_file("https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/documents/Raw-data/LA-data-download.xlsx",
-                   ".xlsx")
+tf <- download_file(
+  "https://www.skillsforcare.org.uk/adult-social-care-workforce-data/Workforce-intelligence/documents/Raw-data/LA-data-download.xlsx",
+  ".xlsx"
+)
 
 raw <-
   read_excel(
@@ -88,7 +90,6 @@ lad_means <-
 # Only take vacancy as proxy for inverse of the total workforce
 lad_vacancy <- lad_means |>
   select(lad_name, vacancy)
-
 
 # ---- Match LAD Codes ----
 # The Local Authorities are a mixture of UTLA's & LTLA's
@@ -155,7 +156,7 @@ match_all <-
   )
 
 # Check any duplicates/missings
-boundaries_lad |> 
+boundaries_lad |>
   filter(str_detect(lad_code, "^E")) |>
   anti_join(match_all, by = "lad_code")
 
@@ -166,4 +167,5 @@ match_all |>
 
 # Save ----
 match_all |>
+  select(lad_code, vacancy) |>
   write_rds("data/capacity/health-inequalities/england/workforce/adult-social-care-vacanies.rds")
