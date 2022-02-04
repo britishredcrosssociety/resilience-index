@@ -1,5 +1,5 @@
-# Note: the output values are for relative comparison only and don't include income for charities which 
-# operate all across England or all across UK so shouldn't be used as a figure for total charity income at each UTLA or LTLA. 
+# Note: the output values are for relative comparison between LTLAs only and don't include charities which 
+# operate all across England or all across UK so shouldn't be used as a figure for total charity counts at each UTLA or LTLA. 
 
 # Load packages ----
 library(tidyverse)
@@ -162,13 +162,18 @@ local_eng_charities <- charity_areas |>
   inner_join(local_eng_charities_org_nums, by = "organisation_number")
 
 # A charity may work in a specific LAD/Throughout London but also other areas/countries (see example below)
-# Due to this not appropriate to take the income for that charity and allocate to that LAD since will also be split by the other operating areas potentially outside England/UK. 
+# Due to this not appropriate to take the income for that charity and allocate to that LAD 
+# since will also be split by the other operating areas potentially outside England/UK. 
 local_eng_charities |>
   filter(organisation_number == "207619")
 
 charities_joined |>
   filter(organisation_number == "207619") |>
-  distinct(organisation_number, charity_name, mean_annual_income, geographic_area_type, geographic_area_description)
+  distinct(organisation_number, 
+           charity_name, 
+           mean_annual_income, 
+           geographic_area_type, 
+           geographic_area_description)
 
 
 # - Country, Region, & NA -
@@ -270,7 +275,8 @@ ltla_charity_count <- charities_local_authorities_updated |>
 
 # Regional London charities -----
 london_charities <- charity_areas |>
-  filter(geographic_area_type == "Region", geographic_area_description == "Throughout London") |>
+  filter(geographic_area_type == "Region", 
+         geographic_area_description == "Throughout London") |>
   group_by(geographic_area_description) |>
   summarise(count_orgs = n())
 

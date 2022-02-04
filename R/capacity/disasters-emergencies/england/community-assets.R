@@ -22,13 +22,15 @@ civic_assests <- osci |>
 # Method used in COVID-VI -----
 # Code here https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/master/prep%20community%20needs%20index.r
 # Output here https://raw.githubusercontent.com/britishredcrosssociety/covid-19-vulnerability/master/data/community-needs-LA.csv
-# Interested in 'Proportion of wards with worst Community Assets scores' column
+# 'Proportion of wards with greatest community needs' column used in resilience index part: https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/bccb08ef4da822d7beb01e56e4a26610bed33b11/bespoke%20vulnerability%20index%20-%20resilience/create%20resilience%20index%20-%20LA.r#L27
+# Rest of the columns used in vulnerability index part https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/bccb08ef4da822d7beb01e56e4a26610bed33b11/create%20vulnerability%20index%20-%20LA.r#L113
+# Interested in 'Proportion of wards with worst Community Assets scores' column as this is 'Civic assets' 
 
 # Method:
 # Reverse ranks (so highest rank reflects most vulnerable)
 # Joined a 2017 to 2019 LAD look up 
 # Calculated those with ranks in the lowest 5% (quintile)
-# Then aggregated up to LADs by calculating the % of wards in the LAD which were in the lowest quintile
+# Then aggregated up to LADs using calculate_extent()
 
 
 # Alternative method to use calculate_extent() ----
@@ -90,8 +92,8 @@ civic_assests_extent <- civic_assests |>
 
 
 # Save data -----
-civic_assests_extent |> 
-  write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
+# civic_assests_extent |> 
+#   write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
 
 # TO DO: 
-# Double check with Matt about the ordering of this data e.g. high score is more vulnerable but this is a capacity view?
+# Check with Matt about the ordering of this data e.g. high score is more vulnerable but this is a capacity view compared to in COVID VI was vulnerability 
