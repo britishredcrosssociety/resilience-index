@@ -1,10 +1,11 @@
+# Load packages 
 library(tidyverse)
 library(readxl)
 
 source("R/utils.R") # for download_file() & calculate_extent()
 
 
-# OSCI Community Needs Index data
+# OSCI Community Needs Index data ----
 # Prepare the Community Needs Index, showing the Index and its domains for all Wards, along with which are the left-behind areas
 # More info: https://ocsi.uk/2020/01/15/community-needs-index-your-questions-answered/
 # The data isn't public but OCSI can provide it to social purpose organisations - email them for info
@@ -29,8 +30,9 @@ civic_assests <- osci |>
 # Method:
 # Reverse ranks (so highest rank reflects most vulnerable)
 # Joined a 2017 to 2019 LAD look up 
-# Calculated those with ranks in the lowest 5% (quintile)
-# Then aggregated up to LADs using calculate_extent()
+# Calculated those with ranks in the lowest 5% (quintile) i.e. 'most vulnerable'
+# Then aggregated up to LADs using by calculating the % of wards that are 'most vulnerable' within a LAD
+# Don't think extent was used to aggregate up to higher geography?
 
 
 # Alternative method to use calculate_extent() ----
@@ -57,7 +59,7 @@ civic_assests |>
   left_join(ward_pop, by = "ward_code") |>
   filter(is.na(population)) 
 
-# Read in LAD17 to LAD19 lookup (unsure of source of this data but used in COVID-VI)
+# Read in LAD17 to LAD19 lookup (unsure of source of this data but used in COVID-VI) ----
 raw_lad_lookup <- read_csv("https://raw.githubusercontent.com/britishredcrosssociety/covid-19-vulnerability/master/data/lookup%20mosa11%20to%20lad17%20to%20lad19%20to%20tactical%20cell.csv")
 
 lad_lookup <- raw_lad_lookup |>
@@ -77,7 +79,7 @@ lad_lookup |>
   filter(count > 1)
 # Only aggregation from multiple 2017 codes to a single 2019 code
 
-# Join datasets & calculate_extent()
+# Join datasets & calculate extent ----
 # Note highest score (i.e. lowest rank) reflects most vulnerable (to double check this with Matt as no data dictionary)
 civic_assests_extent <- civic_assests |>
   left_join(ward_pop, by = "ward_code") |>
