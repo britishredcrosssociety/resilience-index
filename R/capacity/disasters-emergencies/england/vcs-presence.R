@@ -25,21 +25,6 @@ charity_list_raw <-
     )
   )
 
-# Charity returns
-tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_annual_return_history.zip", ".zip")
-
-tf |>
-  unzip(exdir = tempdir())
-
-charity_returns_raw <-
-  read_tsv(
-    list.files(
-      tempdir(),
-      pattern = "publicextract.charity_annual_return_history.txt",
-      full.names = TRUE
-    )
-  )
-
 # Charity areas of operation
 tf <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip", ".zip")
 
@@ -96,90 +81,91 @@ charities_active <-
   )
 
 # Charity returns
-# Calculate annual mean income
-charity_returns_mean <-
-  charity_returns_raw |>
-  select(
-    organisation_number,
-    total_gross_income
-  ) |>
-  group_by(organisation_number) |>
-  summarise(mean_annual_income = mean(total_gross_income, na.rm = TRUE))
 
-# Charity areas of operation
-charity_areas <-
+# Charity areas of operation (keep only actives)
+charity_areas_active <-
   charity_areas_raw |>
   select(
     organisation_number,
     geographic_area_type,
     geographic_area_description
-  )
+  ) |>
+  inner_join(charities_active, by = "organisation_number")
 
-# Charity classification
-charity_classification <-
+# Charity classification (keep only actives)
+charity_classification_active <-
   charity_classification_raw |>
   select(
     organisation_number,
     classification_type,
     classification_description
-  )
-
-# ---- Join data ----
-charities_joined <-
-  charities_active |>
-  left_join(
-    charity_returns_mean,
-    by = "organisation_number"
   ) |>
+  inner_join(charities_active, by = "organisation_number")
+
+# Note that multiple rows per organisation in charity_areas & charity_classification
+# due to multiple rows for a single org for both areas and classification
+charity_areas_active |>
+  group_by(organisation_number) |>
+  mutate(org_count = n()) |>
+  arrange(desc(org_count), organisation_number)
+
+charity_classification_active |>
+  group_by(organisation_number) |>
+  mutate(org_count = n()) |>
+  arrange(desc(org_count), organisation_number)
+
+# To consider: keep all types of charities? Based on 'classification_description' variable?
+# Some may be only do funding and not specifically fund the local area? Some may provide training. 
+charities_active |>
+  left_join(
+         charity_classification,
+         by = "organisation_number"
+       ) |>
+  filter(is.na(classification_description)) |>
+  summarise(pop_distinct_orgs_no_classification = n_distinct(organisation_number) / nrow(charities_active))
+# 9.4% have no classification
+
+# Check % missing geographic information
+charities_active |>
   left_join(
     charity_areas,
     by = "organisation_number"
   ) |>
-  left_join(
-    charity_classification,
-    by = "organisation_number"
-  )
-
-# To consider: keep all types of charities? Based on 'classification_description' variable?
-# Some may be funders and not specifically fund the local area? Some may provide training. 
+  filter(is.na(geographic_area_type)) |>
+  summarise(pop_distinct_orgs_no_geography = n_distinct(organisation_number) / nrow(charities_active))
+# 9.4% have no classification
+# Won't be taking these into account in the analysis since can't assign to a specific local geography
 
 # ---- Assign geographies ----
 # Assign Local Authorities to the geography_area columns:
 #   - for for geographic_area_type == "Country", remove all as presence will
 #     be indistinguishable for any UK orgs.
 #   - for geographic_area_type == "Region", currently remove all regions (such as 'Throughout England'), as they do not
-#     provide any granular detail as they are at the devolved nation except 'Throughout London'.
+#     provide any granular detail as they are at the devolved nation except entry 'Throughout London'.
 #   - for for geographic_area_type == NA, remove all as information is needed.
 #   - for geographic_area_type == "Local Authority", just keep the
 #     corresponding geographic_area_description and then match to the ONS
 #     region. Note the areas are UTLA's.
 
-local_eng_charities_org_nums <- charity_areas |>
+local_eng_charities_org_nums <- charity_areas_active |>
   filter((geographic_area_type == "Region" & geographic_area_description == "Throughout London") | geographic_area_type == "Local Authority") |>
   distinct(organisation_number)
 
-local_eng_charities <- charity_areas |>
+local_eng_charities <- charity_areas_active |>
   inner_join(local_eng_charities_org_nums, by = "organisation_number")
 
 # A charity may work in a specific LAD/Throughout London but also other areas/countries (see example below)
 # Due to this not appropriate to take the income for that charity and allocate to that LAD 
+# (income allocation was original idea since income would proxy for size of organisation)
 # since will also be split by the other operating areas potentially outside England/UK. 
 local_eng_charities |>
   filter(organisation_number == "207619")
-
-charities_joined |>
-  filter(organisation_number == "207619") |>
-  distinct(organisation_number, 
-           charity_name, 
-           mean_annual_income, 
-           geographic_area_type, 
-           geographic_area_description)
 
 
 # - Country, Region, & NA -
 # Remove country, region, and NA level data
 # i.e. keep only Local Authority level data
-charities_local_authorities <- charity_areas |>
+charities_local_authorities <- charity_areas_active |>
   filter(geographic_area_type == "Local Authority") |>
   group_by(geographic_area_description) |>
   summarise(count_orgs = n())
@@ -257,9 +243,7 @@ charities_local_authorities_updated <-
 
 # Check
 charities_local_authorities_updated |>
-  filter(!geographic_area_description %in% utla_list) |>
-  print(n = Inf)
-
+  filter(!county_ua_name %in% utla_list_eng) 
 
 # Split down to LTLA from UTLA
 # Assumption: if present in UTLA present across all LTLAs
@@ -274,7 +258,7 @@ ltla_charity_count <- charities_local_authorities_updated |>
   summarise(count_orgs = sum(count_orgs))
 
 # Regional London charities -----
-london_charities <- charity_areas |>
+london_charities <- charity_areas_active |>
   filter(geographic_area_type == "Region", 
          geographic_area_description == "Throughout London") |>
   group_by(geographic_area_description) |>
@@ -301,5 +285,7 @@ ltla_vcs_presence <- ltla_combined |>
   mutate(vcs_presence = count_orgs/ltla_pop)
 
 # Save ----
-ltla_vcs_presence |>
-  write_rds("data/capacity/disasters-emergencies/england/vsc-presence.rds")
+# ltla_vcs_presence |>
+#   write_rds("data/capacity/disasters-emergencies/england/vsc-presence.rds")
+
+# To do: discuss what kind of charities to keep 
