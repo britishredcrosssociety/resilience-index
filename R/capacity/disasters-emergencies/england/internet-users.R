@@ -22,8 +22,6 @@ tf <- download_file("https://www.arcgis.com/sharing/rest/content/items/6a46e14a6
 tf |>
   unzip(exdir = tempdir())
 
-list.files(tempdir())
-
 postcode_lookup <- read_csv(paste0(tempdir(), "/PCD_OA_LSOA_MSOA_LAD_FEB20_UK_LU.csv"))
 
 postcode_lookup_eng <- postcode_lookup |>

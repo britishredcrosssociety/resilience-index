@@ -33,12 +33,12 @@ raw_filtered <- raw |>
 # Crew turnout: from time station notified to first vehicle to leave
 # Drive time: from time first vehicle leaves to first vehicle to arrive at the incident
 
-# Consider if want total time or some subset of call handling, turnaround, drive time. Would call handling be outwith the LAs fire service control and be a 999 operator variable?
-# Drive time not just reflective of speed but also proximity to fires of fire stations?
-# Take total response time for now.
+# Assume call handling be outwith the LAs fire service control and be a 999 operator variable. So will not include this. 
+# Drive time arguably not just reflective of speed but also proximity to fires of fire stations? Will include to reflect georgaohy of area. 
 
 fire_response <- raw_filtered |>
-  select(frs = location_category, incidents, total_response_time) |>
+  mutate(station_response_time = total_response_time - call_handling_time) |>
+  select(frs = location_category, incidents, station_response_time) |>
   filter(!frs %in% c("England", "Metropolitan", "Non-metropolitan", "Predominantly Rural", "Predominantly Urban", "Significantly Rural"))
 # 44 areas
 
@@ -103,7 +103,7 @@ fire_response_updated <- fire_response |>
     frs == "Hereford and Worcester" ~ "Hereford & Worcester",
     TRUE ~ frs
   )) |>
-  bind_rows(list(frs = "Isles of Scilly", incidents = 0, total_response_time = NA))
+  bind_rows(list(frs = "Isles of Scilly", incidents = 0, station_response_time = NA))
 
 # Check matches after manual fixes
 fire_response_updated |>
@@ -117,7 +117,7 @@ fra_lad_lookup |>
 # Assumption: all LADs within an FRS have same response time as don't currently have data at a lower geography level
 fire_response_lad <- fire_response_updated |>
   left_join(fra_lad_lookup, by = c("frs" = "fra_name")) |>
-  select(lad_code, total_response_time) 
+  select(lad_code, station_response_time) 
 
 # Save data ----
 fire_response_lad |>
