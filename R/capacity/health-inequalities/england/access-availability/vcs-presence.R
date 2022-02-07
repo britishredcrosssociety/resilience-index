@@ -178,8 +178,8 @@ charities_health <-
 #     region. Note the areas are UTLA's.
 
 local_eng_charities_org_nums <- charities_health |>
-  filter((geographic_area_type == "Region" & geographic_area_description == "Throughout London") | 
-           geographic_area_type == "Local Authority") |>
+  filter((geographic_area_type == "Region" & geographic_area_description == "Throughout London") |
+    geographic_area_type == "Local Authority") |>
   distinct(organisation_number)
 
 local_eng_charities <- charities_health |>
@@ -316,7 +316,8 @@ ltla_pop <- population_lad |>
 ltla_vcs_presence <- ltla_combined |>
   left_join(ltla_pop) |>
   rename(ltla_pop = total_population) |>
-  mutate(vcs_presence = count_orgs / ltla_pop)
+  mutate(vcs_presence = count_orgs / ltla_pop) |>
+  select(lad_code, vcs_presence)
 
 # Save ----
 ltla_vcs_presence |>
