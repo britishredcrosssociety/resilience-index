@@ -65,14 +65,14 @@ Old code that was written before this repository got refactored to an R package 
 
 | Nation | Strategic Cause | Vulnerability | Capacity | Shocks |
 | --- | --- | --- | --- | --- |
-| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | NA |
-| England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development | :heavy_check_mark: - Heat Hazards |
-| Scotland | Health Inequalities | :heavy_check_mark: | :x: | NA |
+| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | :no_entry_sign: - Not applicable |
+| England | Disasters & Emergencies | :construction: - Under development | :construction: - Under development | :heavy_check_mark: - Heat Hazards |
+| Scotland | Health Inequalities | :heavy_check_mark: | :x: | :no_entry_sign: - Not applicable |
 | Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: | :heavy_check_mark: - Heat Hazards |
-| Wales | Health Inequalities | :keyboard: - Under development | :x: | NA |
+| Wales | Health Inequalities | :construction: - Under development | :x: | :no_entry_sign: - Not applicable |
 | Wales | Disasters & Emergencies | :heavy_check_mark: | :x: | :x: |
-| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | NA |
-| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development | :heavy_check_mark: - Fires & Floods |
+| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | :no_entry_sign: - Not applicable |
+| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :construction: - Under development | :heavy_check_mark: - Fires & Floods |
 
 ## Contributing
 
