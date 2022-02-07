@@ -70,7 +70,7 @@ Old code that was written before this repository got refactored to an R package 
 | Scotland | Health Inequalities | :heavy_check_mark: | :x: | NA |
 | Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: | :heavy_check_mark: - Heat Hazards |
 | Wales | Health Inequalities | :keyboard: - Under development | :x: | NA |
-| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: | |
+| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: | :x: |
 | Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | NA |
 | Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development | :heavy_check_mark: - Fires & Floods |
 
