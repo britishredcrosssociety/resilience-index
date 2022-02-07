@@ -7,7 +7,7 @@ source("R/utils.R") # for download_file() & calculate_extent()
 
 # OSCI Community Needs Index data ----
 # Prepare the Community Needs Index, showing the Index and its domains for all Wards, along with which are the left-behind areas
-# More info: https://ocsi.uk/2020/01/15/community-needs-index-your-questions-answered/
+# More info: https://ocsi.uk/2019/10/21/community-needs-index-measuring-social-and-cultural-factors/
 # The data isn't public but OCSI can provide it to social purpose organisations - email them for info
 # Data is at 2017 ward level 
 osci <- read_excel("data/on-disk/OSCI/community-needs-index/Community Needs Index domain scores.xlsx")
@@ -18,8 +18,8 @@ civic_assests <- osci |>
          lad_code = "LA code",  
          civic_assests_score = "Civic Assets score", 
          civic_assets_rank = "Civic Assets rank")
-# Higher score and therefore lower rank is the lack of assets so HIGH SCORE/LOW RANK = LOW CAPABILITIES
-
+# Higher score and therefore lower rank is the LACK of assets so HIGH SCORE/LOW RANK = LOW CAPABILITIES
+# Civic assets + Enggagement + Connectness = Community Need score (high score = high need)
 
 # Method used in COVID-VI -----
 # Code here https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/master/prep%20community%20needs%20index.r
