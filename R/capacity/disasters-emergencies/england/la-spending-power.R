@@ -22,7 +22,8 @@ cps <- raw |>
   select(lad_code = `...3`, lad_name = `Core Spending Power - Local Authority Summary`, cps_millions = `...8`) |>
   filter(str_detect(lad_code, "^E")) |>
   mutate(cps_millions = ifelse(cps_millions == "NA", NA, cps_millions)) |>
-  mutate(cps_millions = as.numeric(cps_millions))
+  mutate(cps_millions = as.numeric(cps_millions)) |>
+  drop_na(cps_millions)
 
 # Confirm no loss of decimal information
 print(cps$cps_millions, digits = 17)
@@ -47,23 +48,6 @@ cps |>
   print(n = Inf)
 # 58 not matches 
 
-# Investigate not matches in LTLA population data (Fire & UTLA) ----
-
-# Many are actually Fire & Rescue Authorities
-fire_res_auth <- cps |>
-  anti_join(ltla_pop, by = "lad_code") |>
-  filter(str_detect(lad_name, "Fire")) |>
-  rename(far_auth_code = lad_code, far_auth_name = lad_name)
-# 30 FRS 
-
-# Check for matches at county (i.e. UTLA) level
-cps_utla <- cps |>
-  anti_join(ltla_pop, by = "lad_code") |>
-  filter(!str_detect(lad_name, "Fire")) |>
-  inner_join(utla_pop, by = c("lad_code" = "county_ua_code")) |>
-  rename(county_ua_code = lad_code, county_ua_name = lad_name)
-# 25 UTLAs
-
 # Investigate not matches in LAD population data (2021 Northampshire LAD restructure) ----
 northam_restructure <-
   tribble(
@@ -77,32 +61,65 @@ northam_restructure <-
     "Wellingborough", "North Northamptonshire", "E07000156", "E06000061",
   )
 
-# CPS data contains old Northam codes since raw dataset also contains 20/21 spending data (but has NA value)
-cps |>
-  filter(lad_code %in% c(northam_restructure$pre_lad_code, northam_restructure$post_ua_code))
+ltla_pop_2021 <- ltla_pop |> 
+  left_join(northam_restructure, by = c("lad_code" = "pre_lad_code")) |>
+  mutate(lad_code = ifelse(!is.na(post_ua_code), post_ua_code, lad_code)) |>
+  group_by(lad_code) |>
+  summarise(total_population = total_population)
+
+# Investigate not matches in LTLA population data (Fire & UTLA) ----
+
+# Many are actually Fire & Rescue Authorities
+fire_res_auth <- cps |>
+  anti_join(ltla_pop, by = "lad_code") |>
+  filter(str_detect(lad_name, "Fire")) |>
+  rename(far_auth_code = lad_code, far_auth_name = lad_name)
+# 30 FRS 
+
+# Check not matches after 2021 restructure & fire authorities accounted
+not_matched <- cps |>
+  anti_join(ltla_pop_2021) |>
+  anti_join(fire_res_auth, by = c("lad_code" = "far_auth_code"))
+
+# Check for matches at county (i.e. UTLA) level -----
+cps_utla <- not_matched |>
+  inner_join(utla_pop, by = c("lad_code" = "county_ua_code")) |>
+  rename(county_ua_code = lad_code, county_ua_name = lad_name)
+# 25 UTLAs
 
 
-northam_pop <- ltla_pop |>
-  inner_join(northam_restructure, by = c("lad_code" = "pre_lad_code")) |>
-  group_by(post_ua_code, post_ua_name) |>
-  summarise(total_population = sum(total_population)) |>
-  rename(county_ua_name = post_ua_name, county_ua_code = post_ua_code) |>
-  ungroup()
+# Are these in addition to LTLAs within these counties?
+cps_utla |>
+  left_join(lookup_counties_ua_lad,  by = "county_ua_code") |>
+  select(lad_code) |>
+  left_join(cps, by = "lad_code") 
+# All the ltlas that make up the utlas are already in the cps data
+# This utla level data is in addition to the ltla data
 
-cps_northam <- cps |>
-  filter(lad_code %in% c(northam_restructure$post_ua_code)) |>
-  rename(county_ua_code = lad_code, county_ua_name = lad_name) |>
-  left_join(northam_pop)
+# Checking which funds available to LTLAs vs. UTLAs vs Combined Auth
 
-# Also remove the county of Northamptonshire (E10000021) as this was removed along with the 7 LADs being restructured
-cps_utla_updated <- cps_utla |>
-  filter(county_ua_code != "E10000021") |>
-  bind_rows(cps_northam)
+tf <- download_file("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/945389/Core_Spending_Power_supporting_table_2021-22.xlsx",
+                    "xlsx")
 
-# Remove the 7 old LADs from LAD level data
-cps_updated <- cps |>
-  inner_join(ltla_pop, by = "lad_code") |>
-  filter(!lad_code %in% northam_restructure$pre_lad_code)
+raw_detail <- read_excel(tf, sheet = "2021-22", skip = 4)
+
+cps_detail <- raw_detail |>
+  select(-c("...1", "...2", "...4", "...5")) |>
+  rename(geog_code = "...3", geog_name = `Local Authority`) |>
+  filter(!is.na(geog_code))
+
+utla_detail <- cps_detail |>
+  inner_join(cps_utla, by = c("geog_code" = "county_ua_code"))
+
+# View UTLA (E10000003) and LTLA within that UTLA (E07000008 - E07000012)
+cambridge_check <- cps_detail |>
+  filter(geog_code %in% c("E10000003", "E07000008", "E07000009", "E07000010", "E07000011", "E07000012")) |>
+  arrange(geog_code)
+
+
+##############################################################################################################################
+
+
 
 # Remaining unmatched is a Combined Authority (don't currently have this lookup in geographr package)
 cps |>
@@ -216,31 +233,7 @@ cps_combined <- cps_updated |>
 # Should UTLA/Combined Auth be included? This is a adjusted version of the data where these are removed maybe?
 # https://pldr.org/dataset/20mjj/local-authority-finance-core-spending-power-fin0759
 
-# Extra check of which funds to what level of geography -----------
 
-# Checking which funds available to LTLAs vs. UTLAs vs Combined Auth
 
-tf <- download_file("https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/945389/Core_Spending_Power_supporting_table_2021-22.xlsx",
-                    "xlsx")
 
-raw_detail <- read_excel(tf, sheet = "2021-22", skip = 4)
-
-cps_detail <- raw_detail |>
-  select(-c("...1", "...2", "...4", "...5")) |>
-  rename(geog_code = "...3", geog_name = `Local Authority`) |>
-    filter(!is.na(geog_code))
-
-ltla_codes <- population_lad |> select(lad_code) |> mutate(ltla_flag = 1)
-utla_codes <- population_counties_ua |> select(county_ua_code) |> mutate(utla_flag = 1)
-
-cps_detail_flag <- cps_detail |>
-  left_join(ltla_codes, by = c("geog_code" = "lad_code")) |>
-  left_join(utla_codes, by = c("geog_code" = "county_ua_code")) |>
-  mutate(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", as.numeric)) 
-# Some UTLAs and LTLAs have 1-2-1 mapping so will come under both ulta_flag and ltla_flag
-
-cps_detail_grouped <- cps_detail_flag |>
-  mutate(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", ~.x > 0)) |>
-  group_by(ltla_flag, utla_flag) |>
-  summarise(across("Core Spending Power...7":"Percentage change in Core Spending Power from 2020-21 to 2021-22", sum), count = n())
 
