@@ -18,25 +18,25 @@ civic_assests <- osci |>
          lad_code = "LA code",  
          civic_assests_score = "Civic Assets score", 
          civic_assets_rank = "Civic Assets rank")
+# Higher score and therefore lower rank is the lack of assets so HIGH SCORE/LOW RANK = LOW CAPABILITIES
 
 
 # Method used in COVID-VI -----
 # Code here https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/master/prep%20community%20needs%20index.r
 # Output here https://raw.githubusercontent.com/britishredcrosssociety/covid-19-vulnerability/master/data/community-needs-LA.csv
 # 'Proportion of wards with greatest community needs' column used in resilience index part: https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/bccb08ef4da822d7beb01e56e4a26610bed33b11/bespoke%20vulnerability%20index%20-%20resilience/create%20resilience%20index%20-%20LA.r#L27
-# Rest of the columns used in vulnerability index part https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/bccb08ef4da822d7beb01e56e4a26610bed33b11/create%20vulnerability%20index%20-%20LA.r#L113
+# Rest of the columns used in vulnerability index part (although wasn't used in the end build and only in resilience part) https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/bccb08ef4da822d7beb01e56e4a26610bed33b11/create%20vulnerability%20index%20-%20LA.r#L113
 # Interested in 'Proportion of wards with worst Community Assets scores' column as this is 'Civic assets' 
 
-# Method:
+# Method used:
 # Reverse ranks (so highest rank reflects most vulnerable)
 # Joined a 2017 to 2019 LAD look up 
 # Calculated those with ranks in the lowest 5% (quintile) i.e. 'most vulnerable'
 # Then aggregated up to LADs using by calculating the % of wards that are 'most vulnerable' within a LAD
-# Don't think extent was used to aggregate up to higher geography?
 
 
-# Alternative method to use calculate_extent() ----
-# For consistency across other indicators in the Index
+# Alternative method to use calculate_extent() with ward population ----
+# Use this method for consistency across other indicators in the Index
 
 # 2017 ward population counts
 # Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/datasets/wardlevelmidyearpopulationestimatesexperimental
@@ -80,7 +80,7 @@ lad_lookup |>
 # Only aggregation from multiple 2017 codes to a single 2019 code
 
 # Join datasets & calculate extent ----
-# Note highest score (i.e. lowest rank) reflects most vulnerable (to double check this with Matt as no data dictionary)
+# Note: high score (i.e. lowest rank) reflects low capability
 civic_assests_extent <- civic_assests |>
   left_join(ward_pop, by = "ward_code") |>
   left_join(lad_lookup, by = c("lad_code" = "LAD17CD")) |>
@@ -94,8 +94,6 @@ civic_assests_extent <- civic_assests |>
 
 
 # Save data -----
-# civic_assests_extent |> 
-#   write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
+civic_assests_extent |>
+  write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
 
-# TO DO: 
-# Check with Matt about the ordering of this data e.g. high score is more vulnerable but this is a capacity view compared to in COVID VI was vulnerability 

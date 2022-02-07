@@ -3,7 +3,7 @@ library(sf)
 library(geographr)
 library(tidyverse)
 
-source("utils.R")
+source("R/utils.R")
 
 # Output area boundaries ----
 # Output areas (OA) were created for Census data
@@ -20,7 +20,7 @@ boundaries_oa_eng <- boundaries_oa |>
 # But used intersecting polygons of flood zone & OA (rather than population weighted centroids)
 
 # Source: https://environment.data.gov.uk/DefraDataDownload/?mapService=EA/FloodMapForPlanningRiversAndSeaFloodZone3&Mode=spatial
-# ** You might need to generate a new download URL from ^ *
+# ** You might need to generate a new download URL download .shp file from ^ *
 tf <- download_file(
   "https://environment.data.gov.uk/UserDownloads/interactive/a1abc7e27b204eb6b629a75554e6d3a7152324/EA_FloodMapForPlanningRiversAndSeaFloodZone3_SHP_Full.zip",
   "zip"
