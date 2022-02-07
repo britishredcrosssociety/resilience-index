@@ -63,16 +63,16 @@ Old code that was written before this repository got refactored to an R package 
 - Last update: 26.11.21
 - Notes: complete segments are only provisional and are subject to change (e.g., indicator amendments and weighting)
 
-| Nation | Strategic Cause | Vulnerability | Capacity |
-| --- | --- | --- | --- |
-| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
-| England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development |
-| Scotland | Health Inequalities | :heavy_check_mark: | :x: |
-| Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: |
-| Wales | Health Inequalities | :keyboard: - Under development | :x: |
-| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: |
-| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
-| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development |
+| Nation | Strategic Cause | Vulnerability | Capacity | Shocks |
+| --- | --- | --- | --- | --- |
+| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | NA |
+| England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development | :heavy_check_mark: - Heat Hazards |
+| Scotland | Health Inequalities | :heavy_check_mark: | :x: | NA |
+| Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: | :heavy_check_mark: - Heat Hazards |
+| Wales | Health Inequalities | :keyboard: - Under development | :x: | NA |
+| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: | |
+| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | NA |
+| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development | :heavy_check_mark: - Fires & Floods |
 
 ## Contributing
 
