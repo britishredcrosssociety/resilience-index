@@ -60,7 +60,7 @@ Old code that was written before this repository got refactored to an R package 
 
 - The Resilience Index is currently under active development, and only exists in a limited capacity at this time. Check the metadata files in `/R` to see the progress of each cause in each nation.
 
-- Last update: 26.11.21
+- Last update: 07.02.2022
 - Notes: complete segments are only provisional and are subject to change (e.g., indicator amendments and weighting)
 
 | Nation | Strategic Cause | Vulnerability | Capacity | Shocks |
