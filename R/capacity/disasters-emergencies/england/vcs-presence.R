@@ -118,7 +118,7 @@ charity_classification_active |>
 # Some may be only do funding and not specifically fund the local area? Some may provide training. 
 charities_active |>
   left_join(
-         charity_classification,
+         charity_classification_active,
          by = "organisation_number"
        ) |>
   filter(is.na(classification_description)) |>
@@ -128,7 +128,7 @@ charities_active |>
 # Check % missing geographic information
 charities_active |>
   left_join(
-    charity_areas,
+    charity_areas_active,
     by = "organisation_number"
   ) |>
   filter(is.na(geographic_area_type)) |>
