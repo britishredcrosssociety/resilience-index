@@ -1,5 +1,5 @@
-# Note: the output values are for relative comparison between LTLAs only and don't include charities which 
-# operate all across England or all across UK so shouldn't be used as a figure for total charity counts at each UTLA or LTLA. 
+# Note: the output values are for relative comparison between LTLAs only and don't include charities which
+# operate all across England or all across UK so shouldn't be used as a figure for total charity counts at each UTLA or LTLA.
 
 # Load packages ----
 library(tidyverse)
@@ -114,13 +114,13 @@ charity_classification_active |>
   mutate(org_count = n()) |>
   arrange(desc(org_count), organisation_number)
 
-# To consider: keep all types of charities? Based on 'classification_description' variable?
-# Some may be only do funding and not specifically fund the local area? Some may provide training. 
+# To consider: keep all types of charities? Based on 'classification_description' variable.
+# Some may be only do funding and not specifically fund the local area? Some may provide training.
 charities_active |>
   left_join(
-         charity_classification_active,
-         by = "organisation_number"
-       ) |>
+    charity_classification_active,
+    by = "organisation_number"
+  ) |>
   filter(is.na(classification_description)) |>
   summarise(pop_distinct_orgs_no_classification = n_distinct(organisation_number) / nrow(charities_active))
 # 9.4% have no classification
@@ -155,9 +155,9 @@ local_eng_charities <- charity_areas_active |>
   inner_join(local_eng_charities_org_nums, by = "organisation_number")
 
 # A charity may work in a specific LAD/Throughout London but also other areas/countries (see example below)
-# Due to this not appropriate to take the income for that charity and allocate to that LAD 
+# Due to this not appropriate to take the income for that charity and allocate to that LAD
 # (income allocation was original idea since income would proxy for size of organisation)
-# since will also be split by the other operating areas potentially outside England/UK. 
+# since will also be split by the other operating areas potentially outside England/UK.
 local_eng_charities |>
   filter(organisation_number == "207619")
 
@@ -243,14 +243,14 @@ charities_local_authorities_updated <-
 
 # Check
 charities_local_authorities_updated |>
-  filter(!county_ua_name %in% utla_list_eng) 
+  filter(!county_ua_name %in% utla_list_eng)
 
 # Split down to LTLA from UTLA
 # Assumption: if present in UTLA present across all LTLAs
 lookup_ltla_ltla <-
   lookup_counties_ua_lad |>
   filter(str_detect(county_ua_code, "^E")) |>
-  mutate(county_ua_name = str_to_lower(county_ua_name)) 
+  mutate(county_ua_name = str_to_lower(county_ua_name))
 
 ltla_charity_count <- charities_local_authorities_updated |>
   left_join(lookup_ltla_ltla, by = "county_ua_name") |>
@@ -259,15 +259,17 @@ ltla_charity_count <- charities_local_authorities_updated |>
 
 # Regional London charities -----
 london_charities <- charity_areas_active |>
-  filter(geographic_area_type == "Region", 
-         geographic_area_description == "Throughout London") |>
+  filter(
+    geographic_area_type == "Region",
+    geographic_area_description == "Throughout London"
+  ) |>
   group_by(geographic_area_description) |>
   summarise(count_orgs = n())
 
 london_ltla <- lookup_lad_region |>
   filter(region_name == "London") |>
   distinct(lad_code) |>
- mutate(count_orgs = london_charities$count_orgs)
+  mutate(count_orgs = london_charities$count_orgs)
 
 # Combining London regional and all UTLA level incomes ----
 ltla_combined <- ltla_charity_count |>
@@ -282,10 +284,10 @@ ltla_pop <- population_lad |>
 ltla_vcs_presence <- ltla_combined |>
   left_join(ltla_pop) |>
   rename(ltla_pop = total_population) |>
-  mutate(vcs_presence = count_orgs/ltla_pop)
+  mutate(vcs_presence = count_orgs / ltla_pop)
 
 # Save ----
-# ltla_vcs_presence |>
-#   write_rds("data/capacity/disasters-emergencies/england/vsc-presence.rds")
+ltla_vcs_presence |>
+  write_rds("data/capacity/disasters-emergencies/england/vsc-presence.rds")
 
-# To do: discuss what kind of charities to keep 
+# To do: discuss what kind of charities to keep
