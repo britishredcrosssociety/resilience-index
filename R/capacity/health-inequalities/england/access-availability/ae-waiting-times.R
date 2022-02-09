@@ -257,6 +257,19 @@ ae_double |>
   pull(ae_over_4_hours_wait_rate) |>
   summary()
 
+# Check lad codes are 2021
+if(
+  anti_join(
+    ae_wait_normalised,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021")
+}
+
 # Save ----
 ae_wait_normalised |>
   write_rds("data/capacity/health-inequalities/england/access-availability/ae-waiting-times.rds")
