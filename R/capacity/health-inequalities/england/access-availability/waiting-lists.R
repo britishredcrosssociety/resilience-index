@@ -127,7 +127,7 @@ diagnostics_vars_lad_update <- diagnostics_vars_lad |>
 # Normalising by proportioned total in waiting list per LAD
 diagnostics_vars_normalised <- diagnostics_vars_lad_update |>
   mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_waiting_per_lad) |>
-  select(lad_code, waiting_over_13_weeks_rate)
+  select(lad_code = LAD21CD, waiting_over_13_weeks_rate)
 
 # Check distributions
 summary(diagnostics_vars_normalised$waiting_over_13_weeks_rate)

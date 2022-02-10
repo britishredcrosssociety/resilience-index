@@ -188,5 +188,5 @@ match_all_update <- match_all |>
   select(lad_code = LAD21CD, vacancy)
 
 # Save ----
-match_all |>
+match_all_update |>
   write_rds("data/capacity/health-inequalities/england/workforce/adult-social-care-vacancies.rds")

@@ -270,7 +270,7 @@ ltla_combined <- health_charities_ltla_count |>
   summarise(count_orgs = sum(count_orgs))
 
 # Bring in LTLA population figures
-ltla_pop <- population_lad |>
+lad_pop <- population_lad |>
   select(lad_code, total_population) |>
   filter(str_detect(lad_code, "^E"))
 
@@ -306,14 +306,18 @@ ltla_combined_update <- ltla_combined |>
   group_by(LAD21CD) |>
   summarise(across(where(is.numeric), sum))
 
-ltla_pop_update <- ltla_pop |>
-  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+# Distinct table foe 2020 - 2021 due to E06000060
+lookup_lad_over_time_2020 <- lookup_lad_over_time |>
+  distinct(LAD20CD, LAD21CD)
+
+lad_pop_update <- lad_pop |>
+  left_join(lookup_lad_over_time_2020, by = c("lad_code" = "LAD20CD")) |>
   group_by(LAD21CD) |>
   summarise(across(where(is.numeric), sum))
 
 # Normalise by population of LTLA
 ltla_vcs_presence <- ltla_combined_update |>
-  left_join(ltla_pop_update, by = "LAD21CD") |>
+  left_join(lad_pop_update, by = "LAD21CD") |>
   rename(ltla_pop = total_population) |>
   mutate(vcs_presence = count_orgs / ltla_pop) |>
   select(lad_code = LAD21CD, vcs_presence)

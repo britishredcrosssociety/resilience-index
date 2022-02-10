@@ -130,8 +130,12 @@ fte_staff_lad_update <- fte_staff_lad |>
   group_by(LAD21CD) |>
   summarise(across(where(is.numeric), sum))
 
+# Distinct table foe 2020 - 2021 due to E06000060
+lookup_lad_over_time_2020 <- lookup_lad_over_time |>
+  distinct(LAD20CD, LAD21CD)
+
 lad_pop_update <- lad_pop |>
-  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+  left_join(lookup_lad_over_time_2020, by = c("lad_code" = "LAD20CD")) |>
   group_by(LAD21CD) |>
   summarise(across(where(is.numeric), sum))
 
