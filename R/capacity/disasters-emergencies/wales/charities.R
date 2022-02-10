@@ -54,7 +54,7 @@ charity_list_active <-
   )
 
 # Clean charity area,
-# Only select Wales LA,
+# Only select Wales LA, this can filter some "BIG" charities which has high income
 # The result shows that one organisation could has multiple geo_area_description
 charity_areas_clean  <-
   charity_areas_raw %>%
@@ -96,8 +96,12 @@ charity_income_lad <-
     latest_income = if_else(is.na(latest_income), 0, latest_income) # replace NA by 0
   ) %>%
   group_by(lad_code) %>%
-  summarise(across(latest_income, sum)) # aggregate by la
+  summarise(across(latest_income, sum)) # aggregate by LA
 
+
+# Right now, only aggregate total income by LA,
+# Need to consider how to rank
+# By average? By population?
 write_rds(
   charity_income_lad,
   "data/capacity/disasters-emergencies/wales/charity-lad.rds"
