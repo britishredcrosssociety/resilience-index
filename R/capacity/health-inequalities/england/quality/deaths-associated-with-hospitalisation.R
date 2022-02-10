@@ -113,7 +113,7 @@ msoa_pop <-
   population_msoa |>
   select(msoa_code, total_population)
 
-# Check lad codes are 2021 for the MSOA to LAD lookup ----
+# Check LAD codes are 2021 for the MSOA to LAD lookup 
 if(
   anti_join(
     filter(lookup_msoa_lad, str_detect(lad_code, "^E")),

@@ -159,12 +159,29 @@ cqc_nhs_trusts_overall |>
   summary()
 
 # Aggregate from MSOA to LA ----
-msoa_pop <- geographr::population_msoa |>
+msoa_pop <- population_msoa |>
   select(msoa_code, total_population)
 
-rating_lad <- rating_msoa |>
+if(
+  anti_join(
+    filter(lookup_msoa_lad, str_detect(lad_code, "^E")),
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+rating_lad_lookup <- rating_msoa |>
   select(msoa_code, weighted_rating) |>
   left_join(lookup_msoa_lad) |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  select(msoa_code, weighted_rating, msoa_code, lad_code = LAD21CD)
+
+
+rating_lad <- rating_lad_lookup |>
   left_join(msoa_pop) |>
   calculate_extent(
     var = weighted_rating,
@@ -176,9 +193,9 @@ rating_lad <- rating_msoa |>
 rating_lad |>
   group_by(extent) |>
   summarise(count = n() / nrow(rating_lad)) |>
-  print(n = Inf)
-# 58% : extent = 0
-# 2%: extent = 1
+  filter(extent %in% c(0, 1))
+# 57% : extent = 0
+# 3%: extent = 1
 
 # Save ----
 rating_lad |>
