@@ -1,5 +1,5 @@
 # Note: the output values are for relative comparison only and don't include counts for charities which
-# operate all across England or all across UK so shouldn't be used as a figure for total charity income at each UTLA or LTLA.
+# operate all across England or all across UK so shouldn't be used as a figure for total charity count at each UTLA or LTLA.
 # And it only includes health/social VCS orgs only charities.
 
 # ---- Load libs ----
@@ -20,7 +20,7 @@ GET(
 
 unzip(tf, exdir = tempdir())
 
-charity_list_raw <-
+charities_list_raw <-
   read_tsv(
     list.files(
       tempdir(),
@@ -29,22 +29,6 @@ charity_list_raw <-
     )
   )
 
-# Chairty returns
-GET(
-  "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_annual_return_history.zip",
-  write_disk(tf <- tempfile(fileext = ".zip"))
-)
-
-unzip(tf, exdir = tempdir())
-
-charity_returns_raw <-
-  read_tsv(
-    list.files(
-      tempdir(),
-      pattern = "publicextract.charity_annual_return_history.txt",
-      full.names = TRUE
-    )
-  )
 
 # Charity areas of operation
 GET(
@@ -54,7 +38,7 @@ GET(
 
 unzip(tf, exdir = tempdir())
 
-charity_areas_raw <-
+charities_areas_raw <-
   read_tsv(
     list.files(
       tempdir(),
@@ -71,7 +55,7 @@ GET(
 
 unzip(tf, exdir = tempdir())
 
-charity_classification_raw <-
+charities_classification_raw <-
   read_tsv(
     list.files(
       tempdir(),
@@ -81,9 +65,9 @@ charity_classification_raw <-
   )
 
 # ---- Clean data ----
-# Chairty list
+# Charity list
 charity_list_cols <-
-  charity_list_raw |>
+  charities_list_raw |>
   select(
     organisation_number,
     charity_name,
@@ -92,7 +76,7 @@ charity_list_cols <-
     charity_in_administration
   )
 
-# Keep only registered charities that are not insolvent or in administation
+# Keep only registered charities that are not insolvent or in administration
 charities_active <-
   charity_list_cols |>
   filter(charity_registration_status == "Registered") |>
@@ -103,55 +87,30 @@ charities_active <-
     charity_name
   )
 
-# Charity returns
-# Calculate annual mean income
-charity_returns_mean <-
-  charity_returns_raw |>
-  select(
-    organisation_number,
-    total_gross_income
-  ) |>
-  group_by(organisation_number) |>
-  summarise(mean_annual_income = mean(total_gross_income, na.rm = TRUE))
-
-# Charity areas of operation
-charity_areas <-
-  charity_areas_raw |>
+# Charity areas of operation (only keep actives)
+charities_areas_active <-
+  charities_areas_raw |>
   select(
     organisation_number,
     geographic_area_type,
     geographic_area_description
-  )
+  ) |>
+  inner_join(charities_active, by = "organisation_number")
 
-# Charity classification
-charity_classification <-
-  charity_classification_raw |>
+# Charity classification (only keep actives)
+charities_classification_active <-
+  charities_classification_raw |>
   select(
     organisation_number,
     classification_type,
     classification_description
-  )
-
-# ---- Join data ----
-charities_joined <-
-  charities_active |>
-  left_join(
-    charity_returns_mean,
-    by = "organisation_number"
   ) |>
-  left_join(
-    charity_areas,
-    by = "organisation_number"
-  ) |>
-  left_join(
-    charity_classification,
-    by = "organisation_number"
-  )
-
+  inner_join(charities_active, by = "organisation_number")
+ 
 # ---- Keep health/social VCS orgs only ----
 # Remove classifications that are obviously not related
 charities_health <-
-  charities_joined |>
+  charities_classification_active |>
   filter(
     classification_description == "Accommodation/housing" |
       classification_description == "Children/young People" |
@@ -164,7 +123,8 @@ charities_health <-
       classification_description == "The Advancement Of Health Or Saving Of Lives" |
       classification_description == "The General Public/mankind" |
       classification_description == "The Prevention Or Relief Of Poverty"
-  )
+  ) |>
+  distinct(organisation_number)
 
 # ---- Assign geographies ----
 # Assign Local Authorities to the geography_area columns:
@@ -177,28 +137,28 @@ charities_health <-
 #     corresponding geographic_area_description and then match to the ONS
 #     region. Note the areas are UTLA's.
 
-local_eng_charities_org_nums <- charities_health |>
+local_eng_health_charities_org_nums <- charities_health |>
+  left_join(charities_areas_active , by = "organisation_number") |>
   filter((geographic_area_type == "Region" & geographic_area_description == "Throughout London") |
     geographic_area_type == "Local Authority") |>
   distinct(organisation_number)
 
-local_eng_charities <- charities_health |>
-  inner_join(local_eng_charities_org_nums, by = "organisation_number")
+local_eng_health_charities <- charities_areas_active |>
+  inner_join(local_eng_health_charities_org_nums, by = "organisation_number")
 
 # A charity may work in a specific LAD/Throughout London but also other areas/countries (see example below)
-# Due to this not appropriate to take the income for that charity and allocate to that LAD since will also be split by the other operating areas potentially outside England/UK.
-local_eng_charities |>
+# Due to this not appropriate to take the income for that charity and allocate to that LAD (original plan)
+# since will also be split by the other operating areas potentially outside England/UK.
+
+local_eng_health_charities |>
   filter(organisation_number == "207619")
 
-charities_joined |>
-  filter(organisation_number == "207619") |>
-  distinct(organisation_number, charity_name, mean_annual_income, geographic_area_type, geographic_area_description)
-
+# Instead will just look at number of charities per capita. 
 
 # - Country, Region, & NA -
 # Remove country, region, and NA level data
 # i.e. keep only Local Authority level data
-charities_local_authorities <- charity_areas |>
+health_charities_local_auth <- local_eng_health_charities |>
   filter(geographic_area_type == "Local Authority") |>
   group_by(geographic_area_description) |>
   summarise(count_orgs = n())
@@ -220,8 +180,8 @@ utla_list_wales <-
   arrange(county_ua_name) |>
   pull(county_ua_name)
 
-# Find Local Authority names not matched in UTLA list
-charities_local_authorities |>
+# Find names not matched in UTLA list
+health_charities_local_auth |>
   mutate(geographic_area_description = str_to_lower(geographic_area_description)) |>
   select(geographic_area_description) |>
   filter(!(geographic_area_description %in% utla_list_eng)) |>
@@ -229,8 +189,8 @@ charities_local_authorities |>
   print(n = Inf)
 
 # Match UTLA names and keep only English UTLA's
-charities_local_authorities_updated <-
-  charities_local_authorities |>
+health_charities_local_auth_updated <-
+  health_charities_local_auth |>
   mutate(
     geographic_area_description = str_to_lower(geographic_area_description)
   ) |>
@@ -275,25 +235,25 @@ charities_local_authorities_updated <-
   rename(county_ua_name = geographic_area_description)
 
 # Check
-charities_local_authorities_updated |>
+health_charities_local_auth_updated |>
   filter(!county_ua_name %in% utla_list_eng) |>
   print(n = Inf)
 
 
 # Split down to LTLA from UTLA
-# Assumption: if present in UTLA present across all LTLAs
+# Assumption: if present in UTLA present across all LTLAs within UTLA
 lookup_ltla_ltla <-
   lookup_counties_ua_lad |>
   filter(str_detect(county_ua_code, "^E")) |>
   mutate(county_ua_name = str_to_lower(county_ua_name))
 
-ltla_charity_count <- charities_local_authorities_updated |>
+health_charities_ltla_count <- health_charities_local_auth_updated |>
   left_join(lookup_ltla_ltla, by = "county_ua_name") |>
   group_by(lad_code) |>
   summarise(count_orgs = sum(count_orgs))
 
 # Regional London charities -----
-london_charities <- charity_areas |>
+health_charities_london <- local_eng_health_charities |>
   filter(geographic_area_type == "Region", geographic_area_description == "Throughout London") |>
   group_by(geographic_area_description) |>
   summarise(count_orgs = n())
@@ -301,23 +261,62 @@ london_charities <- charity_areas |>
 london_ltla <- lookup_lad_region |>
   filter(region_name == "London") |>
   distinct(lad_code) |>
-  mutate(count_orgs = london_charities$count_orgs)
+  mutate(count_orgs = health_charities_london$count_orgs)
 
 # Combining London regional and all UTLA level incomes ----
-ltla_combined <- ltla_charity_count |>
+ltla_combined <- health_charities_ltla_count |>
   bind_rows(london_ltla) |>
   group_by(lad_code) |>
   summarise(count_orgs = sum(count_orgs))
 
-# Normalise by population of LTLA
+# Bring in LTLA population figures
 ltla_pop <- population_lad |>
-  select(lad_code, total_population)
+  select(lad_code, total_population) |>
+  filter(str_detect(lad_code, "^E"))
 
-ltla_vcs_presence <- ltla_combined |>
-  left_join(ltla_pop) |>
+# Check lad codes are 2021 ----
+if(
+  anti_join(
+    ltla_combined,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+if(
+  anti_join(
+    ltla_pop,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Update indicator from 2019 to 2020 and population from 2020 to 2021
+# Aggregation only of LADs between 2019 to 2021
+ltla_combined_update <- ltla_combined |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+ltla_pop_update <- ltla_pop |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+# Normalise by population of LTLA
+ltla_vcs_presence <- ltla_combined_update |>
+  left_join(ltla_pop_update, by = "LAD21CD") |>
   rename(ltla_pop = total_population) |>
   mutate(vcs_presence = count_orgs / ltla_pop) |>
-  select(lad_code, vcs_presence)
+  select(lad_code = LAD21CD, vcs_presence)
 
 # Save ----
 ltla_vcs_presence |>
