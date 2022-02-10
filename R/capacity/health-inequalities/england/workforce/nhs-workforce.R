@@ -1,4 +1,4 @@
-# Load packages
+# Load packages ---
 library(tidyverse)
 library(geographr)
 library(sf)
@@ -93,14 +93,53 @@ fte_staff_lad <- fte_staff_joined |>
 sum(fte_clean$staff_fte)
 sum(fte_staff_lad$fte_staff_per_lad)
 
-# Normalise for LAD pop ----
-lad_pop <- geographr::population_lad |>
-  select(lad_code, lad_name, total_population)
+# Pull in LTLA population data
+lad_pop <- population_lad |>
+  select(lad_code, lad_name, total_population) |>
+  filter(str_detect(lad_code, "^E"))
 
-fte_staff_lad_normalised <- fte_staff_lad |>
-  left_join(lad_pop) |>
+# Check lad codes are 2021 for both indicator and population data ----
+if(
+  anti_join(
+    fte_staff_lad,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+if(
+  anti_join(
+    lad_pop,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Update indicator from 2019 to 2020 and population from 2020 to 2021
+# Aggregation only of LADs between 2019 to 2021
+fte_staff_lad_update <- fte_staff_lad |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+lad_pop_update <- lad_pop |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+# Normalise for LAD pop ----
+fte_staff_lad_normalised <- fte_staff_lad_update |>
+  left_join(lad_pop_update, by = "LAD21CD") |>
   mutate(fte_staff_rate = fte_staff_per_lad / total_population) |>
-  select(lad_code, fte_staff_rate)
+  select(lad_code = LAD21CD, fte_staff_rate)
 
 # Save ----
 fte_staff_lad_normalised |>

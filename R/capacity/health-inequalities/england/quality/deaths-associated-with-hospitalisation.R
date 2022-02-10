@@ -113,20 +113,40 @@ msoa_pop <-
   population_msoa |>
   select(msoa_code, total_population)
 
-# Join on MSOA to LAD look up & aggreagte up to LAD
-deaths_lad <- deaths_msoa |>
+# Check lad codes are 2021 for the MSOA to LAD lookup ----
+if(
+  anti_join(
+    filter(lookup_msoa_lad, str_detect(lad_code, "^E")),
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Join on MSOA to LAD look up for 2019
+# Update LAD codes from 2019 to 2021
+# Aggreagte up to LAD
+deaths_msoa_lad_lookup <- deaths_msoa |>
   left_join(lookup_msoa_lad, by = "msoa_code") |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  select(msoa_code, shmi_averaged, msoa_code, lad_code = LAD21CD)
+
+
+deaths_lad <- deaths_msoa_lad_lookup |>
   left_join(msoa_pop, by = "msoa_code") |>
   calculate_extent(
     var = shmi_averaged,
     higher_level_geography = lad_code,
     population = total_population
-  ) |>
-  rename(deaths_associated_hospitalisation_extent = extent)
+  )
 
 deaths_lad |>
-  group_by(deaths_associated_hospitalisation_extent) |>
-  summarise(count = n() / nrow(deaths_lad))
+  group_by(extent) |>
+  summarise(count = n() / nrow(deaths_lad)) |>
+  filter(extent %in% c(0,1))
 # 63% : extent = 0
 # 5%: extent = 1
 

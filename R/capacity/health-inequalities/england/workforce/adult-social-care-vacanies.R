@@ -165,7 +165,28 @@ match_all |>
   summarise(count = n()) |>
   filter(count > 1)
 
+# Check lad codes are 2021 ----
+if(
+  anti_join(
+    match_all,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Update indicator from 2019 to 2020 and population from 2020 to 2021
+# Aggregation only of LADs between 2019 to 2021
+# Since don't have raw counts average across the 2019 LTLAs to the new 2021 LTLAs
+match_all_update <- match_all |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), mean)) |>
+  select(lad_code = LAD21CD, vacancy)
+
 # Save ----
 match_all |>
-  select(lad_code, vacancy) |>
-  write_rds("data/capacity/health-inequalities/england/workforce/adult-social-care-vacanies.rds")
+  write_rds("data/capacity/health-inequalities/england/workforce/adult-social-care-vacancies.rds")
