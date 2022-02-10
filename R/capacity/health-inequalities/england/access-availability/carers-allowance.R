@@ -14,6 +14,11 @@ pop <-
 
 # Data must be extracted from Stat-Xplore. It is stored locally on disk and
 # appended to .gitignore.
+
+# Table is Carer's Allowance: Entitled Cases rather than Carer's Allowance: Cases in Payment
+# Entitled cases show both the number of people in receipt of an 
+# allowance and those with entitlement where the payment has been suspended, for example if they are in hospital
+
 raw <-
   read_csv(
     "data/on-disk/england-carers-allowance-raw.csv",

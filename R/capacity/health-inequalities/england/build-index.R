@@ -31,6 +31,11 @@ access_availability_indicators <-
     key = "lad_code"
   )
 
+# Check for NAs
+quality_indicators |>
+  keep_na() 
+
+
 # 1. Scale (align) indicators - Higher value = Higher capacity.
 access_availability_scaled <-
   access_availability_indicators |>
@@ -39,18 +44,43 @@ access_availability_scaled <-
     waiting_over_13_weeks_rate = waiting_over_13_weeks_rate * -1
   )
 
-# How should be the missing data in the 2021 Local Authority areas be handled?
-access_availability_indicators |>
-  keep_na() |>
-  View()
+
+# ---- Build Quality Domain ----
+# Load indicators
+quality_indicators <-
+  load_indicators(
+    path = "data/capacity/health-inequalities/england/quality/",
+    key = "lad_code"
+  )
+
+# Check for NAs
+quality_indicators |>
+  keep_na() 
+
+# Come back to here - using extent. 
+access_availability_scaled <-
+  quality_indicators |>
+  mutate()
 
 
+# ---- Build Workforce Domain ----
+# Load indicators
+workforce_indicators <-
+  load_indicators(
+    path = "data/capacity/health-inequalities/england/workforce/",
+    key = "lad_code"
+  )
 
+# Check for NAs
+workforce_indicators |>
+  keep_na() 
 
-
-
-
-
+# 1. Scale (align) indicators - Higher value = Higher capacity.
+workforce_indicators_scaled <-
+  workforce_indicators |>
+  mutate(
+    vacancy = vacancy * -1
+  )
 
 
 
