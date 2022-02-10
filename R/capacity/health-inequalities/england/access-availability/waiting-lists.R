@@ -102,11 +102,30 @@ diagnostics_vars_lad <- diagnostics_vars_joined |>
 sum(diagnostics_vars_lad$waiting_over_13_weeks_per_lad)
 sum(diagnostics_vars$waiting_over_13_weeks)
 
+# Check lad codes are 2021 ----
+if(
+  anti_join(
+    diagnostics_vars_lad,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021")
+}
+
+# Updating LAD codes
+# Aggregation only of LADs between 2019 to 2021
+diagnostics_vars_lad_update <- diagnostics_vars_lad |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
 
 # Normalise  ----
 # Normalising by proportioned total in waiting list per LAD
-
-diagnostics_vars_normalised <- diagnostics_vars_lad |>
+diagnostics_vars_normalised <- diagnostics_vars_lad_update |>
   mutate(waiting_over_13_weeks_rate = waiting_over_13_weeks_per_lad / total_waiting_per_lad) |>
   select(lad_code, waiting_over_13_weeks_rate)
 

@@ -167,13 +167,52 @@ sum(avail_beds_updated_combined$avail_beds)
 
 
 # Normalise for LAD pop ----
-lad_pop <- geographr::population_lad |>
-  select(lad_code, lad_name, total_population)
+lad_pop <- population_lad |>
+  select(lad_code, lad_name, total_population) |>
+  filter(str_detect(lad_code, "^E"))
 
-avail_beds_msoa_normalised <- avail_beds_lad |>
-  left_join(lad_pop) |>
+# Check lad codes are 2021 for both indicator and population data ----
+if(
+  anti_join(
+    avail_beds_lad,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+if(
+  anti_join(
+    lad_pop,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Update indicator from 2019 to 2020 and population from 2020 to 2021
+# Aggregation only of LADs between 2019 to 2021
+avail_beds_lad_update <- avail_beds_lad |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+lad_pop_update <- lad_pop |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+# Change to 2021 codes and then normalise by population
+avail_beds_msoa_normalised <- avail_beds_lad_update |>
+  left_join(lad_pop_update) |>
   mutate(avail_beds_rate = avail_beds_per_lad / total_population) |>
-  select(lad_code, avail_beds_rate)
+  select(lad_code = LAD21CD, avail_beds_rate)
 
 # Save ----
 avail_beds_msoa_normalised |>

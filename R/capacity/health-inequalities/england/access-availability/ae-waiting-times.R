@@ -241,23 +241,7 @@ ae_double |>
   summarise(sum(ae_over_4_hours_wait, na.rm = T), sum(ae_total_wait))
 
 
-# Normalise  ----
-# Normalising by proportioned total in A&E per LAD
-ae_wait_normalised <- ae_wait_lad |>
-  mutate(
-    ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad
-  ) |>
-  select(lad_code, ae_over_4_hours_wait_rate)
-
-# Check distributions
-summary(ae_wait_normalised$ae_over_4_hours_wait_rate)
-
-ae_double |>
-  mutate(ae_over_4_hours_wait_rate = ae_over_4_hours_wait / ae_total_wait) |>
-  pull(ae_over_4_hours_wait_rate) |>
-  summary()
-
-# Check lad codes are 2021
+# Check lad codes are 2021 ----
 if(
   anti_join(
     ae_wait_normalised,
@@ -267,8 +251,31 @@ if(
   pull(lad_code) |>
   length() != 0
 ) {
-  stop("Lad codes need changing to 2021")
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
+
+# Updating LAD codes
+# Aggregation only of LADs between 2019 to 2021
+ae_wait_lad_update <- ae_wait_lad |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+# Normalise  ----
+# Normalising by proportioned total in A&E per LAD
+ae_wait_normalised <- ae_wait_lad_update |>
+  mutate(
+    ae_over_4_hours_wait_rate = ae_over_4_hours_wait_per_lad / ae_total_wait_per_lad
+  ) |>
+  select(lad_code = LAD21CD, ae_over_4_hours_wait_rate)
+
+# Check distributions
+summary(ae_wait_normalised$ae_over_4_hours_wait_rate)
+
+ae_double |>
+  mutate(ae_over_4_hours_wait_rate = ae_over_4_hours_wait / ae_total_wait) |>
+  pull(ae_over_4_hours_wait_rate) |>
+  summary()
 
 # Save ----
 ae_wait_normalised |>
