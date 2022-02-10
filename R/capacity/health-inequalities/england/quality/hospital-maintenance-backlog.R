@@ -147,15 +147,53 @@ maint_cost_lad <- trust_maint_cost_joined |>
 sum(maint_cost_lad$maint_cost_per_lad)
 sum(trust_main_cost_updated_combined$cost)
 
+# Load in population figures
+lad_pop <- population_lad |>
+  select(lad_code, lad_name, total_population) |>
+  filter(str_detect(lad_code, "^E"))
+
+# Check lad codes are 2021 for both indicator and population data ----
+if(
+  anti_join(
+    maint_cost_lad,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+if(
+  anti_join(
+    lad_pop,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Update indicator from 2019 to 2020 and population from 2020 to 2021
+# Aggregation only of LADs between 2019 to 2021
+maint_cost_lad_update <- maint_cost_lad |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD19CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
+
+lad_pop_update <- lad_pop |>
+  left_join(lookup_lad_over_time, by = c("lad_code" = "LAD20CD")) |>
+  group_by(LAD21CD) |>
+  summarise(across(where(is.numeric), sum))
 
 # Normalise for LAD pop ----
-lad_pop <- geographr::population_lad |>
-  select(lad_code, lad_name, total_population)
-
-maint_cost_msoa_normalised <- maint_cost_lad |>
-  left_join(lad_pop) |>
+maint_cost_msoa_normalised <- maint_cost_lad_update |>
+  left_join(lad_pop_update, by = "LAD21CD") |>
   mutate(maint_cost_rate = maint_cost_per_lad / total_population) |>
-  select(lad_code, maint_cost_rate)
+  select(lad_code = LAD21CD, maint_cost_rate)
 
 # Save ----
 maint_cost_msoa_normalised |>
