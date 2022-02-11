@@ -160,8 +160,11 @@ gla_raw <- read_csv("https://data.london.gov.uk/download/london-borough-profiles
                     col_names = FALSE)
 
 gla_lad_codes <- gla_raw |>
-  select(lad_code = X1, area = X2, inner_outer = X3) |>
+  select(lad_code = X1, area = X2, inner_outer = X3, pop = X5) |>
   slice(-1)
+
+gla_lad_codes |>
+  anti_join(lad_pop_update, by = c("lad_code" = "LAD21CD"))
 
 gla_cps_value <- remaining_utla |>
   filter(lad_name == "Greater London Authority") |>
