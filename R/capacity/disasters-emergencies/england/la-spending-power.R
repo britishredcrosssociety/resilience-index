@@ -91,7 +91,7 @@ ltla_fire_cps <- fire_cps |>
   group_by(fra_code) |>
   mutate(pop_weighted_cps = pop / sum(pop) * cps_millions) |>
   ungroup() |>
-  select(lad_code = ltla_code, cps_millions = pop_weighted_cps)
+  select(LAD21CD = ltla_code, cps_millions = pop_weighted_cps)
 
 remaining_fire <- remaining_ltla |>
   filter(geo_type != "Fire authority")
@@ -159,9 +159,11 @@ combined_auth_ltla_cps |>
 gla_raw <- read_csv("https://data.london.gov.uk/download/london-borough-profiles/c1693b82-68b1-44ee-beb2-3decf17dc1f8/london-borough-profiles.csv",
                     col_names = FALSE)
 
+# Cleaning and removing any cumulative areas that are just combinations of the LTLAs
 gla_lad_codes <- gla_raw |>
-  select(lad_code = X1, area = X2, inner_outer = X3, pop = X5) |>
-  slice(-1)
+  select(lad_code = X1, area = X2, inner_outer = X3) |>
+  slice(-1) |>
+  filter(!is.na(inner_outer))
 
 gla_lad_codes |>
   anti_join(lad_pop_update, by = c("lad_code" = "LAD21CD"))
@@ -173,7 +175,26 @@ gla_cps_value <- remaining_utla |>
 gla_ltla_cps <- gla_lad_codes |>
   mutate(cps_millions = gla_cps_value) |>
   left_join(lad_pop_update, by = c("lad_code" = "LAD21CD")) |>
-  filter(is.na(pop))
+  mutate(pop_weighted_cps =  pop / sum(pop) * cps_millions) |>
+  select(LAD21CD = lad_code, cps_millions = pop_weighted_cps)
+
+# Check if these LTLAs from splitting GLA are already in the data as LTLAs
+gla_ltla_cps |>
+  inner_join(ltla_cps, by = "LAD21CD")
+# Yes they are already in the LTLA level data so this spending power is in addition 
+# to the LTLA level spending power 
+
+# Combining all the data sets ---
+combined <- ltla_cps |>
+  bind_rows(ltla_fire_cps) |> 
+  bind_rows(ltla_utla_cps_updated) |>
+  bind_rows(combined_auth_ltla_cps) |>
+  bind_rows(gla_ltla_cps) |>
+  group_by(lad_code = LAD21CD) |>
+  summarise(cps_millions = sum(cps_millions))
   
-  mutate(pop_weighted_cps =  pop / sum(pop) * cps_millions)
+# Save data ----
+combined |>
+  write_rds("data/capacity/disasters-emergencies/england/la-spending-power.rds")
+
 
