@@ -256,7 +256,8 @@ avg_survey_lad <- avg_survey_scores_msoa_lad_lookup |>
   calculate_extent(
     var = weighted_score,
     higher_level_geography = lad_code,
-    population = total_population
+    population = total_population,
+    invert_percentiles = FALSE # lower score is worse outcome
   ) |>
   rename(cqc_survery_score = extent)
 
@@ -264,8 +265,8 @@ avg_survey_lad |>
   group_by(cqc_survery_score) |>
   summarise(count = n() / nrow(avg_survey_lad)) |>
   filter(cqc_survery_score %in% c(0, 1))
-# 58% : extent = 0
-# 5%: extent = 1
+# 62% : extent = 0
+# 6%: extent = 1
 
 # Save ----
 avg_survey_lad |>
