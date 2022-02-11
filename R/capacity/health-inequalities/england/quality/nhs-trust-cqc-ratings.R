@@ -162,14 +162,14 @@ cqc_nhs_trusts_overall |>
 msoa_pop <- population_msoa |>
   select(msoa_code, total_population)
 
-if(
+if (
   anti_join(
     filter(lookup_msoa_lad, str_detect(lad_code, "^E")),
     lookup_lad_over_time,
     by = c("lad_code" = "LAD21CD")
   ) |>
-  pull(lad_code) |>
-  length() != 0
+    pull(lad_code) |>
+    length() != 0
 ) {
   stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
@@ -188,12 +188,13 @@ rating_lad <- rating_lad_lookup |>
     higher_level_geography = lad_code,
     population = total_population,
     invert_percentiles = FALSE # lower score is worse outcome
-  )
+  ) |>
+  rename(cqc_ratings = extent)
 
 rating_lad |>
-  group_by(extent) |>
+  group_by(cqc_ratings) |>
   summarise(count = n() / nrow(rating_lad)) |>
-  filter(extent %in% c(0, 1))
+  filter(cqc_ratings %in% c(0, 1))
 # 57% : extent = 0
 # 3%: extent = 1
 
