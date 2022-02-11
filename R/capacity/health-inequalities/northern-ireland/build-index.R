@@ -9,11 +9,10 @@
 #   - https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/833951/IoD2019_Technical_Report.pdf
 
 # Steps:
-#   1. Scale (align) indicators so that higher value = worse health to align
-#      with the other resilience indices (higher = worse).
+#   1. Scale (align) indicators so that higher value = higher capacity.
 #   2. Missing step: Apply functional transformations (e.g. log, square) to
 #      address skewness in the distributions.
-#   3. Normalise to mean of 0 and SD +-1 and then apply MFLA.
+#   3. Normalise to mean of 0 and SD +-1.
 #   4. Optional step: Weight the indicators within domains: apply MFLA.
 #   5. Calculate domain scores: add together normalised indicator scores
 #      (weighted or unweighted) and rank and qunatise.

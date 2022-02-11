@@ -52,7 +52,7 @@ Long form documentation can be found at [here](https://docs.google.com/document/
 ## Dev
 The Resilience Index *closely* resembles an R package in structure. If you are new to R packages, the [R Packages](https://r-pkgs.org/) book is a good resource, and will help you understand how to navigate this repository. An R package structure was chosen as it is a well tested convention for organising code and related artefacts that comes with a bunch of free tools (e.g., dependency management via the `DESCRIPTION` file).
 
-Unlike a typical R package, all the `.R` source files live within subdirectories of `R/` to make it easier to navigate through the files. Each dimension of the resilience index (capacity and resilience) is split by BRC strategic cause (disasters & emergencies, migration & displacement, and health inequalities) and devolved nation (eg. , `capacity/disasters-emergencies/england/`). For each of these subfolders, each of the indicators which make up the relevant component (specified in the path of the subfolder) should occupy a single file. These single files serve as the reproducible building-block for that component. The `data/` folder mirrors this structure. This makes both documenting and updating the indicators easier.
+Unlike a typical R package, all the `.R` source files live within subdirectories of `R/` to make it easier to navigate through the files. Each dimension of the resilience index (capacity and resilience) is split by BRC strategic cause (disasters & emergencies, migration & displacement, and health inequalities) and devolved nation (eg. , `capacity/disasters-emergencies/england/`). For each of these subfolders, each of the indicators which make up the relevant component (specified in the path of the subfolder) should occupy a single file. Each single file should typically export a data set that contains two columns, one with a unique identifier (e.g., local authortiy code) and one with the metric of interest (e.g., unemployment rate). These single files serve as the reproducible building-block for that component. The `data/` folder mirrors this structure. This makes both documenting and updating the indicators easier.
 
 Old code that was written before this repository got refactored to an R package structure, can now be found in the `depreciated/` folder. This code will slowly get ported to the new format, and will no longer be supported in the long term.
 
@@ -60,19 +60,19 @@ Old code that was written before this repository got refactored to an R package 
 
 - The Resilience Index is currently under active development, and only exists in a limited capacity at this time. Check the metadata files in `/R` to see the progress of each cause in each nation.
 
-- Last update: 26.11.21
+- Last update: 07.02.2022
 - Notes: complete segments are only provisional and are subject to change (e.g., indicator amendments and weighting)
 
-| Nation | Strategic Cause | Vulnerability | Capacity |
-| --- | --- | --- | --- |
-| England | Health Inequalities | :heavy_check_mark: | :keyboard: - Under development |
-| England | Disasters & Emergencies | :keyboard: - Under development | :keyboard: - Under development |
-| Scotland | Health Inequalities | :heavy_check_mark: | :x: |
-| Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: |
-| Wales | Health Inequalities | :keyboard: - Under development | :x: |
-| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: |
-| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: |
-| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :keyboard: - Under development |
+| Nation | Strategic Cause | Vulnerability | Capacity | Shocks |
+| --- | --- | --- | --- | --- |
+| England | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | :no_entry_sign: |
+| England | Disasters & Emergencies | :construction: - Under development | :construction: - Under development | :heavy_check_mark: - Heat Hazards |
+| Scotland | Health Inequalities | :heavy_check_mark: | :x: | :no_entry_sign: |
+| Scotland | Disasters & Emergencies | :heavy_check_mark: | :x: | :heavy_check_mark: - Heat Hazards |
+| Wales | Health Inequalities | :construction: - Under development | :x: | :no_entry_sign: |
+| Wales | Disasters & Emergencies | :heavy_check_mark: | :x: | :x: |
+| Northern Ireland | Health Inequalities | :heavy_check_mark: | :heavy_check_mark: | :no_entry_sign: |
+| Northern Ireland | Disasters & Emergencies | :heavy_check_mark: | :construction: - Under development | :heavy_check_mark: - Fires & Floods |
 
 ## Contributing
 
