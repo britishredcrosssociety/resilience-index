@@ -1,5 +1,5 @@
 # ---- Method ----
-# The build method is adapated from the methods used to develop the Health Index
+# The build method is adapted from the methods used to develop the Health Index
 # for England. As the devolved nations versions of the Health Index are not
 # measured across time, several aspects of the construction differ, and mirror
 # those found in the Indices of Multiple Deprivation.
@@ -32,7 +32,7 @@ access_availability_indicators <-
   )
 
 # Check for NAs
-quality_indicators |>
+access_availability_indicators |>
   keep_na() 
 
 
@@ -44,24 +44,18 @@ access_availability_scaled <-
     waiting_over_13_weeks_rate = waiting_over_13_weeks_rate * -1
   )
 
+# 3. Weight the indicators within the domain
+access_availability_weighted <-
+  access_availability_scaled |>
+  normalise_indicators()
 
-# ---- Build Quality Domain ----
-# Load indicators
-quality_indicators <-
-  load_indicators(
-    path = "data/capacity/health-inequalities/england/quality/",
-    key = "lad_code"
+# 5. Calculate domain scores
+access_availability_scores <-
+  access_availability_weighted |>
+  calculate_domain_scores(
+    domain_name = "access_availability",
+    num_quantiles = 5
   )
-
-# Check for NAs
-quality_indicators |>
-  keep_na() 
-
-# Come back to here - using extent. 
-access_availability_scaled <-
-  quality_indicators |>
-  mutate()
-
 
 # ---- Build Workforce Domain ----
 # Load indicators
@@ -82,64 +76,33 @@ workforce_indicators_scaled <-
     vacancy = vacancy * -1
   )
 
+# 3. Weight the indicators within the domain
+workforce_weighted <-
+  workforce_scaled |>
+  normalise_indicators()
 
-
-
-
-
-
-# # ---- TO BE EDITED: ----
-# # 3. Weight the indicators within the domain
-# access_availability_weighted <-
-#   access_availability_scaled |>
-#   normalise_indicators()
-
-# # 5. Calculate domain scores
-# access_availability_scores <-
-#   access_availability_weighted |>
-#   calculate_domain_scores(
-#     domain_name = "access_availability",
-#     num_quantiles = 5
-#   )
-
-# # ---- Build Workforce Domain ----
-# # Load indicators
-# workforce_indicators <-
-#   load_indicators(
-#     path = "data/capacity/health-inequalities/northern-ireland/workforce",
-#     key = "trust_code"
-#   )
-
-# # 1. Scale (align) indicators - Higher value = Higher capacity.
-# workforce_scaled <-
-#   workforce_indicators |>
-#   mutate(
-#     cancelled_operations_per_1000 = cancelled_operations_per_1000 * -1
-#   )
-
-# # 3. Weight the indicators within the domain
-# workforce_weighted <-
-#   workforce_scaled |>
-#   normalise_indicators()
-
-# # 5. Calculate domain scores
-# workforce_scores <-
-#   workforce_weighted |>
-#   calculate_domain_scores(
-#     domain_name = "workforce",
-#     num_quantiles = 5
-#   )
+# 5. Calculate domain scores
+workforce_scores <-
+  workforce_weighted |>
+  calculate_domain_scores(
+    domain_name = "workforce",
+    num_quantiles = 5
+  )
 
 # # ---- Build Quality Domain ----
-# # Load indicators
-# quality_indicators <-
-#   load_indicators(
-#     path = "data/capacity/health-inequalities/northern-ireland/quality",
-#     key = "trust_code"
-#   )
+# Load indicators
+quality_indicators <-
+  load_indicators(
+    path = "data/capacity/health-inequalities/england/quality/",
+    key = "lad_code"
+  )
 
-# # 1. Scale (align) indicators - Higher value = Higher capacity.
-# # Nothin to algin
+# Check for NAs
+quality_indicators |>
+  keep_na() 
+
+# Come back to here - think about fact extent() was used and 
+# specified in calculate_extent() if high value was worse outcome
 
 # # 3. Weight the indicators within the domain
 # quality_weighted <-
