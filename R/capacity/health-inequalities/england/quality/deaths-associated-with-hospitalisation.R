@@ -113,15 +113,15 @@ msoa_pop <-
   population_msoa |>
   select(msoa_code, total_population)
 
-# Check LAD codes are 2021 for the MSOA to LAD lookup 
-if(
+# Check LAD codes are 2021 for the MSOA to LAD lookup
+if (
   anti_join(
     filter(lookup_msoa_lad, str_detect(lad_code, "^E")),
     lookup_lad_over_time,
     by = c("lad_code" = "LAD21CD")
   ) |>
-  pull(lad_code) |>
-  length() != 0
+    pull(lad_code) |>
+    length() != 0
 ) {
   stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
@@ -141,12 +141,13 @@ deaths_lad <- deaths_msoa_lad_lookup |>
     var = shmi_averaged,
     higher_level_geography = lad_code,
     population = total_population
-  )
+  ) |>
+  rename(deaths_hospitalisation = extent)
 
 deaths_lad |>
-  group_by(extent) |>
+  group_by(deaths_hospitalisation) |>
   summarise(count = n() / nrow(deaths_lad)) |>
-  filter(extent %in% c(0,1))
+  filter(deaths_hospitalisation %in% c(0, 1))
 # 63% : extent = 0
 # 5%: extent = 1
 
