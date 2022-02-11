@@ -1,30 +1,22 @@
-library(tidyverse)
+# Load packages
 library(geographr)
 library(sf)
+library(tidyverse)
+library(readxl)
 
+source("R/utils.R")
+
+# Spending power data ----
+# Source: 
 tf <- download_file("https://data.parliament.uk/resources/constituencystatistics/Local-government-finance-2021.xlsx", ".xlsx")
 
-other_raw <- read_excel(tf, sheet = "Spending power", skip = 3)
+raw <- read_excel(tf, sheet = "Spending power", skip = 3)
 
-other_raw <- other_raw |>
+raw <- raw |>
   select(lad_code = `ONS code`, lad_name = `Local authority`, geo_type = `Local authority class`, cps_millions = `2021-22`)
 
-other_raw |>
+raw |>
   distinct(geo_type)
-
-cps |>
-  anti_join(other_raw, by = 'lad_code')
-
-other_raw |>
-  anti_join(cps, by = 'lad_code') |> 
-  print(n = Inf)
-
-other_raw |>
-  left_join(cps, by = 'lad_code') |> 
-  mutate(diff = cps_millions.x - cps_millions.y) |>
-  mutate(diff = round(diff, 2)) |>
-  filter(diff != 0)
-
 # There are a mix og geographic types in the data so will take each in turn
 
 # LTLA -----
@@ -61,15 +53,15 @@ lad_pop_update <- lad_pop |>
   summarise(across(where(is.numeric), sum))
 
 ltla_cps <- lad_pop_update |>
-  left_join(other_raw, by = c("LAD21CD" = "lad_code")) |>
+  left_join(raw, by = c("LAD21CD" = "lad_code")) |>
   select(LAD21CD, cps_millions)
 
 # Check any LTLAs not in the data
 lad_pop_update |>
-  anti_join(other_raw, by = c("LAD21CD" = "lad_code"))
+  anti_join(raw, by = c("LAD21CD" = "lad_code"))
 # None missing 
 
-remaining_ltla <- other_raw |>
+remaining_ltla <- raw |>
   anti_join(lad_pop_update, by = c("lad_code" = "LAD21CD"))
 
 # Fire & Rescue Authorities ----
@@ -111,7 +103,7 @@ utla_pop <- population_counties_ua |>
 
 utla_cps <- remaining_fire |>
   inner_join(utla_pop, by = c("lad_code" = "county_ua_code")) |>
-  rename(county_ua_code = lad_code, county_ua_name = lad_name)
+  select(county_ua_code = lad_code, county_ua_name = lad_name, cps_millions) 
 # 16 UTLAs have spending power 
 # Investigate why these and not all UTLAs
 
@@ -160,4 +152,25 @@ combined_auth_ltla_cps |>
   inner_join(ltla_cps, by = "LAD21CD")
 # Yes they are already in the LTLA level data so this spending power is in addition 
 # to the LTLA level spending power 
+
+# Greater London Authority ----
+# Source: https://data.london.gov.uk/dataset/london-borough-profiles
+# Issues with column names having special characters
+gla_raw <- read_csv("https://data.london.gov.uk/download/london-borough-profiles/c1693b82-68b1-44ee-beb2-3decf17dc1f8/london-borough-profiles.csv",
+                    col_names = FALSE)
+
+gla_lad_codes <- gla_raw |>
+  select(lad_code = X1, area = X2, inner_outer = X3) |>
+  slice(-1)
+
+gla_cps_value <- remaining_utla |>
+  filter(lad_name == "Greater London Authority") |>
+  pull(cps_millions)
+
+gla_ltla_cps <- gla_lad_codes |>
+  mutate(cps_millions = gla_cps_value) |>
+  left_join(lad_pop_update, by = c("lad_code" = "LAD21CD")) |>
+  filter(is.na(pop))
+  
+  mutate(pop_weighted_cps =  pop / sum(pop) * cps_millions)
 
