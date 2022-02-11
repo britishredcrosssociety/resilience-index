@@ -38,22 +38,22 @@ source("R/utils.R") # for download_file(), survey_data_download() & updating_tru
 
 survey_data_download <- function(url, question_num, sheet_name, question_coding, category) {
   tf <- download_file(url, "ods")
-  
+
   raw <-
     read_ods(
       tf,
       sheet = sheet_name,
     )
-  
+
   q_col_name <- paste0(question_coding, question_num)
   new_num_respon_name <- paste0("num_respon_", category)
-  
+
   subset_data <- raw |>
     rename_with(tolower) |>
     select(trust_code = trustcode, trustname, n_tpat, contains(q_col_name)) |>
     rename(!!new_num_respon_name := n_tpat) |>
     rename_with(str_replace_all, pattern = q_col_name, replacement = category)
-  
+
   return(subset_data)
 }
 
@@ -66,10 +66,9 @@ survey_data_download <- function(url, question_num, sheet_name, question_coding,
 #' @param trust_changes_data dataset with trust changes saved R/capacity/health-inequalities/england/trust_calculations/trust_changes.feather
 
 updating_trusts_for_survey_data <- function(data, response_column, mean_column, open_trusts_data, trust_changes_data) {
-  
   data_selected <- data |>
     select(trust_code, num_respon = {{ response_column }}, mean = {{ mean_column }})
-  
+
   old_new_lookup <- data_selected |>
     anti_join(open_trusts_data) |>
     rename(old_code = trust_code) |>
@@ -80,12 +79,10 @@ updating_trusts_for_survey_data <- function(data, response_column, mean_column, 
     group_by(old_code) |>
     mutate(old_code_count = n()) |>
     ungroup()
-  
-  
+
+
   if (max(old_new_lookup$old_code_count) > 1) {
-    
     stop("Trust has been split to two different new Trusts")
-    
   } else {
     new_trusts <- old_new_lookup |>
       group_by(new_code) |>
@@ -93,11 +90,11 @@ updating_trusts_for_survey_data <- function(data, response_column, mean_column, 
       group_by(new_code) |>
       summarise(mean = sum(weighted_mean), num_respon = sum(num_respon)) |>
       select(trust_code = new_code, num_respon, mean)
-    
+
     data_updated <- data_selected |>
       semi_join(open_trusts) |>
       bind_rows(new_trusts)
-    
+
     # Average any duplicates Trust data caused by Trust changes
     data_updated_combined <- data_updated |>
       group_by(trust_code) |>
@@ -105,8 +102,8 @@ updating_trusts_for_survey_data <- function(data, response_column, mean_column, 
       group_by(trust_code) |>
       summarise(mean = sum(weighted_mean), num_respon = sum(num_respon)) |>
       select(trust_code, num_respon, mean) |>
-      rename(!!response_column := num_respon, !!mean_column := mean) 
-    
+      rename(!!response_column := num_respon, !!mean_column := mean)
+
     return(data_updated_combined)
   }
 }
@@ -175,7 +172,7 @@ avg_survey_scores <- combined_survey_data |>
   rowwise() %>%
   mutate(
     total_responders = sum(
-      c_across(starts_with("num_respon")) ,
+      c_across(starts_with("num_respon")),
       na.rm = T
     )
   ) |>
@@ -234,14 +231,14 @@ msoa_pop <- population_msoa |>
   select(msoa_code, total_population)
 
 # Check LAD codes are 2021 for the MSOA to LAD lookup ----
-if(
+if (
   anti_join(
     filter(lookup_msoa_lad, str_detect(lad_code, "^E")),
     lookup_lad_over_time,
     by = c("lad_code" = "LAD21CD")
   ) |>
-  pull(lad_code) |>
-  length() != 0
+    pull(lad_code) |>
+    length() != 0
 ) {
   stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
@@ -260,12 +257,13 @@ avg_survey_lad <- avg_survey_scores_msoa_lad_lookup |>
     var = weighted_score,
     higher_level_geography = lad_code,
     population = total_population
-  )
+  ) |>
+  rename(cqc_survery_score = extent)
 
 avg_survey_lad |>
-  group_by(extent) |>
+  group_by(cqc_survery_score) |>
   summarise(count = n() / nrow(avg_survey_lad)) |>
-  filter(extent %in% c(0, 1))
+  filter(cqc_survery_score %in% c(0, 1))
 # 58% : extent = 0
 # 5%: extent = 1
 
