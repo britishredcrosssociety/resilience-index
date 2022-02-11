@@ -87,7 +87,7 @@ lad_registrations_update <- lad_registrations |>
   group_by(LAD21CD) |>
   summarise(across(where(is.numeric), sum))
 
-# Distinct table foe 2020 - 2021 due to E06000060
+# Distinct table for 2020 - 2021 due to E06000060
 lookup_lad_over_time_2020 <- lookup_lad_over_time |>
   distinct(LAD20CD, LAD21CD)
 
