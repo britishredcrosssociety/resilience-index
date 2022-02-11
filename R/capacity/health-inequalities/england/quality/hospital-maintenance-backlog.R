@@ -153,26 +153,26 @@ lad_pop <- population_lad |>
   filter(str_detect(lad_code, "^E"))
 
 # Check lad codes are 2021 for both indicator and population data ----
-if(
+if (
   anti_join(
     maint_cost_lad,
     lookup_lad_over_time,
     by = c("lad_code" = "LAD21CD")
   ) |>
-  pull(lad_code) |>
-  length() != 0
+    pull(lad_code) |>
+    length() != 0
 ) {
   stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
 
-if(
+if (
   anti_join(
     lad_pop,
     lookup_lad_over_time,
     by = c("lad_code" = "LAD21CD")
   ) |>
-  pull(lad_code) |>
-  length() != 0
+    pull(lad_code) |>
+    length() != 0
 ) {
   stop("Lad codes need changing to 2021 - check if 2019 or 2020")
 }
@@ -201,4 +201,4 @@ maint_cost_msoa_normalised <- maint_cost_lad_update |>
 
 # Save ----
 maint_cost_msoa_normalised |>
-  write_rds("data/capacity/health-inequalities/england/quality/hospital-maintanance-backlog-cost.rds")
+  read_rds("data/capacity/health-inequalities/england/quality/hospital-maintanance-backlog-cost.rds")
