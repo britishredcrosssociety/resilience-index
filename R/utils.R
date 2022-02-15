@@ -207,11 +207,11 @@ calculate_extent <-
 #' @param path Relative path to the folder containing the .rds files to be read
 #' @param key The key to join the variables
 load_indicators <-
-  function(path, key) {
+  function(path, key, pattern = ".rds") {
     file_list <-
       dir(
         path,
-        pattern = ".rds",
+        pattern = pattern,
         full.names = TRUE
       )
     file_list %>%
