@@ -49,3 +49,12 @@ depreciated/data/raw/population/
 depreciated/data/raw/postcodes/
 data/vulnerability/disasters-emergencies/england/heat-hazard-raw/
 data/on-disk/
+
+# Shapefiles
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.shx
+*.xml
+
