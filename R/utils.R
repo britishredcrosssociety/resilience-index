@@ -83,7 +83,7 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 #' Normalise a vector where mean = 0 & SD = 1.
 #'
 #' @param x Vector of data to normalise
-normalise <- function(x) (x - mean(x)) / sd(x)
+normalise <- function(x) (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
 
 #' Quantise a vector of ranks
 #'
@@ -284,7 +284,7 @@ calculate_domain_scores <-
     data <-
       data %>%
       rowwise(!where(is.numeric)) %>%
-      summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
+      summarise(domain_score = sum(c_across(where(is.numeric)), na.rm = TRUE)) %>%
       ungroup() %>%
       mutate(domain_rank = rank(domain_score)) %>%
       mutate(domain_quantiles = quantise(domain_rank, num_quantiles)) %>%
