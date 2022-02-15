@@ -253,7 +253,7 @@ avg_survey_scores_msoa_lad_lookup <- avg_survey_scores_msoa |>
 
 avg_survey_lad <- avg_survey_scores_msoa_lad_lookup |>
   left_join(msoa_pop, by = "msoa_code") |>
-  calculate_extent(
+  calculate_extent_depreciated(
     var = weighted_score,
     higher_level_geography = lad_code,
     population = total_population,

@@ -144,6 +144,9 @@ quantise <-
     return(quantiles)
   }
 
+#' DEPRECIATED. This function should no longer be used, and is only kept here
+#' for legacy reasons until code is updated with the new and revised version
+#' 
 #' Calculate the 'extent' scores when aggreating up small areas
 #'
 #' "Extent" is the proportion of the local population that live in areas
@@ -170,7 +173,7 @@ quantise <-
 #'        the population estimates of the lower level geography
 #' @param invert_percentiles Should percentiles be inverted? Should be set to
 #'        TRUE when a higher variable score equates to a worse outcome
-calculate_extent <-
+calculate_extent_depreciated <-
   function(data,
            var,
            higher_level_geography,
