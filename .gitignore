@@ -54,6 +54,8 @@ data/on-disk/
 *.cpg
 *.dbf
 *.prj
+*.sbn
+*.sbx
 *.shp
 *.shx
 *.xml
