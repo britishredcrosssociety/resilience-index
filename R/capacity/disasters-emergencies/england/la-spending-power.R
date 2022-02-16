@@ -7,18 +7,18 @@ library(readxl)
 source("R/utils.R")
 
 # Spending power data ----
-# Source:
+# Source: https://commonslibrary.parliament.uk/local-authority-data-finances/
 tf <- download_file("https://data.parliament.uk/resources/constituencystatistics/Local-government-finance-2021.xlsx", ".xlsx")
 
 raw <- read_excel(tf, sheet = "Spending power", skip = 3)
 
-raw <- raw |>
+clean <- raw |>
   select(lad_code = `ONS code`, 
          lad_name = `Local authority`, 
          geo_type = `Local authority class`, 
-         cps_millions = `2021-22`)
+         cps_millions = `2021/22`)
 
-raw |>
+clean |>
   distinct(geo_type)
 # There are a mix og geographic types in the data so will take each in turn
 
@@ -57,15 +57,15 @@ lad_pop_update <- lad_pop |>
   summarise(across(where(is.numeric), sum))
 
 ltla_cps <- lad_pop_update |>
-  left_join(raw, by = c("LAD21CD" = "lad_code")) |>
+  left_join(clean, by = c("LAD21CD" = "lad_code")) |>
   select(LAD21CD, cps_millions)
 
 # Check any LTLAs not in the data
 lad_pop_update |>
-  anti_join(raw, by = c("LAD21CD" = "lad_code"))
+  anti_join(clean, by = c("LAD21CD" = "lad_code"))
 # None missing
 
-remaining_ltla <- raw |>
+remaining_ltla <- clean |>
   anti_join(lad_pop_update, by = c("lad_code" = "LAD21CD"))
 
 # Fire & Rescue Authorities ----
@@ -170,12 +170,12 @@ combined_auth_ltla_cps |>
 # Greater London Authority ----
 # Source: https://data.london.gov.uk/dataset/london-borough-profiles
 # Issues with column names having special characters
-gla_raw <- read_csv("https://data.london.gov.uk/download/london-borough-profiles/c1693b82-68b1-44ee-beb2-3decf17dc1f8/london-borough-profiles.csv",
+gla_clean <- read_csv("https://data.london.gov.uk/download/london-borough-profiles/c1693b82-68b1-44ee-beb2-3decf17dc1f8/london-borough-profiles.csv",
   col_names = FALSE
 )
 
 # Cleaning and removing any cumulative areas that are just combinations of the LTLAs
-gla_lad_codes <- gla_raw |>
+gla_lad_codes <- gla_clean |>
   select(lad_code = X1, 
          area = X2, 
          inner_outer = X3) |>
