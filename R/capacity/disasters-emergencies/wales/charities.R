@@ -100,7 +100,7 @@ charity_areas_log <-
 
 # Though one orgnisation works in multiple lad, their latest income are the same
 # !!! Question here is how to distinguish charity income in different LA?
-charity_areas_log %>% 
+charity_areas_log %>%
   filter(latest_income > 0)
 
 
@@ -122,8 +122,15 @@ charity_income_lad <-
     by = "lad_name"
   ) %>%
   group_by(lad_code) %>%
-  summarise(across(latest_income, sum)) # aggregate by LA
+  summarise(across(latest_income, sum)) %>% # aggregate by LA
 
+  # For all ranks: 1 is most deprived
+  # mutate(rank = rank(latest_income)) %>%
+  mutate(
+    rank = rank(latest_income),
+    deciles = quantise(rank, num_quantiles = 10)
+  ) %>%
+  select(-latest_income, -rank)
 
 # Right now, only aggregate total income by LA,
 # Need to consider how to rank
