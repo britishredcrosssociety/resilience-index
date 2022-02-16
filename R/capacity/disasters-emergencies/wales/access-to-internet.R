@@ -1,7 +1,11 @@
 library(tidyverse)
 library(readxl)
+library(stringr)
 
 internet_raw <- read_csv("data/on-disk/CACI-access-to-internet/CACI-access-to-internet/vul_zscores.csv/vul_zscores.csv")
+
+internet_raw %>% 
+    glimpse()
 
 # Please be aware that the scores are in a range of 0-1
 # A higher score indicates higher vulnerability in this case,
@@ -17,8 +21,36 @@ internet_clean <-
         mobile_phone = "vul_dig_mobnon",    # Lower decile values indicate less likely to have a mobile phone, normal checked # nolint
         internet_users = "vul_dig_netusr",  # Lower decile values indicate less likely to be an internet user, skew to right # nolint
         confuse = "vul_dig_confuse" # Lower decile values indicate more likely to be confused by computers, normal checked # nolint
+    ) %>% 
+    mutate(speed = replace_na(speed, 0)) %>%  # 0.27% of speed is NA
+    mutate(across(where(is.numeric), normalise)) %>%   # normalise each column
+    # internet_users and speed are skew to right, others are normal
+    # use plot_histogram(internet_clean) to see the plot
+
+    mutate(
+        sum = rowSums(across(where(is.numeric)),  na.rm = TRUE),  # Calculate a sum column
+        postcode = str_replace_all(postcode, " ", "")
+    ) %>% 
+    left_join(
+        lookup_postcode_lad, by = "postcode"
+    ) %>% 
+    select(lad_code, sum) %>%
+    group_by(lad_code) %>% 
+    summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)))  # for each LA, add up in the same column
+
+# For all ranks: 1 is most deprived
+access_to_internet_lad <-
+  internet_clean %>%
+  mutate(rank = rank(sum)) %>%
+  mutate(
+    deciles = quantise(
+      rank,
+      num_quantiles = 10
     )
+  ) %>%
+  select(-sum, -rank)
 
-
-distinct(internet_clean, speed)
-ggplot(internet_clean, aes(speed)) + geom_histogram()
+write_rds(
+    access_to_internet_lad,
+    "data/capacity/disasters-emergencies/wales/access_to_internet_lad.rds"
+)
