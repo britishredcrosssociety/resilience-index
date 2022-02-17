@@ -52,16 +52,7 @@ df_sum <-
     ) %>%
     select(lad_code, sum)
 
-# For all ranks: 1 is most deprived
-spending_power_lad <-
-  df_sum %>%
-  mutate(
-      rank = rank(sum),
-    deciles = quantise(rank, num_quantiles = 10)
-  ) %>%
-  select(-sum, -rank)
-
 write_rds(
-    spending_power_lad,
+    df_sum,
     "data/capacity/disasters-emergencies/wales/la-spending-power-lad.rds"
 )

@@ -1,6 +1,8 @@
 library(tidyverse)
 library(readxl)
 library(stringr)
+library(geographr)
+source("R/utils.R")
 
 internet_raw <- read_csv("data/on-disk/CACI-access-to-internet/CACI-access-to-internet/vul_zscores.csv/vul_zscores.csv")
 
@@ -21,7 +23,7 @@ internet_clean <-
     ) %>%
     mutate(
       speed = case_when(
-        is.na(speed) ~ mean(speed, na.rm = TRUE),
+        is.na(speed) ~ mean(speed, na.rm = TRUE),  # fill na with mean
         TRUE ~ as.numeric(speed)
       )
     ) %>%  # 0.27% of speed is NA
@@ -37,26 +39,21 @@ internet_clean <-
         sum = rowSums(across(where(is.numeric)),  na.rm = TRUE),
         postcode = str_replace_all(postcode, " ", "")
     ) %>%
-    left_join(
-        lookup_postcode_lad, by = "postcode"
-    ) %>%
-    select(lad_code, sum) %>%
-    group_by(lad_code) %>%
-    summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)))  # for each LA, add up in the same column
+    left_join(lookup_postcode_oa_lsoa_msoa_lad, by = "postcode") %>%
+    group_by(lsoa_code) %>%
+    summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) %>%   # for each LA, add up in the same column
+    left_join(lookup_lsoa_msoa, by = "lsoa_code") %>%
+    left_join(lookup_msoa_lad, by = "msoa_code") %>%
+    left_join(population_lsoa, by = "lsoa_code") %>% 
 
-# For all ranks: 1 is most deprived
-access_to_internet_lad <-
-  internet_clean %>%
-  mutate(rank = rank(sum)) %>%
-  mutate(
-    deciles = quantise(
-      rank,
-      num_quantiles = 10
+    calculate_extent(
+      var = sum,
+      higher_level_geography = lad_code,
+      population = total_population,
+      weight_high_scores = FALSE  # lower score means more deprived
     )
-  ) %>%
-  select(-sum, -rank)
-
+    
 write_rds(
-    access_to_internet_lad,
+    internet_clean,
     "data/capacity/disasters-emergencies/wales/access_to_internet_lad.rds"
 )

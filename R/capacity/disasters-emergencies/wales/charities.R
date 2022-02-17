@@ -141,9 +141,6 @@ charity_lad <-
   ) %>%
   count(lad_code)
 
-# Right now, only aggregate total income by LA,
-# Need to consider how to rank
-# By average? By population?
 write_rds(
   charity_lad,
   "data/capacity/disasters-emergencies/wales/charity-lad.rds"
