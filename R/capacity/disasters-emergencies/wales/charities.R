@@ -1,5 +1,4 @@
 #  Load packages
-library(httr)
 library(tidyverse)
 library(geographr)
 library(DataExplorer)
@@ -9,11 +8,8 @@ source("R/utils.R")
 # Source: https://register-of-charities.charitycommission.gov.uk/register/full-register-download
 
 # Chairty list
-GET(
-  "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity.zip",
-  write_disk(tf <- tempfile(fileext = ".zip"))
-)
-unzip(tf, exdir = tempdir())
+file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity.zip", file_extension = ".zip")
+unzip(file_path, exdir = tempdir())
 
 charity_list_raw <-
   read_tsv(
@@ -25,11 +21,8 @@ charity_list_raw <-
   )
 
 # Charity areas of operation
-GET(
-  "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip",
-  write_disk(tf <- tempfile(fileext = ".zip"))
-)
-unzip(tf, exdir = tempdir())
+file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip", file_extension = ".zip")
+unzip(file_path, exdir = tempdir())
 
 charity_areas_raw <-
   read_tsv(
@@ -40,8 +33,24 @@ charity_areas_raw <-
     )
   )
 
+# Charity classification
+file_path <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_classification.zip", ".zip")
+unzip(file_path, exdir = tempdir())
+
+charity_classification_raw <-
+  read_tsv(
+    list.files(
+      tempdir(),
+      pattern = "publicextract.charity_classification.txt",
+      full.names = TRUE
+    )
+  )
+
+# charity_classification_raw %>%
+#   distinct(classification_description) %>%
+#   print(n = 34)
+
 # Clean chairty list
-# ??? Need to filter charity type?
 charity_list_active <-
   charity_list_raw %>%
   filter(
@@ -50,18 +59,16 @@ charity_list_active <-
     charity_in_administration == FALSE
   ) %>%
   select(
-      organisation_number = "organisation_number",
-      latest_income = "latest_income",
-      latest_expenditure = "latest_expenditure",
-      charity_type = "charity_type"
+      organisation_number = "organisation_number"
+      # latest_income = "latest_income",
+      # latest_expenditure = "latest_expenditure"
   )
-
 
 # # Data exlporation
 # plot_intro(charity_list_active)
 # # 11% missing on latest_income and expenditure
 # plot_missing(charity_list_active)
-# # histogram chart
+# histogram chart
 # # !!! Few "BIG" charities have extremely large value, most are small, use log transform
 # plot_histogram(charity_list_active)
 
@@ -71,7 +78,7 @@ charity_areas_clean  <-
   charity_areas_raw %>%
   # Only select Wales LA
   filter(
-    geographic_area_type == "Local Authority",
+    geographic_area_type == "Local Authority" &
     welsh_ind == TRUE
   ) %>%
   select(
@@ -81,32 +88,43 @@ charity_areas_clean  <-
   ) %>%
   inner_join(charity_list_active, by = "organisation_number")
 
-# To avoid skewness, try log transformation
-charity_areas_log <-
-  charity_areas_clean %>%
-  mutate(
-    latest_income = log(latest_income + 1),  # +1 to avoid -inf
-    latest_income = replace_na(latest_income, 0),  # replace NA with 0 or mean?
-    latest_expenditure = log(latest_expenditure + 1),  # +1 to avoid -inf
-    latest_expenditure = replace_na(latest_expenditure, 0)  # replace NA with 0 or mean?
+
+charity_classification_clean <-
+  charity_classification_raw %>%
+  select(
+    organisation_number,
+    classification_type,
+    classification_description
+  ) %>%
+  inner_join(charity_areas_clean, by = "organisation_number") %>%
+
+  filter(
+    classification_description == "The Prevention Or Relief Of Poverty" |
+    classification_description == "People With Disabilities" |
+    classification_description == "Provides Other Finance" |
+    classification_description == "The Advancement Of Health Or Saving Of Lives" |
+    classification_description == "Religious Activities" |
+    classification_description == "Acts As An Umbrella Or Resource Body" |
+    classification_description == "Recreation" |
+    classification_description == "Overseas Aid/famine Relief" |
+    classification_description == "Armed Forces/emergency Service Efficiency"
   )
 
 
-# plot_histogram(charity_areas_log)  # looks normal
-# # 0.01% missisng on charity type，
-# # 1.57% missisng on income and expenditure
-# plot_missing(charity_areas_log)
-
-
-# Though one orgnisation works in multiple lad, their latest income are the same
-# !!! Question here is how to distinguish charity income in different LA?
-charity_areas_log %>%
-  filter(latest_income > 0)
-
+### ABANDONED
+# To avoid skewness, try log transformation
+# charity_areas_log <-
+#   charity_areas_clean %>%
+#   mutate(
+#     latest_income = log(latest_income + 1),  # +1 to avoid -inf
+#     latest_income = replace_na(latest_income, 0),  # replace NA with 0 or mean?
+#     latest_expenditure = log(latest_expenditure + 1),  # +1 to avoid -inf
+#     latest_expenditure = replace_na(latest_expenditure, 0)  # replace NA with 0 or mean?
+#   )
 
 # Welsh Local Authorities
-charity_income_lad <-
-  charity_areas_log %>%
+charity_lad <-
+  charity_classification_clean %>%
   mutate(
     lad_name = case_when(
       lad_name == "City Of Swansea" ~ "Swansea",
@@ -121,21 +139,12 @@ charity_income_lad <-
       mutate(lad_name = tolower(lad_name)),
     by = "lad_name"
   ) %>%
-  group_by(lad_code) %>%
-  summarise(across(latest_income, sum)) %>% # aggregate by LA
-
-  # For all ranks: 1 is most deprived
-  # mutate(rank = rank(latest_income)) %>%
-  mutate(
-    rank = rank(latest_income),
-    deciles = quantise(rank, num_quantiles = 10)
-  ) %>%
-  select(-latest_income, -rank)
+  count(lad_code)
 
 # Right now, only aggregate total income by LA,
 # Need to consider how to rank
 # By average? By population?
 write_rds(
-  charity_income_lad,
+  charity_lad,
   "data/capacity/disasters-emergencies/wales/charity-lad.rds"
 )
