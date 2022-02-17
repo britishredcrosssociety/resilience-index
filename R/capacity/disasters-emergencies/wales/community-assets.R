@@ -5,6 +5,7 @@ library(geographr)
 
 community_assets_raw <- read_excel("data/on-disk/community-needs-index/community-needs-index/WCNI and domains - 2021.xlsx")
 
+# The bigger number of 'Civic_Assets_Domain', the more deprive is
 community_assets_lad <-
   community_assets_raw %>%
   select(
@@ -12,20 +13,14 @@ community_assets_lad <-
     Civic_Assets_Domain = "Civic_Assets_Domain"
   ) %>%
   left_join(lookup_msoa_lad, by = "msoa_code") %>%
-  left_join(population_lad, by = "lad_code") %>%
+  left_join(population_msoa, by = "msoa_code") %>%
 
   calculate_extent(
     var = Civic_Assets_Domain,
     higher_level_geography = lad_code,
     population = total_population,
-    invert_percentiles = FALSE
-  ) %>%
-
-  mutate(
-    rank = rank(extent),
-    deciles = quantise(rank, num_quantiles = 10)
-    ) %>%
-  select(-extent, -rank)
+    weight_high_scores = TRUE
+  )
 
 
 write_rds(
