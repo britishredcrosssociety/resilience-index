@@ -7,7 +7,7 @@ source("R/utils.R")
 
 # Download dat
 # Source: https://statswales.gov.wales/Catalogue/Local-Government/Finance/Revenue/Budgets/budgetedrevenueexpenditure-by-authority-service
-df <- statswalesr::statswales_get_dataset("lgfs0030")
+df <- statswales_get_dataset("lgfs0030")
 
 
 # Generate a list of distinct wales lad code
