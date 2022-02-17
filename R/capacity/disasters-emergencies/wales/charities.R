@@ -86,9 +86,9 @@ charity_areas_log <-
   charity_areas_clean %>%
   mutate(
     latest_income = log(latest_income + 1),  # +1 to avoid -inf
-    latest_income = replace_na(latest_income, 0),  # replace NA with 0
+    latest_income = replace_na(latest_income, 0),  # replace NA with 0 or mean?
     latest_expenditure = log(latest_expenditure + 1),  # +1 to avoid -inf
-    latest_expenditure = replace_na(latest_expenditure, 0)  # replace NA with 0
+    latest_expenditure = replace_na(latest_expenditure, 0)  # replace NA with 0 or mean?
   )
 
 
