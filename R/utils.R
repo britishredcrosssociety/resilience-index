@@ -9,7 +9,7 @@ library(classInt)
 #' @param .data A data frame
 keep_na <-
   function(.data) {
-    .data %>%
+    .data |>
       anti_join(drop_na(.data))
   }
 
@@ -17,7 +17,7 @@ keep_na <-
 #'
 print_inf <-
   function(.data) {
-    .data %>%
+    .data |>
       print(n = Inf)
   }
 
@@ -123,8 +123,8 @@ quantise <-
 
     if (
       !(
-        tibble(quantiles = quantiles) %>%
-          count(quantiles) %>%
+        tibble(quantiles = quantiles) |>
+          count(quantiles) |>
           mutate(
             equal_bins = if_else(
               n >= (length(vec) / num_quantiles) - 1 &
@@ -132,8 +132,8 @@ quantise <-
               TRUE,
               FALSE
             )
-          ) %>%
-          pull(equal_bins) %>%
+          ) |>
+          pull(equal_bins) |>
           all()
       )
 
@@ -144,6 +144,87 @@ quantise <-
     return(quantiles)
   }
 
+#' Calculate the 'extent' scores when aggreating up small areas
+#'
+#' "Extent" is the proportion of the local population that live in areas
+#' classified as among the most deprived in the higher geography. The
+#' calculation of extent is taken from the IMD technical report Appendix N:
+#'
+#' "The population living in the most deprived 11 to 30 per cent of Lower-layer
+#' Super Output Areas receive a sliding weight, ranging from 0.95 for those in
+#' the most deprived eleventh percentile, to 0.05 for those in the most deprived
+#' thirtieth percentile. In practice this means that the weight starts from 0.95
+#' in the most deprived eleventh percentile, and then decreases by
+#' (0.95-0.05)/19 for each of the subsequent nineteen percentiles until it
+#' reaches 0.05 for the most deprived thirtieth percentile, and zero for areas
+#' outside the most deprived 30 per cent"
+#' 
+#' The direction of the scale of data inputted by the functioin always matches
+#' that of the data outputted. For example if data is inputted into the function
+#' where high scores equals high vulnerability, the outputted data set will hold
+#' this relationship true.
+#' 
+#' @param data Data frame containing a variable to be aggregated, lower level
+#'        geography population estimates, and a higher level geographical
+#'        grouping variable
+#' @param var Name of the variable in the data frame containing the variable to
+#'        be aggregated (e.g., score) for the lower level geography
+#' @param higher_level_geography Name of the variable in the data frame
+#'        containing the higher level geography names/codes
+#' @param population Name of the variable in the data frame containing
+#'        the population estimates of the lower level geography
+#' @param weight_high_scores If TRUE higher scores are weighted, else lower
+#' scores are weighted. For indicators like 'Alchol Misuse' and 'Ambulance Wait
+#' Time' this should be set to TRUE. This is because higher values in these
+#' outcomes indicate worse outcomes (higher vulnerability and lower capacity)
+#' and this is where the weighting should be focused. For indicators like
+#' 'Physical Activity' and 'Bed Availability' it should be set to FALSE. This is
+#' because lower values in these outcomes indicate worse outcomes (higher
+#' vulnerability and lower capacity) and this is where the weighting should be 
+#' focused.
+calculate_extent <-
+  function(data,
+           var,
+           higher_level_geography,
+           population,
+           weight_high_scores = TRUE) {
+    data <-
+      data |>
+      mutate(percentile = ntile({{ var }}, 100))
+
+    if (weight_high_scores) {
+      data <-
+        data |>
+        mutate(percentile = invert_this(percentile))
+    }
+
+    data <-
+      data |>
+      mutate(
+        extent = case_when(
+          percentile <= 10 ~ {{ population }},
+          percentile == 11 ~ {{ population }} * 0.95,
+          percentile > 11 & percentile <= 30 ~ {{ population }} * (0.95 - ((0.9 / 19) * (percentile - 11))),
+          TRUE ~ 0
+        )
+      ) |>
+      group_by({{ higher_level_geography }}) |>
+      summarise(extent = sum(extent) / sum({{ population }}))
+
+    if (!weight_high_scores) {
+      data <-
+        data |>
+        mutate(extent = extent * -1)
+    }
+
+    return(data)
+  }
+
+#' ================================ DEPRECIATED ================================
+#' This function should no longer be used, and is only kept here
+#' for legacy reasons until code is updated with the new and revised version
+#' =============================================================================
+#' 
 #' Calculate the 'extent' scores when aggreating up small areas
 #'
 #' "Extent" is the proportion of the local population that live in areas
@@ -170,24 +251,24 @@ quantise <-
 #'        the population estimates of the lower level geography
 #' @param invert_percentiles Should percentiles be inverted? Should be set to
 #'        TRUE when a higher variable score equates to a worse outcome
-calculate_extent <-
+calculate_extent_depreciated <-
   function(data,
            var,
            higher_level_geography,
            population,
            invert_percentiles = TRUE) {
     data <-
-      data %>%
+      data |>
       mutate(percentile = ntile({{ var }}, 100))
 
     if (invert_percentiles) {
       data <-
-        data %>%
+        data |>
         mutate(percentile = invert_this(percentile))
     }
 
     data <-
-      data %>%
+      data |>
       mutate(
         extent = case_when(
           percentile <= 10 ~ {{ population }},
@@ -195,8 +276,8 @@ calculate_extent <-
           percentile > 11 & percentile <= 30 ~ {{ population }} * (0.95 - ((0.9 / 19) * (percentile - 11))),
           TRUE ~ 0
         )
-      ) %>%
-      group_by({{ higher_level_geography }}) %>%
+      ) |>
+      group_by({{ higher_level_geography }}) |>
       summarise(extent = sum(extent) / sum({{ population }}))
 
     return(data)
@@ -214,8 +295,8 @@ load_indicators <-
         pattern = ".rds",
         full.names = TRUE
       )
-    file_list %>%
-      map(read_rds) %>%
+    file_list |>
+      map(read_rds) |>
       reduce(
         left_join,
         by = key
@@ -229,7 +310,7 @@ load_indicators <-
 normalise_indicators <-
   function(data) {
     data <-
-      data %>%
+      data |>
       mutate(across(where(is.numeric), normalise))
 
     return(data)
@@ -247,25 +328,25 @@ normalise_indicators <-
 weight_indicators_mfla <-
   function(data) {
     data <-
-      data %>%
+      data |>
       mutate(across(where(is.numeric), normalise))
 
     weights <-
-      data %>%
-      select(where(is.numeric)) %>%
-      factanal(factors = 1) %>%
-      tidy() %>%
-      select(-uniqueness, weights = fl1) %>%
+      data |>
+      select(where(is.numeric)) |>
+      factanal(factors = 1) |>
+      tidy() |>
+      select(-uniqueness, weights = fl1) |>
       mutate(
         weights = abs(weights),
         weights = weights / sum(weights)
       )
 
     weighted_indicators <-
-      data %>%
-      select(weights$variable) %>%
-      map2_dfc(weights$weights, `*`) %>%
-      bind_cols(data %>% select(!where(is.numeric))) %>%
+      data |>
+      select(weights$variable) |>
+      map2_dfc(weights$weights, `*`) |>
+      bind_cols(data |> select(!where(is.numeric))) |>
       relocate(!where(is.numeric))
 
     return(weighted_indicators)
@@ -282,12 +363,12 @@ weight_indicators_mfla <-
 calculate_domain_scores <-
   function(data, domain_name, num_quantiles = 10) {
     data <-
-      data %>%
-      rowwise(!where(is.numeric)) %>%
-      summarise(domain_score = sum(c_across(where(is.numeric)))) %>%
-      ungroup() %>%
-      mutate(domain_rank = rank(domain_score)) %>%
-      mutate(domain_quantiles = quantise(domain_rank, num_quantiles)) %>%
+      data |>
+      rowwise(!where(is.numeric)) |>
+      summarise(domain_score = sum(c_across(where(is.numeric)))) |>
+      ungroup() |>
+      mutate(domain_rank = rank(domain_score)) |>
+      mutate(domain_quantiles = quantise(domain_rank, num_quantiles)) |>
       rename_with(
         ~ str_c(domain_name, .x, sep = "_"),
         where(is.numeric)
@@ -306,14 +387,14 @@ calculate_domain_scores <-
 calculate_composite_score <-
   function(data, index_name, num_quantiles = 10) {
     data <-
-      data %>%
-      mutate(across(where(is.numeric), rank)) %>%
-      mutate(across(where(is.numeric), scale_ranks)) %>%
-      rowwise(!where(is.numeric)) %>%
-      summarise(composite_score = sum(c_across(where(is.numeric)))) %>%
-      ungroup() %>%
-      mutate(composite_rank = rank(composite_score)) %>%
-      mutate(composite_quantiles = quantise(composite_rank, num_quantiles)) %>%
+      data |>
+      mutate(across(where(is.numeric), rank)) |>
+      mutate(across(where(is.numeric), scale_ranks)) |>
+      rowwise(!where(is.numeric)) |>
+      summarise(composite_score = sum(c_across(where(is.numeric)))) |>
+      ungroup() |>
+      mutate(composite_rank = rank(composite_score)) |>
+      mutate(composite_quantiles = quantise(composite_rank, num_quantiles)) |>
       rename_with(
         ~ str_c(index_name, .x, sep = "_"),
         where(is.numeric)
