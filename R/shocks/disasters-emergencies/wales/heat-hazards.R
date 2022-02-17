@@ -34,6 +34,8 @@ heat_hazard_clean <-
     as_tibble() %>%
     select(-geometry)
 
+heat_hazard_clean %>%
+    write_rds("data/shocks/disasters-emergencies/wales/heat_hazard_lad.rds")
 
 shp <-
   boundaries_lad %>%
