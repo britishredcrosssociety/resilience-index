@@ -5,7 +5,7 @@ library(stringr)
 library(geographr)
 source("R/utils.R")
 
-# Download dat
+# Download data
 # Source: https://statswales.gov.wales/Catalogue/Local-Government/Finance/Revenue/Budgets/budgetedrevenueexpenditure-by-authority-service
 df <- statswales_get_dataset("lgfs0030")
 
