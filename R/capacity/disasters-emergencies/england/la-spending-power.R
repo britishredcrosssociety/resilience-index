@@ -91,7 +91,11 @@ fra_lad_lookup |>
   anti_join(fire_cps, by = "fra_code") |>
   distinct(fra_name)
 # 15 of the of the 44 FRAs are not in the spending power data
-# Need to investigate this
+# Reply from Papers@parliament.uk on this: 
+# In the case of the fire authorities which are not in this data set, 
+# the fire and rescue service is run directly by the County Council, so it is funded 
+# via those councils’ settlements. The fire authorities DLUHC lists in its data are those 
+# which are separate from their local councils for funding purposes, and receive their own settlements.
 
 ltla_fire_cps <- fire_cps |>
   inner_join(fra_lad_lookup, by = "fra_code") |>
@@ -115,8 +119,13 @@ utla_cps <- remaining_fire |>
   select(county_ua_code = lad_code, 
          county_ua_name = lad_name, 
          cps_millions)
-# 16 UTLAs have spending power
-# Investigate why these and not all UTLAs
+# Only 16 UTLAs have spending power
+# Reply from Papers@parliament.uk on this: 
+# The upper-tier local authorities which have lower-tier authorities within them are the shire counties – in these areas, 
+# local government responsibilities are split between the two tiers, so the councils in each tier get their own funding
+# settlements and have their own spending power figures. Other areas (such as Greater London) are covered by single-tier 
+# councils which take on all the responsibilities of both upper-tier and lower-tier authorities, but confusingly 
+# these are generally also referred to as upper-tier authorities.
 
 ltla_utla_cps <- utla_cps |>
   left_join(lookup_counties_ua_lad, by = "county_ua_code") |>
