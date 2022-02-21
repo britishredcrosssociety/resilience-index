@@ -2,7 +2,7 @@
 library(tidyverse)
 library(readxl)
 
-source("R/utils.R") # for download_file() & calculate_extent()
+source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R") # for download_file() & calculate_extent()
 
 
 # OSCI Community Needs Index data ----
@@ -19,7 +19,7 @@ civic_assests <- osci |>
          civic_assests_score = "Civic Assets score", 
          civic_assets_rank = "Civic Assets rank")
 # Higher score and therefore lower rank is the LACK of assets so HIGH SCORE/LOW RANK = LOW CAPABILITIES
-# Civic assets + Enggagement + Connectness = Community Need score (high score = high need)
+# Civic assets + Engagement + Connectness = Community Need score (high score = high need)
 
 # Method used in COVID-VI -----
 # Code here https://github.com/britishredcrosssociety/covid-19-vulnerability/blob/master/prep%20community%20needs%20index.r
@@ -88,7 +88,7 @@ civic_assests_extent <- civic_assests |>
     var = civic_assests_score,
     higher_level_geography = LAD19CD,
     population = population,
-    invert_percentiles = TRUE #  TRUE when a highest variable score equates to a worse outcome
+    weight_high_scores = TRUE #  TRUE when a highest variable score equates to a lower capacity
   ) |>
   rename(lad_code = "LAD19CD")
 

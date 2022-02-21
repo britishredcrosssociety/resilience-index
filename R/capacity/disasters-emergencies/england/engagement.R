@@ -2,7 +2,7 @@
 library(tidyverse)
 library(readxl)
 
-source("R/utils.R") # for download_file() & calculate_extent()
+source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R") # for download_file() & calculate_extent()
 
 
 # OSCI Community Needs Index data ----
@@ -87,7 +87,7 @@ engagement_extent <- engagement |>
     var = engagement_score,
     higher_level_geography = LAD19CD,
     population = population,
-    invert_percentiles = TRUE #  TRUE when a highest variable score equates to a worse outcome
+    weight_high_scores = TRUE #  TRUE when a highest variable score equates to a lower capacity
   ) |>
   rename(lad_code = "LAD19CD")
 
