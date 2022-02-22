@@ -2,6 +2,7 @@ library(sf)
 library(tidyverse)
 library(geographr)
 library(viridis)
+source("R/utils.R")
 
 heat_hazard_raw <-
     st_read("data/on-disk/4EI-heat-hazards/4EI-heat-hazards/LSOA_England_Heat_Hazard_v1.shp")
@@ -18,25 +19,16 @@ heat_hazard_clean <-
         var = hazard,
         higher_level_geography = lad_code,
         population = total_population,
-        weight_high_scores = FALSE  # For all ranks: 1 is most deprived
+        weight_high_scores = TRUE
     ) %>%
+    mutate(quantise = quantise(extent)) %>%  # use quantile
     as_tibble() %>%
-    select(-geometry)
-
-heat_hazard_clean <-
-    heat_hazard_raw %>%
-    filter(str_detect(LSOA11CD, "^W")) %>%
-    rename(lsoa_code = LSOA11CD) %>%
-    left_join(lookup_lsoa_msoa, by = "lsoa_code") %>%
-    left_join(lookup_msoa_lad, by = "msoa_code") %>%
-    group_by(lad_code) %>%
-    summarise(hazard = sum(hazard)) %>% 
-    as_tibble() %>%
-    select(-geometry)
+    select(-geometry, -extent)
 
 heat_hazard_clean %>%
     write_rds("data/shocks/disasters-emergencies/wales/heat_hazard_lad.rds")
 
+# Visualization
 shp <-
   boundaries_lad %>%
   filter(str_detect(lad_code, "^W"))
@@ -46,10 +38,10 @@ heat_hazards_shp <-
   left_join(heat_hazard_clean, by = "lad_code")
 
 heat_hazards_shp %>%
-  select(hazard, geometry) %>%
+  select(quantise, geometry) %>%
   ggplot() +
   geom_sf(
-    mapping = aes(fill = hazard),
+    mapping = aes(fill = quantise),
     # color = "black",
     size = 0.1
   ) +
@@ -71,8 +63,6 @@ heat_hazards_shp %>%
       reverse = T
     )
   ) +
-  labs(title = "Heat hazard 'extent' scores in Wales") +
+  labs(title = "Heat hazard extent scores quantile in Wales") +
   # theme_map() +
   theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm"))
-
-  
