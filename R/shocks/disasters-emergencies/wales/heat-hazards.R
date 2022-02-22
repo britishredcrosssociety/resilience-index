@@ -3,7 +3,7 @@ library(tidyverse)
 library(geographr)
 library(viridis)
 
-heat_hazard_raw <- 
+heat_hazard_raw <-
     st_read("data/on-disk/4EI-heat-hazards/4EI-heat-hazards/LSOA_England_Heat_Hazard_v1.shp")
 
 heat_hazard_clean <-
@@ -50,25 +50,29 @@ heat_hazards_shp %>%
   ggplot() +
   geom_sf(
     mapping = aes(fill = hazard),
-    color = "black",
+    # color = "black",
     size = 0.1
   ) +
   scale_fill_viridis(
-    breaks = seq(1, 5, by = 1),
-    labels = seq(1, 5, by = 1),
-    na.value = "transparent",
+    # breaks = seq(1, 5, by = 1),
+    # labels = seq(1, 5, by = 1),
+    # na.value = "transparent",
     option = "magma",
-    name = expression(paste("Heat Hazard \n(5 = worst)")),
+    # name = expression(paste("Heat Hazard \n(5 = worst)")),
     alpha = 0.8,
     begin = 0.1,
     end = 0.9,
     discrete = F,
     direction = -1,
     guide = guide_legend(
-      keyheight = unit(5, units = "mm"),
-      title.position = "top",
+      title = "",
+      label = TRUE,
+      keyheight = unit(8, units = "mm"),
       reverse = T
     )
   ) +
-  theme_map() +
+  labs(title = "Heat hazard 'extent' scores in Wales") +
+  # theme_map() +
   theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm"))
+
+  

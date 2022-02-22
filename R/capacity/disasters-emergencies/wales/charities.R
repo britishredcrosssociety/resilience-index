@@ -5,10 +5,10 @@ library(DataExplorer)
 source("R/utils.R")
 
 # ---- Load data ----
-# Source: https://register-of-charities.charitycommission.gov.uk/register/full-register-download
+# Source: https://register-of-charities.charitycommission.gov.uk/register/full-register-download # nolint
 
 # Chairty list
-file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity.zip", file_extension = ".zip")
+file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity.zip", file_extension = ".zip") # nolint
 unzip(file_path, exdir = tempdir())
 
 charity_list_raw <-
@@ -21,7 +21,7 @@ charity_list_raw <-
   )
 
 # Charity areas of operation
-file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip", file_extension = ".zip")
+file_path <- download_file(url = "https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_area_of_operation.zip", file_extension = ".zip") # nolint
 unzip(file_path, exdir = tempdir())
 
 charity_areas_raw <-
@@ -34,7 +34,7 @@ charity_areas_raw <-
   )
 
 # Charity classification
-file_path <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_classification.zip", ".zip")
+file_path <- download_file("https://ccewuksprdoneregsadata1.blob.core.windows.net/data/txt/publicextract.charity_classification.zip", ".zip") # nolint
 unzip(file_path, exdir = tempdir())
 
 charity_classification_raw <-
