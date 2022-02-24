@@ -90,6 +90,7 @@ charity_classification_clean <-
   ) %>%
   inner_join(charity_areas_clean, by = "organisation_number") %>%
 
+  # Mannualy choose
   filter(
     classification_description == "The Prevention Or Relief Of Poverty" |
     classification_description == "People With Disabilities" |
