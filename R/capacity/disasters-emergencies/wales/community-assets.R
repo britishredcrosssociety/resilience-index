@@ -2,6 +2,7 @@
 library(tidyverse)
 library(readxl)
 library(geographr)
+source("R/utils.R")
 
 community_assets_raw <- read_excel("data/on-disk/community-needs-index/community-needs-index/WCNI and domains - 2021.xlsx")
 

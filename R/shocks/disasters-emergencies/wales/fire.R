@@ -18,7 +18,6 @@ df_clean <-
     select(
         lad_code = LocalAuthority_AltCode1,
         value = Data
-
     )
 
 write_rds(

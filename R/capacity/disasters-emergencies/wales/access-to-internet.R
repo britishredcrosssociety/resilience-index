@@ -44,7 +44,7 @@ internet_clean <-
     summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) %>%   # for each LA, add up in the same column
     left_join(lookup_lsoa_msoa, by = "lsoa_code") %>%
     left_join(lookup_msoa_lad, by = "msoa_code") %>%
-    left_join(population_lsoa, by = "lsoa_code") %>% 
+    left_join(population_lsoa, by = "lsoa_code") %>%
 
     calculate_extent(
       var = sum,

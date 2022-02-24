@@ -64,14 +64,6 @@ charity_list_active <-
       # latest_expenditure = "latest_expenditure"
   )
 
-# # Data exlporation
-# plot_intro(charity_list_active)
-# # 11% missing on latest_income and expenditure
-# plot_missing(charity_list_active)
-# histogram chart
-# # !!! Few "BIG" charities have extremely large value, most are small, use log transform
-# plot_histogram(charity_list_active)
-
 # Clean charity area
 # The result shows that one organisation could has multiple geo_area_description
 charity_areas_clean  <-
