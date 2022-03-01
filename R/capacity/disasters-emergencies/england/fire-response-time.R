@@ -94,7 +94,6 @@ fire_response_updated <- fire_response |>
     frs == "Devon and Somerset" ~ "Devon & Somerset",
     frs == "Dorset and Wiltshire" ~ "Dorset & Wiltshire",
     frs == "Greater London" ~ "London Fire and Emergency Planning Authority",
- #   frs == "Isles Of Scilly" ~ "Isles of Scilly",
     frs == "Nottinghamshire" ~ "Nottinghamshire and City of Nottingham",
     frs == "Staffordshire" ~ "Stoke-on-Trent and Staffordshire",
     frs == "Buckinghamshire" ~ "Buckinghamshire & Milton Keynes",
