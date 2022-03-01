@@ -24,3 +24,10 @@ indicators |>
 indicators |>
   dplyr::filter(if_any(everything(), ~is.na(.x))) |>
   print(n = Inf)
+
+
+# ---- Build Index ----
+de <-
+  indicators |>
+  normalise_indicators() |>
+  calculate_domain_scores(domain_name = "de")
