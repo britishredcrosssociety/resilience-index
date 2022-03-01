@@ -95,6 +95,11 @@ lad_lookup |>
   filter(count > 1)
 # Only aggregation from multiple 2017 codes to a single 2021 code
 
+# Check any missing LADs
+lad_lookup |>
+  anti_join(civic_assests, by = c("lad_17_code" = "lad_code"))
+# 2 LADs not in dataset (Isle of Scilly & Inner London)
+
 # Join datasets & calculate extent ----
 # Note: high score (i.e. lowest rank) reflects low capability
 civic_assests_lad <- civic_assests |>
@@ -108,10 +113,14 @@ civic_assests_lad <- civic_assests |>
   ) |>
   rename(lad_code = lad_21_code, civic_assests_extent = extent)
 
+# Bind on missing values for Isle of Scilly & Inner London otherwise then don't get included into 
+civic_assests_lad_update <- civic_assests_lad |>
+  bind_rows(tibble(lad_code = c("E06000053", "E09000001")))
+
 civic_assests_lad |>
   ggplot(aes(x = civic_assests_extent)) +
   geom_boxplot()
 
 # Save data -----
-civic_assests_lad |>
+civic_assests_lad_update |>
   write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
