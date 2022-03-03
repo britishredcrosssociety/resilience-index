@@ -21,7 +21,8 @@ community_assets_lad <-
     higher_level_geography = lad_code,
     population = total_population,
     weight_high_scores = TRUE
-  )
+  ) %>%
+  rename(community_assets = extent)
 
 
 write_rds(

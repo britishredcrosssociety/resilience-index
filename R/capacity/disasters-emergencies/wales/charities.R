@@ -1,7 +1,7 @@
 #  Load packages
 library(tidyverse)
 library(geographr)
-library(DataExplorer)
+# library(DataExplorer)
 source("R/utils.R")
 
 # ---- Load data ----
@@ -132,7 +132,8 @@ charity_lad <-
       mutate(lad_name = tolower(lad_name)),
     by = "lad_name"
   ) %>%
-  count(lad_code)
+  count(lad_code) %>%
+  rename(charities = n)
 
 write_rds(
   charity_lad,

@@ -50,7 +50,8 @@ df_sum <-
         across(where(is.numeric), normalise),  # normalise each column
         sum = rowSums(across(where(is.numeric)),  na.rm = TRUE)  # Calculate a sum column
     ) %>%
-    select(lad_code, sum)
+    select(lad_code, sum) %>%
+    rename(la_spending_power = sum)
 
 write_rds(
     df_sum,
