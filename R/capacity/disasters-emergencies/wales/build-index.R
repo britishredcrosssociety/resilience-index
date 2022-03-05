@@ -66,7 +66,7 @@ wales_recipe <-
   recipe(~., data = wales_capacity_normlised) %>%
   update_role(lad_code, new_role = "id") %>%
   step_pca(all_predictors(), id = "pca") %>%
-  prep()
+  prep()  
 
 # Step2: indentify the number of latent facors
 pca_variation_stat <-
@@ -120,12 +120,25 @@ pca_weight <-
   
 tt = as_tibble(cbind(nms = names(pca_weight), t(pca_weight)))
 
-output <-
+variable_weight <-
   tt %>%
   mutate(
     weight = as.numeric(V2)
   ) %>% 
-  select(-V2)
+  select(-V2) %>%
+  select(where(is.numeric)) %>%
+  as.matrix()
+
+wales_matrix <- 
+  wales_capacity_normlised %>%
+  select(where(is.numeric)) %>% 
+  as.matrix()
+  
+output =  wales_matrix %*% variable_weight
+
+output <- 
+  output %>% 
+  cbind(wales_capacity_normlised["lad_code"])
 
 write_csv(
   output,
