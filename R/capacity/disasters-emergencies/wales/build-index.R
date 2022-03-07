@@ -37,7 +37,7 @@ wales_capacity_normlised <-
     normalise_indicators()
 print("After normalised:")
 describe(wales_capacity_normlised)
-plot_histogram(wales_capacity_normlised)
+# plot_histogram(wales_capacity_normlised)
 
 
 
@@ -50,11 +50,6 @@ wales_capacity_normlised %>%
 
 ## Correlation plot
 ggpairs(select(wales_capacity_normlised, where(is.numeric))) + theme_bw()
-
-## For analysis check
-wales_capacity_normlised %>%
-    ggparcoord(columns = 2:5, groupColumn = 1)
-
 
 # ***********************************************
 # Correlation is not strong, maximun is 0.582 between charities and la_spending_power
@@ -134,16 +129,63 @@ wales_matrix <-
   select(where(is.numeric)) %>% 
   as.matrix()
   
-output =  wales_matrix %*% variable_weight
+score =  wales_matrix %*% variable_weight
 
 output <- 
-  output %>% 
-  cbind(wales_capacity_normlised["lad_code"])
+  score %>% 
+  cbind(wales_capacity_normlised["lad_code"]) %>% 
+  mutate(rank = rank(weight)) %>% 
+  mutate(
+    deciles = quantise(
+      rank,
+      num_quantiles = 10,
+      highest_quantile_worst = FALSE
+    )
+  ) %>%
+  select(lad_code, deciles)
 
 write_csv(
   output,
   "data/capacity/disasters-emergencies/wales/index-weighted.csv"
 )
+
+# capacity plot
+
+library(sf)
+library(geographr)
+library(viridis)
+# vulnerability visualization
+shp <-
+  boundaries_lad %>%
+  filter(str_detect(lad_code, "^W"))
+
+wales_capacity_shp <-
+  shp %>%
+  left_join(output, by = "lad_code")
+
+wales_capacity_shp %>%
+  select(deciles, geometry) %>%
+  ggplot() +
+  geom_sf(
+    mapping = aes(fill = deciles),
+    size = 0.1
+  ) +
+  scale_fill_viridis(
+    option = "magma",
+    alpha = 0.8,
+    begin = 0.1,
+    end = 0.9,
+    discrete = F,
+    direction = -1,
+    guide = guide_legend(
+      title = "",
+      label = TRUE,
+      keyheight = unit(8, units = "mm"),
+      reverse = T
+    )
+  ) +
+  labs(title = "capacity deciles in Wales") +
+  theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm"))
 
 
 
