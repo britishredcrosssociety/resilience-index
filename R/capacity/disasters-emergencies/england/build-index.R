@@ -1,6 +1,7 @@
 # ---- Load libraries and Functions ----
 library(tidyverse)
 library(demographr)
+
 source("R/utils.R")
 
 # ---- Load indicators ----
@@ -22,12 +23,17 @@ indicators |>
   anti_join(lads_21, by = "lad_code")
 
 indicators |>
-  dplyr::filter(if_any(everything(), ~is.na(.x))) |>
-  print(n = Inf)
+  dplyr::filter(if_any(everything(), ~is.na(.x))) 
+# City of London & Isle of Scilly are both missing civic assests & engagement
+# Isle of Scilly also missing station response time
+# Assumption: drop these LADs due to too many missing variables. 
 
+indicators_complete <- indicators |>
+  drop_na()
 
 # ---- Build Index ----
 de <-
-  indicators |>
+  indicators_complete |>
   normalise_indicators() |>
-  calculate_domain_scores(domain_name = "de")
+  calculate_domain_scores(domain_name = "de") 
+
