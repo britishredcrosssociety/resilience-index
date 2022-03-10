@@ -35,6 +35,7 @@ describe(wales_capacity_scaled)
 wales_capacity_normlised <-
     wales_capacity_scaled  %>%
     normalise_indicators()
+
 print("After normalised:")
 describe(wales_capacity_normlised)
 # plot_histogram(wales_capacity_normlised)
@@ -47,6 +48,9 @@ wales_capacity_normlised %>%
     select(where(is.numeric)) %>%
     correlate() %>%
     rearrange()
+
+  cor.test(wales_capacity_normlised$charities, wales_capacity_normlised$la_spending_power, 
+                      method = "pearson")
 
 ## Correlation plot
 ggpairs(select(wales_capacity_normlised, where(is.numeric))) + theme_bw()
