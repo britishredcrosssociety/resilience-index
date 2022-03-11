@@ -174,14 +174,14 @@ quantise <-
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
 #' @param weight_high_scores If TRUE higher scores are weighted, else lower
-#' scores are weighted. For indicators like 'Alchol Misuse' and 'Ambulance Wait
-#' Time' this should be set to TRUE. This is because higher values in these
-#' outcomes indicate worse outcomes (higher vulnerability and lower capacity)
-#' and this is where the weighting should be focused. For indicators like
-#' 'Physical Activity' and 'Bed Availability' it should be set to FALSE. This is
-#' because lower values in these outcomes indicate worse outcomes (higher
-#' vulnerability and lower capacity) and this is where the weighting should be 
-#' focused.
+#'        scores are weighted. For indicators like 'Alchol Misuse' and 'Ambulance Wait
+#'        Time' this should be set to TRUE. This is because higher values in these
+#'        outcomes indicate worse outcomes (higher vulnerability and lower capacity)
+#'        and this is where the weighting should be focused. For indicators like
+#'        'Physical Activity' and 'Bed Availability' it should be set to FALSE. This is
+#'        because lower values in these outcomes indicate worse outcomes (higher
+#'        vulnerability and lower capacity) and this is where the weighting should be 
+#'        focused.
 calculate_extent <-
   function(data,
            var,
