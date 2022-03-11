@@ -3,10 +3,10 @@ library(tidyverse)
 library(sf)
 library(geographr)
 
-source("R/utils.R")
+source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R")
 
 raw <-
-  read_sf("data/on-disk/heat-hazard-raw/LSOA_England_Heat_Hazard_v1.shp")
+  read_sf("data/on-disk/heat-hazard-raw/england/LSOA_England_Heat_Hazard_v1.shp")
 
 # ---- Prep ----
 lsoa_pop <-
@@ -43,7 +43,8 @@ extent <-
   calculate_extent(
     var = mean_temp,
     higher_level_geography = lad_code,
-    population = total_population
+    population = total_population,
+    weight_high_scores = TRUE
   )
 
 # ---- Normalise, rank, & quantise ----
@@ -56,4 +57,4 @@ heat_hazard_quantiles <-
 
 # ---- Save ----
 heat_hazard_quantiles |>
-write_rds("data/vulnerability/disasters-emergencies/england/heat-hazard.rds")
+  write_rds("data/vulnerability/disasters-emergencies/england/heat-hazard.rds")
