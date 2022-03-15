@@ -3,6 +3,7 @@ library(tidyverse)
 library(readxl)
 library(geographr)
 library(sf)
+library(demographr)
 
 
 source("R/utils.R") # for download_file()
@@ -26,11 +27,27 @@ lookup <- lookup_postcode_oa_lsoa_msoa_lad |>
   distinct(lsoa_code, msoa_code, lad_code) |>
   filter(str_detect(lsoa_code, "^E"))
 
-
 housing_fires_lad <- housing_fires_lsoa |>
   left_join(lookup, by = "lsoa_code") |>
   group_by(lad_code) |>
-  summarise(count = sum(count))
+  summarise(count = sum(count)) 
+
+# Update to 2021 LAD codes 
+lad_lookup_20_21 <- lookup_lad_over_time |>
+  distinct(lad_20_code = LAD20CD, lad_21_code = LAD21CD)
+
+housing_fires_lad_21 <- housing_fires_lad |>
+  left_join(lad_lookup_20_21, by = c("lad_code" = "lad_20_code")) |>
+  group_by(lad_21_code) |>
+  summarise(fire_count = sum(count))
+
+# Normalise by population
+lad_pop_21 <- population_lad_20_codes_21 |>
+  select(lad_21_code, total_population) 
+  
+housing_fires_lad_normalised <- housing_fires_lad_21  |>
+  left_join(lad_pop_21, by = "lad_21_code") |>
+  filter(is.na(total_population))
 
 # Save data ----
 housing_fires_lad  |>
