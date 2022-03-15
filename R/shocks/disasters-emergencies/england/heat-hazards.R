@@ -58,4 +58,4 @@ heat_hazard_quantiles <-
 
 # ---- Save ----
 heat_hazard_quantiles |>
-  write_rds("data/vulnerability/disasters-emergencies/england/heat-hazard.rds")
+  write_rds("data/shocks/disasters-emergencies/england/heat-hazard.rds")
