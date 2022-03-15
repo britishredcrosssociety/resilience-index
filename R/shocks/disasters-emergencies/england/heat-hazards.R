@@ -2,6 +2,7 @@
 library(tidyverse)
 library(sf)
 library(geographr)
+library(demographr)
 
 source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R")
 
@@ -26,8 +27,8 @@ lookup_lsoa_lad <-
   lookup_lsoa_msoa |>
   select(ends_with("code")) |>
   filter(str_detect(lsoa_code, "^E")) |>
-  left_join(lookup_msoa_lad) |>
-  select(lsoa_code, lad_code)
+  left_join(lookup_msoa_lad_21, by = c("msoa_code" = "msoa_11_code")) |>
+  select(lsoa_code, lad_code = lad_21_code)
 
 # ---- Join ----
 heat_hazard_raw_joined <-
