@@ -47,8 +47,9 @@ lad_pop_21 <- population_lad_20_codes_21 |>
   
 housing_fires_lad_normalised <- housing_fires_lad_21  |>
   left_join(lad_pop_21, by = "lad_21_code") |>
-  filter(is.na(total_population))
+  mutate(fire_count_per_pop = fire_count / total_population) |>
+  select(lad_code = lad_21_code, fire_count_per_pop)
 
 # Save data ----
-housing_fires_lad  |>
+housing_fires_lad_normalised  |>
   write_rds("data/shocks/disasters-emergencies/england/fire.rds")
