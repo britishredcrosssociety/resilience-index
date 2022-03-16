@@ -17,7 +17,6 @@ wales_capacity_indicators <-
 
 # 1. Scale indicator, high value = high capacity
 # 2. Avoid skewness
-# 3. Access_to_internet is still moderate skewed
 wales_capacity_scaled <-
     wales_capacity_indicators %>%
     mutate(
@@ -109,12 +108,11 @@ pca_weight <-
   slice_head(n = 2) %>%  # only keep 2 components
   mutate(
     percent_variance = percent_variance / 100,  # convert to decimal
-    access_to_internet = access_to_internet * percent_variance,
     charities = charities * percent_variance,
     community_assets = community_assets * percent_variance,
     la_spending_power = la_spending_power * percent_variance
   ) %>%
-  select(access_to_internet, charities, community_assets, la_spending_power) %>% 
+  select(charities, community_assets, la_spending_power) %>% 
   summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)))
   
 tt = as_tibble(cbind(nms = names(pca_weight), t(pca_weight)))
