@@ -1,3 +1,6 @@
+# Removing fire station response time for now as don't have LTLA level data 
+# (only FRA level). Include again when get this. 
+
 # Load packages ----
 library(tidyverse)
 library(readxl)
@@ -119,5 +122,9 @@ fire_response_lad <- fire_response_updated |>
   select(lad_code, station_response_time) 
 
 # Save data ----
-fire_response_lad |>
-  write_rds("data/capacity/disasters-emergencies/england/fire-response-times.rds")
+# fire_response_lad |>
+#   write_rds("data/capacity/disasters-emergencies/england/fire-response-times.rds")
+
+# Removing fire station response time for now as don't have LTLA level data 
+# (only FRA level). Include again when get this. 
+

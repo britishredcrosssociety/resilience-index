@@ -1,3 +1,6 @@
+# Fire station response time is not included for now (17/03) as don't have LTLA level data 
+# (only FRA level). Include again when get this from Gov. 
+
 # ---- Load libraries and Functions ----
 library(tidyverse)
 library(demographr)
@@ -25,7 +28,6 @@ indicators |>
 indicators |>
   dplyr::filter(if_any(everything(), ~is.na(.x))) 
 # City of London & Isle of Scilly are both missing civic assests & engagement
-# Isle of Scilly also missing station response time
 # Assumption: drop these LADs due to too many missing variables. 
 
 indicators_complete <- indicators |>
@@ -47,46 +49,13 @@ de <-
   normalise_indicators() |>
   calculate_domain_scores(domain_name = "de") 
 
-# Inverting ranks and deciles so that higher scores equal higher capacity
+# Inverting ranks and deciles so that higher scores = higher capacity
 de_invert <- de |>
   mutate(de_domain_rank = inverse_rank(de_domain_rank),
          de_domain_quantiles = invert_this(de_domain_quantiles))
 
 
-# Check removing fire response time since at FRA level ----
-de_no_fire <-
-  indicators_aligned |>
-  select(-station_response_time) |>
-  normalise_indicators() |>
-  calculate_domain_scores(domain_name = "de") |>
-  select(lad_code, de_domain_rank_no_fire = de_domain_rank, de_domain_quantiles_no_fire = de_domain_quantiles)
 
-de_no_fire_change <- de |>
-  select(-de_domain_score) |> 
-  left_join(de_no_fire, by = "lad_code") |>
-  mutate(rank_change = de_domain_rank_no_fire - de_domain_rank,
-         quantile_change = de_domain_quantiles_no_fire - de_domain_quantiles) |> 
-  select(lad_code, rank_change, quantile_change)
-
-de_no_fire_change |> 
-  summary()
-
-de_no_fire_change |> 
-  group_by(quantile_change) |>
-  summarise(prop_of_lads = n()/nrow(de_no_fire_change))
-
-de_no_fire_change |> 
-  group_by(rank_change) |>
-  summarise(prop_of_lads = n()/nrow(de_no_fire_change))
-
-indicators_aligned |> 
-  select(-lad_code) |>
-  ggpairs()
-
-indicators_aligned |>
-  normalise_indicators() |>
-  select(-lad_code) |>
-  ggpairs()
 
 
 
