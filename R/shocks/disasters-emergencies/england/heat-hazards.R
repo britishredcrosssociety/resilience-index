@@ -2,11 +2,12 @@
 library(tidyverse)
 library(sf)
 library(geographr)
+library(demographr)
 
-source("R/utils.R")
+source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R")
 
 raw <-
-  read_sf("data/on-disk/heat-hazard-raw/LSOA_England_Heat_Hazard_v1.shp")
+  read_sf("data/on-disk/heat-hazard-raw/england/LSOA_England_Heat_Hazard_v1.shp")
 
 # ---- Prep ----
 lsoa_pop <-
@@ -26,8 +27,8 @@ lookup_lsoa_lad <-
   lookup_lsoa_msoa |>
   select(ends_with("code")) |>
   filter(str_detect(lsoa_code, "^E")) |>
-  left_join(lookup_msoa_lad) |>
-  select(lsoa_code, lad_code)
+  left_join(lookup_msoa_lad_21, by = c("msoa_code" = "msoa_11_code")) |>
+  select(lsoa_code, lad_code = lad_21_code)
 
 # ---- Join ----
 heat_hazard_raw_joined <-
@@ -43,7 +44,8 @@ extent <-
   calculate_extent_depreciated(
     var = mean_temp,
     higher_level_geography = lad_code,
-    population = total_population
+    population = total_population,
+    weight_high_scores = TRUE
   )
 
 # ---- Normalise, rank, & quantise ----
@@ -56,4 +58,4 @@ heat_hazard_quantiles <-
 
 # ---- Save ----
 heat_hazard_quantiles |>
-write_rds("data/vulnerability/disasters-emergencies/england/heat-hazard.rds")
+  write_rds("data/shocks/disasters-emergencies/england/heat-hazard.rds")

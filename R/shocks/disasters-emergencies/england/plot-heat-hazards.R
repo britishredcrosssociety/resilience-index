@@ -6,7 +6,7 @@ library(viridis)
 source("R/utils.R")
 
 heat_hazards <-
-  read_rds("data/vulnerability/disasters-emergencies/england/heat-hazard.rds")
+  read_rds("data/shocks/disasters-emergencies/england/heat-hazard.rds")
 
 shp <-
   boundaries_lad %>%
