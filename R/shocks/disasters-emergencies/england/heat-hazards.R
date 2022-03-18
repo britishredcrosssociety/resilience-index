@@ -41,7 +41,7 @@ heat_hazard_raw_joined <-
 # ---- Compute extent scores ----
 extent <-
   heat_hazard_raw_joined |>
-  calculate_extent(
+  calculate_extent_depreciated(
     var = mean_temp,
     higher_level_geography = lad_code,
     population = total_population,

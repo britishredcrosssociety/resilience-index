@@ -3,129 +3,92 @@ library(tidyverse)
 library(sf)
 library(geographr)
 
-# lookup
-lookup <-
-  boundaries_lad |>
-  st_drop_geometry()
-
-pop <-
+# LAD population data ----
+lad_pop <-
   population_lad |>
-  select(lad_code, total_population)
+  select(lad_code, total_population) |>
+  filter(str_detect(lad_code, "^E"))
 
-# Data must be extracted from Stat-Xplore. It is stored locally on disk and
-# appended to .gitignore.
+if(
+  anti_join(
+    lad_pop,
+    lookup_lad_over_time,
+    by = c("lad_code" = "LAD21CD")
+  ) |>
+  pull(lad_code) |>
+  length() != 0
+) {
+  stop("Lad codes need changing to 2021 - check if 2019 or 2020")
+}
+
+# Distinct table for 2020 - 2021 due to E06000060
+lookup_lad_over_time_2020 <- lookup_lad_over_time |>
+  distinct(LAD20CD, LAD21CD, LAD21NM)
+
+lad_pop_update <- lad_pop |>
+  left_join(lookup_lad_over_time_2020, by = c("lad_code" = "LAD20CD")) |>
+  group_by(LAD21CD, LAD21NM) |>
+  summarise(across(where(is.numeric), sum)) |>
+  ungroup()
+
+
+# Carers allowance data ----
+# Data must be extracted from Stat-Xplore (https://stat-xplore.dwp.gov.uk/webapi/jsf/login.xhtml). 
+# It is stored locally on disk and appended to .gitignore.
+
+# Table is 'Carer's Allowance: Entitled Cases' rather than 'Carer's Allowance: Cases in Payment'
+# Entitled cases show both the number of people in receipt of an 
+# allowance AND those with entitlement where the payment has been suspended, for example if they are in hospital
+
+# Data date May 2021
+
 raw <-
   read_csv(
     "data/on-disk/england-carers-allowance-raw.csv",
     skip = 9
   )
 
-# ---- Clean ----
-# Remove empty rows & columns
+# Clean ----
+# Remove empty rows & columns & rows with text at end
 raw_england <-
   raw |>
-  select(lad_name = Quarter, count = `Feb-21`) |>
-  slice(c(2:310))
+  select(lad_name = Quarter, ca_count = `May-21`) |>
+  drop_na() |>
+  filter(str_detect(ca_count, "[0-9]")) |>
+  mutate(count = as.double(ca_count))
 
-# Change back to 2019 LAD areas for consistency with the rest of the RI
-buckinghamshire <-
-  raw_england |>
-  filter(lad_name == "Buckinghamshire") |>
-  pull(count)
+# Check non matches ----
+lad_pop_update |>
+  anti_join(raw_england, by = c("LAD21NM" = "lad_name"))
 
-north_northamptonshire <-
-  raw_england |>
-  filter(lad_name == "North Northamptonshire") |>
-  pull(count)
+wales_lads <- population_lad |>
+  filter(str_detect(lad_code, "^W")) |>
+  select(lad_name)
+      
+raw_england |>
+  anti_join(lad_pop_update, by = c("lad_name" = "LAD21NM")) |>
+  print(n = Inf)
+# Scotland/Wales or other
 
-west_northamptonshire <-
-  raw_england |>
-  filter(lad_name == "West Northamptonshire") |>
-  pull(count)
+# Join pop to counts ----
+joined <- lad_pop_update |>
+  left_join(raw_england, by = c("LAD21NM" = "lad_name"))
 
-missing_lads <-
-  tribble(
-    ~lad_name, ~count,
-    "Aylesbury Vale", buckinghamshire,
-    "Chiltern", buckinghamshire,
-    "South Bucks", buckinghamshire,
-    "Wycombe", buckinghamshire,
-    "Corby", north_northamptonshire,
-    "East Northamptonshire", north_northamptonshire,
-    "Kettering", north_northamptonshire,
-    "Wellingborough", north_northamptonshire,
-    "Daventry", west_northamptonshire,
-    "Northampton", west_northamptonshire,
-    "South Northamptonshire", west_northamptonshire
-  )
+joined |>
+  filter(is.na(ca_count))
 
-all_lads <-
-  raw_england |>
-  filter(
-    lad_name != "Buckinghamshire",
-    lad_name != "North Northamptonshire",
-    lad_name != "West Northamptonshire"
-  ) |>
-  bind_rows(missing_lads)
-
-# Join LAD codes and pop counts
-joined <-
-  all_lads |>
-  left_join(lookup) |>
-  left_join(pop)
-
-# Population counts are missing for 2019 LAD areas that became Buckinghamshire
-buckinghamshire_pop <-
-  pop |>
-  filter(lad_code == "E06000060") |>
-  pull(total_population)
-
-joined_buck_pop <-
-  joined |>
-  replace_na(
-    list(
-      total_population = buckinghamshire_pop
-    )
-  )
-
-# The population counts for the 2019 LAD areas that became North
-# Northamptonshire and West Northamptonshire need adjusting to match their
-# respective totals (because the Carers allowance count is also a summary)
-adjusted_pop <-
-  joined_buck_pop |>
-  mutate(
-    grouping_var = case_when(
-      lad_name == "Corby" ~ "north_northamptonshire",
-      lad_name == "East Northamptonshire" ~ "north_northamptonshire",
-      lad_name == "Kettering" ~ "north_northamptonshire",
-      lad_name == "Wellingborough" ~ "north_northamptonshire",
-      lad_name == "Daventry" ~ "west_northamptonshire",
-      lad_name == "Northampton" ~ "west_northamptonshire",
-      lad_name == "South Northamptonshire" ~ "west_northamptonshire",
-      TRUE ~ lad_name
-    )
-  ) |>
-  group_by(grouping_var) |>
-  mutate(total_population = sum(total_population)) |>
-  ungroup() |>
-  select(-grouping_var)
-
-# Drop Isles of Scilly as no data present
-dropped <-
-  adjusted_pop |>
-  filter(lad_name != "Isles of Scilly")
-
-# Convert to Numeric
-converted <-
-  dropped |>
-  mutate(count = as.double(count))
+joined |>
+  filter(is.na(total_population))
 
 # ---- Calculate rate ----
 carers_allowance <-
-  converted |>
-  mutate(carers_allowance_rate = count / total_population * 100) |>
-  select(lad_code, carers_allowance_rate)
+  joined |>
+  mutate(carers_allowance_rate = count / total_population) |>
+  select(lad_code = LAD21CD, carers_allowance_rate)
+
+carers_allowance |>
+  summary()
 
 # ---- Save ----
 carers_allowance |>
-  write_rds("data/capacity/health-inequalities/england/carers-allowance.rds")
+  write_rds("data/capacity/health-inequalities/england/access-availability/carers-allowance.rds")

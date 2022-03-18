@@ -68,7 +68,7 @@ fires_joined <-
 
 fires_extent <-
   fires_joined |>
-  calculate_extent(
+  calculate_extent_depreciated(
     var = total_fires,
     higher_level_geography = lad_code,
     population = total_population
