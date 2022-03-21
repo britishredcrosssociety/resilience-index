@@ -88,7 +88,7 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 normalise <- 
   function(x, 
            ignore_nas = FALSE) {
-    x - mean(x, na.rm = ignore_nas) / sd(x, na.rm = ignore_nas)
+    (x - mean(x, na.rm = ignore_nas)) / sd(x, na.rm = ignore_nas)
   } 
 
 #' Quantise a vector of ranks
