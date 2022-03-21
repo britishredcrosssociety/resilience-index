@@ -94,8 +94,9 @@ fra_lad_lookup |>
 # Reply from Papers@parliament.uk on this: 
 # In the case of the fire authorities which are not in this data set, 
 # the fire and rescue service is run directly by the County Council, so it is funded 
-# via those councils’ settlements. The fire authorities DLUHC lists in its data are those 
-# which are separate from their local councils for funding purposes, and receive their own settlements.
+# via those councils’ settlements (and so are included in the data via the rows for the UTLA).
+# The fire authorities DLUHC lists in its data are those which are separate 
+# from their local councils for funding purposes, and receive their own settlements.
 
 ltla_fire_cps <- fire_cps |>
   inner_join(fra_lad_lookup, by = "fra_code") |>
@@ -125,7 +126,8 @@ utla_cps <- remaining_fire |>
 # local government responsibilities are split between the two tiers, so the councils in each tier get their own funding
 # settlements and have their own spending power figures. Other areas (such as Greater London) are covered by single-tier 
 # councils which take on all the responsibilities of both upper-tier and lower-tier authorities, but confusingly 
-# these are generally also referred to as upper-tier authorities.
+# these are generally also referred to as upper-tier authorities. There isn;t double counting of spending power
+# it just depends on the area whether the responsibility is funded via the LTLA or UTLA. 
 
 ltla_utla_cps <- utla_cps |>
   left_join(lookup_counties_ua_lad, by = "county_ua_code") |>
@@ -224,5 +226,3 @@ combined <- ltla_cps |>
 combined |>
   write_rds("data/capacity/disasters-emergencies/england/la-spending-power.rds")
 
-# To email about the dataset to find out why some UTLAs get additional spending power (and not others)
-# And why not all Fire & Rescue Authorities are in the data
