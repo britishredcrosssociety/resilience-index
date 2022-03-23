@@ -3,7 +3,7 @@ library(tidyverse)
 library(readxl)
 library(geographr)
 
-source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R") # for download_file() & calculate_extent()
+source("functions/utils.R")
 
 
 # OSCI Community Needs Index data ----
@@ -113,7 +113,7 @@ civic_assests_lad <- civic_assests |>
   ) |>
   rename(lad_code = lad_21_code, civic_assests_extent = extent)
 
-# Bind on missing values for Isle of Scilly & Inner London otherwise then don't get included into 
+# Bind on missing values for Isle of Scilly & Inner London otherwise then don't get included into
 civic_assests_lad_update <- civic_assests_lad |>
   bind_rows(tibble(lad_code = c("E06000053", "E09000001")))
 
@@ -123,4 +123,4 @@ civic_assests_lad |>
 
 # Save data -----
 civic_assests_lad_update |>
-  write_rds("data/capacity/disasters-emergencies/england/community-assets.rds")
+  write_rds("indices/disasters-emergencies/england/ltla/capacity/data/community-assets.rds")

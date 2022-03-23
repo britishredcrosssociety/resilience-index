@@ -3,7 +3,7 @@ library(tidyverse)
 library(readxl)
 library(geographr)
 
-source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R") # for download_file() & calculate_extent()
+source("functions/utils.R")
 
 
 # OSCI Community Needs Index data ----
@@ -113,4 +113,4 @@ engagement_lad |>
 
 # Save data -----
 engagement_lad |>
-  write_rds("data/capacity/disasters-emergencies/england/engagement.rds")
+  write_rds("indices/disasters-emergencies/england/ltla/capacity/data/engagement.rds")

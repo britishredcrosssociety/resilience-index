@@ -3,7 +3,7 @@ library(sf)
 library(geographr)
 library(tidyverse)
 
-source("R/utils.R")
+source("functions/utils.R")
 
 # Output area boundaries ----
 # Output areas (OA) were created for Census data
@@ -39,14 +39,14 @@ unique(flood$type)
 st_crs(flood)
 st_crs(boundaries_oa)
 
-# Boundaries data 
+# Boundaries data
 # Transform the OA data from spherical/geographic system (units of degrees of lat/long)
-# to projected/planar system (units of meters) 
+# to projected/planar system (units of meters)
 # Flood data is in projected system for UK: https://epsg.io/27700
 # More info https://r-spatial.org/r/2020/06/17/s2.html & https://rspatial.org/raster/spatial/6-crs.html
 
 # Transform flood data so same CRS as output area boundaries
-oa_transform <- boundaries_oa_eng  |>
+oa_transform <- boundaries_oa_eng |>
   st_transform(crs = st_crs(flood))
 
 flood_select <- flood |>
@@ -54,7 +54,7 @@ flood_select <- flood |>
   select(flood_zone_id, layer, type, geometry)
 
 interserctions <- flood_select |>
-  st_join(oa_transform , left = TRUE) |>
+  st_join(oa_transform, left = TRUE) |>
   relocate(geometry, .after = everything())
 
 flood_risk_oa <- interserctions |>
@@ -66,7 +66,7 @@ flood_risk_oa <- interserctions |>
 # OA to LTLA lookup ----
 # Output Area to Lower Layer Super Output Area to Middle Layer Super Output Area to Local Authority District (December 2011) Lookup in England and Wales
 # Source: https://geoportal.statistics.gov.uk/datasets/output-area-to-lower-layer-super-output-area-to-middle-layer-super-output-area-to-local-authority-district-december-2011-lookup-in-england-and-wales
-oa_lookup = read_sf("https://opendata.arcgis.com/datasets/65664b00231444edb3f6f83c9d40591f_0.geojson")
+oa_lookup <- read_sf("https://opendata.arcgis.com/datasets/65664b00231444edb3f6f83c9d40591f_0.geojson")
 
 # Source: https://geoportal.statistics.gov.uk/datasets/output-area-to-lower-layer-super-output-area-to-middle-layer-super-output-area-to-local-authority-district-december-2020-lookup-in-england-and-wales/explore# Source: https://geoportal.statistics.gov.uk/datasets/output-area-to-lower-layer-super-output-area-to-middle-layer-super-output-area-to-local-authority-district-december-2020-lookup-in-england-and-wales/explore
 oa_lookup_select <- oa_lookup |>
@@ -86,7 +86,7 @@ northamptonshire_restructure_2021 <-
     "Wellingborough", "North Northamptonshire", "E07000156", "E06000061",
   )
 
-oa_lookup_select_2021 <- oa_lookup_select |> 
+oa_lookup_select_2021 <- oa_lookup_select |>
   left_join(northamptonshire_restructure_2021, by = c("lad20cd" = "pre_lad_code")) |>
   mutate(lad_code = ifelse(!is.na(post_ua_code), post_ua_code, lad20cd)) |>
   select(oa11cd, msoa11cd, lad_code)
@@ -107,12 +107,11 @@ flood_oa_joined <- boundaries_oa_eng |>
 flood_risk_ltla <- flood_oa_joined |>
   mutate(flood_risk_pop = ifelse(flood_risk == 1, total_population, 0)) |>
   group_by(lad_code) |>
-  summarise(prop_pop_flood_risk = sum(flood_risk_pop)/ sum(total_population))
+  summarise(prop_pop_flood_risk = sum(flood_risk_pop) / sum(total_population))
 
 # Consider if want to do prop of population at flood risk at LSOA/MSOA level and then use calculate_extent()
 # Would this better reflect pockets of highest risk within an LA?
 
 # Save ----
 flood_risk_ltla |>
- write_rds("data/shocks/disasters-emergencies/england/flood.rds")
-
+  write_rds("indices/disasters-emergencies/england/ltla/shocks/data/flood.rds")

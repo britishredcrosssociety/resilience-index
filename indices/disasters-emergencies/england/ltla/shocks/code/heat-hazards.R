@@ -4,7 +4,7 @@ library(sf)
 library(geographr)
 library(demographr)
 
-source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R")
+source("functions/utils.R")
 
 raw <-
   read_sf("data/on-disk/heat-hazard-raw/england/LSOA_England_Heat_Hazard_v1.shp")
@@ -58,4 +58,4 @@ heat_hazard_quantiles <-
 
 # ---- Save ----
 heat_hazard_quantiles |>
-  write_rds("data/shocks/disasters-emergencies/england/heat-hazard.rds")
+  write_rds("indices/disasters-emergencies/england/ltla/shocks/data/heat-hazard.rds")

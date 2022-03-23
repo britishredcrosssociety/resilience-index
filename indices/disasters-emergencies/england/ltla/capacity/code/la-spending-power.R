@@ -4,7 +4,7 @@ library(sf)
 library(tidyverse)
 library(readxl)
 
-source("R/utils.R")
+source("functions/utils.R")
 
 # Spending power data ----
 # Source: https://commonslibrary.parliament.uk/local-authority-data-finances/
@@ -13,10 +13,12 @@ tf <- download_file("https://data.parliament.uk/resources/constituencystatistics
 raw <- read_excel(tf, sheet = "Spending power", skip = 3)
 
 clean <- raw |>
-  select(lad_code = `ONS code`, 
-         lad_name = `Local authority`, 
-         geo_type = `Local authority class`, 
-         cps_millions = `2021/22`)
+  select(
+    lad_code = `ONS code`,
+    lad_name = `Local authority`,
+    geo_type = `Local authority class`,
+    cps_millions = `2021/22`
+  )
 
 clean |>
   distinct(geo_type)
@@ -27,8 +29,9 @@ clean |>
 # Load in population data
 lad_pop <-
   population_lad |>
-  select(lad_code, 
-         pop = total_population) |>
+  select(lad_code,
+    pop = total_population
+  ) |>
   filter(str_detect(lad_code, "^E"))
 
 # Check if using 2021 LAD codes
@@ -71,8 +74,10 @@ remaining_ltla <- clean |>
 # Fire & Rescue Authorities ----
 fire_cps <- remaining_ltla |>
   filter(geo_type == "Fire authority") |>
-  rename(fra_code = lad_code, 
-         fra_name = lad_name)
+  rename(
+    fra_code = lad_code,
+    fra_name = lad_name
+  )
 
 # FRA to LAD lookup data
 # Source: https://geoportal.statistics.gov.uk/datasets/ons::local-authority-district-to-fire-and-rescue-authority-april-2021-lookup-in-england-and-wales/about
@@ -80,10 +85,12 @@ response <- httr::GET("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest
 content <- httr::content(response, type = "application/json", simplifyVector = TRUE)
 
 fra_lad_lookup <- content$features$attributes |>
-  select(ltla_code = LAD21CD, 
-         ltla_name = LAD21NM, 
-         fra_code = FRA21CD, 
-         fra_name = FRA21NM) |>
+  select(
+    ltla_code = LAD21CD,
+    ltla_name = LAD21NM,
+    fra_code = FRA21CD,
+    fra_name = FRA21NM
+  ) |>
   filter(!str_detect(fra_name, "Wales"))
 
 # Check if all FRS in the data
@@ -91,11 +98,11 @@ fra_lad_lookup |>
   anti_join(fire_cps, by = "fra_code") |>
   distinct(fra_name)
 # 15 of the of the 44 FRAs are not in the spending power data
-# Reply from Papers@parliament.uk on this: 
-# In the case of the fire authorities which are not in this data set, 
-# the fire and rescue service is run directly by the County Council, so it is funded 
+# Reply from Papers@parliament.uk on this:
+# In the case of the fire authorities which are not in this data set,
+# the fire and rescue service is run directly by the County Council, so it is funded
 # via those councils’ settlements (and so are included in the data via the rows for the UTLA).
-# The fire authorities DLUHC lists in its data are those which are separate 
+# The fire authorities DLUHC lists in its data are those which are separate
 # from their local councils for funding purposes, and receive their own settlements.
 
 ltla_fire_cps <- fire_cps |>
@@ -104,8 +111,10 @@ ltla_fire_cps <- fire_cps |>
   group_by(fra_code) |>
   mutate(pop_weighted_cps = pop / sum(pop) * cps_millions) |>
   ungroup() |>
-  select(LAD21CD = ltla_code, 
-         cps_millions = pop_weighted_cps)
+  select(
+    LAD21CD = ltla_code,
+    cps_millions = pop_weighted_cps
+  )
 
 remaining_fire <- remaining_ltla |>
   filter(geo_type != "Fire authority")
@@ -117,17 +126,19 @@ utla_pop <- population_counties_ua |>
 
 utla_cps <- remaining_fire |>
   inner_join(utla_pop, by = c("lad_code" = "county_ua_code")) |>
-  select(county_ua_code = lad_code, 
-         county_ua_name = lad_name, 
-         cps_millions)
+  select(
+    county_ua_code = lad_code,
+    county_ua_name = lad_name,
+    cps_millions
+  )
 # Only 16 UTLAs have spending power
-# Reply from Papers@parliament.uk on this: 
-# The upper-tier local authorities which have lower-tier authorities within them are the shire counties – in these areas, 
+# Reply from Papers@parliament.uk on this:
+# The upper-tier local authorities which have lower-tier authorities within them are the shire counties – in these areas,
 # local government responsibilities are split between the two tiers, so the councils in each tier get their own funding
-# settlements and have their own spending power figures. Other areas (such as Greater London) are covered by single-tier 
-# councils which take on all the responsibilities of both upper-tier and lower-tier authorities, but confusingly 
+# settlements and have their own spending power figures. Other areas (such as Greater London) are covered by single-tier
+# councils which take on all the responsibilities of both upper-tier and lower-tier authorities, but confusingly
 # these are generally also referred to as upper-tier authorities. There isn;t double counting of spending power
-# it just depends on the area whether the responsibility is funded via the LTLA or UTLA. 
+# it just depends on the area whether the responsibility is funded via the LTLA or UTLA.
 
 ltla_utla_cps <- utla_cps |>
   left_join(lookup_counties_ua_lad, by = "county_ua_code") |>
@@ -135,8 +146,9 @@ ltla_utla_cps <- utla_cps |>
   group_by(county_ua_code) |>
   mutate(pop_weighted_cps = ifelse(cps_millions == 0, 0, pop / sum(pop) * cps_millions)) |>
   ungroup() |>
-  select(lad_code, 
-         cps_millions = pop_weighted_cps)
+  select(lad_code,
+    cps_millions = pop_weighted_cps
+  )
 
 # Update to 2021 LAD codes
 ltla_utla_cps_updated <- ltla_utla_cps |>
@@ -161,16 +173,20 @@ response <- httr::GET("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest
 content <- httr::content(response, type = "application/json", simplifyVector = TRUE)
 
 combined_auth_lookup <- content$features$attributes |>
-  select(-column4, 
-         -FID)
+  select(
+    -column4,
+    -FID
+  )
 
 # There are no changes between 2020 and 2021 LAD codes for Greater Manchester LTLAs
 combined_auth_ltla_cps <- remaining_utla |>
   inner_join(combined_auth_lookup, by = c("lad_code" = "CAUTH20CD")) |>
   left_join(lad_pop_update, by = c("LAD20CD" = "LAD21CD")) |>
   mutate(pop_weighted_cps = pop / sum(pop) * cps_millions) |>
-  select(LAD21CD = LAD20CD, 
-         cps_millions)
+  select(
+    LAD21CD = LAD20CD,
+    cps_millions
+  )
 
 # Check if these LTLAs from splitting UTLAs are already in the data as LTLAs
 combined_auth_ltla_cps |>
@@ -187,9 +203,11 @@ gla_clean <- read_csv("https://data.london.gov.uk/download/london-borough-profil
 
 # Cleaning and removing any cumulative areas that are just combinations of the LTLAs
 gla_lad_codes <- gla_clean |>
-  select(lad_code = X1, 
-         area = X2, 
-         inner_outer = X3) |>
+  select(
+    lad_code = X1,
+    area = X2,
+    inner_outer = X3
+  ) |>
   slice(-1) |>
   filter(!is.na(inner_outer))
 
@@ -204,8 +222,10 @@ gla_ltla_cps <- gla_lad_codes |>
   mutate(cps_millions = gla_cps_value) |>
   left_join(lad_pop_update, by = c("lad_code" = "LAD21CD")) |>
   mutate(pop_weighted_cps = pop / sum(pop) * cps_millions) |>
-  select(LAD21CD = lad_code, 
-         cps_millions = pop_weighted_cps)
+  select(
+    LAD21CD = lad_code,
+    cps_millions = pop_weighted_cps
+  )
 
 # Check if these LTLAs from splitting GLA are already in the data as LTLAs
 gla_ltla_cps |>
@@ -224,5 +244,4 @@ combined <- ltla_cps |>
 
 # Save data ----
 combined |>
-  write_rds("data/capacity/disasters-emergencies/england/la-spending-power.rds")
-
+  write_rds("indices/disasters-emergencies/england/ltla/capacity/data/la-spending-power.rds")
