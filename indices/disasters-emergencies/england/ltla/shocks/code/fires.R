@@ -74,5 +74,5 @@ housing_all_lads <-
   add_row(lad_code = "E06000053", fire_count_per_pop = NA)
 
 # Save data ----
-housing_fires_lad_normalised |>
+housing_all_lads |>
   write_rds("indices/disasters-emergencies/england/ltla/shocks/data/fire.rds")
