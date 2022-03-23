@@ -115,9 +115,48 @@ vuln_overall_quantised <-
     )
   )
 
-# ---- Join All Scores ----
+# ---- Join All Vulnerability Scores ----
 vuln_all <-
-  vuln_overall_quantised |> 
-  left_join(vuln_ind_domain) |> 
+  vuln_overall_quantised |>
+  left_join(vuln_ind_domain) |>
   left_join(vuln_com_domain)
 
+# ---- Shocks ----
+# Load
+shocks_raw <-
+  load_indicators(
+    "indices/disasters-emergencies/england/ltla/shocks/data",
+    key = "lad_code"
+  )
+
+# Rank and quantise fires and floods
+shocks <-
+  shocks_raw |>
+  mutate(
+    fire_rank = rank_na_first(fire_count_per_pop),
+    flood_rank = prop_pop_flood_risk
+  ) |>
+  select(
+    -fire_count_per_pop,
+    -prop_pop_flood_risk
+  ) |>
+  mutate(
+    fire_quantiles = quantise(fire_rank, 5),
+    flood_quantiles = quantise(flood_rank, 5)
+  ) |>
+  select(
+    lad_code,
+    heat_hazard_quantiles = heat_hazard_quintiles,
+    fire_quantiles,
+    flood_quantiles
+  )
+
+# ---- Join All Scores ----
+all_scores <-
+  vuln_all |>
+  left_join(shocks)
+
+write_csv(
+  all_scores,
+  "indices/disasters-emergencies/england/ltla/de-england-ltla-index.csv"
+)
