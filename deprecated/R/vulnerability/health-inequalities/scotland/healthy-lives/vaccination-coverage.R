@@ -1,0 +1,174 @@
+library(httr)
+library(readxl)
+library(dplyr)
+library(geographr)
+library(sf)
+library(stringr)
+library(tidyr)
+library(readr)
+
+# Create Scotland LAD code to name lookup
+lookup <-
+  boundaries_lad %>%
+  as_tibble() %>%
+  select(lad_name, lad_code) %>%
+  filter(str_detect(lad_code, "^S")) %>%
+  arrange(lad_name)
+
+# HPV
+# Source: https://beta.isdscotland.org/find-publications-and-data/population-health/child-health/hpv-immunisation-statistics-scotland/
+# Use Sheet 'Table 4b (S4- LA)', as it contains the cummaltive counts from S1-S4 (see footnotes)
+GET(
+  "https://beta.isdscotland.org/media/6895/2020-12-22-hpv-tables.xlsx",
+  write_disk(tf <- tempfile(fileext = ".xlsx"))
+)
+
+hpv_raw <-
+  read_excel(tf, sheet = "Table 4b (S4- LA)", skip = 5)
+
+hpv <-
+  hpv_raw %>%
+  slice(1:32) %>%
+  select(lad_name = `...1`, hpv_vaccine_rate = `Uptake rate (%)...4`) %>%
+  mutate(hpv_vaccine_rate = as.double(hpv_vaccine_rate)) %>%
+  mutate(lad_name = if_else(lad_name == "Dumfries & Galloway", "Dumfries and Galloway", lad_name)) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  select(-lad_name)
+
+# Teenage booster immunisations
+# Source: https://beta.isdscotland.org/find-publications-and-data/population-health/child-health/teenage-booster-immunisation-statistics-scotland/
+GET(
+  "https://beta.isdscotland.org/media/6890/2020-12-22-teenage-booster-tables.xlsx",
+  write_disk(tf <- tempfile(fileext = ".xlsx"))
+)
+
+tennage_booster_raw <-
+  read_excel(tf, sheet = "Table 2b (LA- S4)", skip = 4)
+
+teenage_booster <-
+  tennage_booster_raw %>%
+  slice(1:32) %>%
+  select(
+    lad_name = `...1`,
+    tp_ipv_teenage_booster_rate = `Uptake rate (%)...4`,
+    menacwy_teenage_booster_rate = `Uptake rate (%)...6`
+  ) %>%
+  mutate(
+    tp_ipv_teenage_booster_rate = as.double(tp_ipv_teenage_booster_rate),
+    menacwy_teenage_booster_rate = as.double(menacwy_teenage_booster_rate)
+  ) %>%
+  mutate(lad_name = str_remove_all(lad_name, "3")) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  select(-lad_name)
+
+# Childhood immunisations
+# Source: https://beta.isdscotland.org/find-publications-and-data/population-health/child-health/childhood-immunisation-statistics-scotland/
+GET(
+  "https://beta.isdscotland.org/media/8124/child_imms_latestrates_calendar20_la.xlsx",
+  write_disk(tf <- tempfile(fileext = ".xlsx"))
+)
+
+twelve_months_raw <-
+  read_excel(tf, sheet = "Table 1 - 12m (LA)", skip = 5)
+
+twelve_months <-
+  twelve_months_raw %>%
+  slice(2:33) %>%
+  select(
+    lad_name = `...1`,
+    rate_6_in_1 = `%...4`,
+    rate_pcv = `%...6`,
+    rate_rotavirus = `%...8`,
+    rate_menb = `%...10`
+  ) %>%
+  mutate(lad_name = str_remove_all(lad_name, "4")) %>%
+  mutate(lad_name = str_replace_all(lad_name, "&", "and")) %>%
+  mutate(lad_name = if_else(lad_name == "Edinburgh City", "City of Edinburgh", lad_name)) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  mutate(across(starts_with("rate_"), as.double)) %>%
+  select(-lad_name)
+
+twenty_four_months_raw <-
+  read_excel(tf, sheet = "Table 2 - 24m (LA)", skip = 5)
+
+twenty_four_months <-
+  twenty_four_months_raw %>%
+  slice(2:33) %>%
+  select(
+    lad_name = `...1`,
+    rate_6_in_1 = `%...4`,
+    rate_mmr1 = `%...6`,
+    rate_hib_menc = `%...8`,
+    rate_pcvb = `%...10`,
+    rate_menb_booster = `%...12`
+  ) %>%
+  mutate(lad_name = str_remove_all(lad_name, "3")) %>%
+  mutate(lad_name = str_replace_all(lad_name, "&", "and")) %>%
+  mutate(lad_name = if_else(lad_name == "Edinburgh City", "City of Edinburgh", lad_name)) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  mutate(across(starts_with("rate_"), as.double)) %>%
+  select(-lad_name)
+
+three_five_years_raw <-
+  read_excel(tf, sheet = "Table 3 - 5y (LA)", skip = 5)
+
+three_five_years <-
+  three_five_years_raw %>%
+  slice(2:33) %>%
+  select(
+    lad_name = `...1`,
+    rate_6_in_1 = `%...4`,
+    rate_mmr1 = `%...6`,
+    rate_hib_menc = `%...8`,
+    rate_4_in_1 = `%...10`,
+    rate_mmr2 = `%...12`
+  ) %>%
+  mutate(lad_name = str_remove_all(lad_name, "3")) %>%
+  mutate(lad_name = str_replace_all(lad_name, "&", "and")) %>%
+  mutate(lad_name = if_else(lad_name == "Edinburgh City", "City of Edinburgh", lad_name)) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  mutate(across(starts_with("rate_"), as.double)) %>%
+  select(-lad_name)
+
+four_six_years_raw <-
+  read_excel(tf, sheet = "Table 4 - 6y (LA)", skip = 5)
+
+four_six_years <-
+  four_six_years_raw %>%
+  slice(2:33) %>%
+  select(
+    lad_name = `...1`,
+    rate_mmr1 = `%...4`,
+    rate_4_in_1 = `%...6`,
+    rate_mmr2 = `%...8`
+  ) %>%
+  mutate(lad_name = str_remove_all(lad_name, "3")) %>%
+  mutate(lad_name = str_replace_all(lad_name, "&", "and")) %>%
+  mutate(lad_name = if_else(lad_name == "Edinburgh City", "City of Edinburgh", lad_name)) %>%
+  left_join(lookup, by = "lad_name") %>%
+  relocate(lad_code, .after = lad_name) %>%
+  mutate(across(starts_with("rate_"), as.double)) %>%
+  select(-lad_name)
+
+# Combine vaccine indicators and calculate mean
+vaccine_coverage <-
+  hpv %>%
+  left_join(teenage_booster, by = "lad_code") %>%
+  left_join(twelve_months, by = "lad_code") %>%
+  left_join(twenty_four_months, by = "lad_code") %>%
+  left_join(three_five_years, by = "lad_code") %>%
+  left_join(four_six_years, by = "lad_code") %>%
+  pivot_longer(
+    cols = !lad_code,
+    names_to = "vaccine_type",
+    values_to = "rate"
+  ) %>%
+  group_by(lad_code) %>%
+  summarise(vaccine_rate_mean = mean(rate))
+
+write_rds(vaccine_coverage, "data/vulnerability/health-inequalities/scotland/healthy-lives/vaccination-coverage.rds")

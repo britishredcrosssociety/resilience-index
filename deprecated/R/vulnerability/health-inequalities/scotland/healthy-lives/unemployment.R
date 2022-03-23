@@ -1,0 +1,41 @@
+library(httr)
+library(readxl)
+library(readr)
+library(dplyr)
+library(stringr)
+
+# Source: https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/datasets/modelledunemploymentforlocalandunitaryauthoritiesm01
+GET(
+  "https://www.ons.gov.uk/file?uri=/employmentandlabourmarket/peoplenotinwork/unemployment/datasets/modelledunemploymentforlocalandunitaryauthoritiesm01/current/modelbasedunemploymentdataapril2021.xls",
+  write_disk(tf <- tempfile(fileext = ".xls"))
+)
+
+unemployment_raw <-
+  read_excel(tf, sheet = "LA,UA Rates", skip = 2)
+
+unemployment <-
+  unemployment_raw %>%
+  select(
+    lad_code = ...2,
+    unemployment_percent = `Jan 2020 to Dec 2020`
+  ) %>%
+  filter(str_detect(lad_code, "^S")) %>%
+  mutate(unemployment_percent = as.double(unemployment_percent)) %>%
+  mutate(unemployment_percent = unemployment_percent / 100)
+
+# Match 2019 LAD codes
+# https://www.opendata.nhs.scot/dataset/geography-codes-and-labels/resource/967937c4-8d67-4f39-974f-fd58c4acfda5
+# Look at the 'CADateArchived' column to view changes
+unemployment <-
+  unemployment %>%
+  mutate(
+    lad_code = case_when(
+      lad_code == "S12000015" ~ "S12000047",
+      lad_code == "S12000024" ~ "S12000048",
+      lad_code == "S12000046" ~ "S12000049",
+      lad_code == "S12000044" ~ "S12000050",
+      TRUE ~ lad_code
+    )
+  )
+
+write_rds(unemployment, "data/vulnerability/health-inequalities/scotland/healthy-lives/unemployment.rds")
