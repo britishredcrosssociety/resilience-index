@@ -43,3 +43,4 @@ vignettes/*.pdf
 
 # Data sets
 deprecated/data/on-disk/
+on-disk/
