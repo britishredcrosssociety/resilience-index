@@ -80,6 +80,14 @@ scale_ranks <- function(x) (x - 1) / (length(x) - 1)
 #' @param x Vector of data to invert
 invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 
+#' Transform data to an exponential distribution using the exponential
+#' transformation function listed in Welsh IMD's tech report - see Appendix
+#' A: https://gov.wales/sites/default/files/statistics-and-research/2020-02/welsh-index-multiple-deprivation-2019-technical-report.pdf
+#'  
+#' @param x The data to transform
+#'  
+exp_transform = function(x) -23 * log(1 - x * (1 -exp(-100/23)))
+
 #' Normalise a vector where mean = 0 & SD = 1.
 #'
 #' @param x Vector of data to normalise
