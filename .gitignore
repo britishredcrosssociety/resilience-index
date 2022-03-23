@@ -42,10 +42,4 @@ vignettes/*.pdf
 .Renviron
 
 # Data sets
-depreciated/data/raw/floods/england/
-depreciated/data/raw/floods/wales/
-depreciated/data/raw/floods/ni/
-depreciated/data/raw/population/
-depreciated/data/raw/postcodes/
-data/vulnerability/disasters-emergencies/england/heat-hazard-raw/
-data/on-disk/
+deprecated/data/on-disk/
