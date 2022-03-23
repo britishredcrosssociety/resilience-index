@@ -103,7 +103,6 @@ flood_oa_joined <- boundaries_oa_eng |>
   left_join(oa_lookup_select_2021, by = "oa11cd") |>
   mutate(flood_risk = ifelse(is.na(flood_risk), 0, flood_risk))
 
-
 flood_risk_ltla <- flood_oa_joined |>
   mutate(flood_risk_pop = ifelse(flood_risk == 1, total_population, 0)) |>
   group_by(lad_code) |>
