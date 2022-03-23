@@ -100,7 +100,7 @@ normalise <-
 #' @return A vector containing the risk quantiles
 quantise <-
   function(vec,
-           num_quantiles = 10,
+           num_quantiles = 5,
            highest_quantile_worst = TRUE) {
     if (length(unique(vec)) <= 1) {
       stop("The vector cannot be quantised as there is only one unique value.")
@@ -375,7 +375,7 @@ weight_indicators_mfla <-
 calculate_domain_scores <-
   function(data, 
            domain_name, 
-           num_quantiles = 10,
+           num_quantiles = 5,
            ignore_nas = FALSE) {
     data <-
       data |>
