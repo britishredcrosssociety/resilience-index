@@ -54,7 +54,9 @@ de_invert <- de |>
   mutate(de_domain_rank = inverse_rank(de_domain_rank),
          de_domain_quantiles = invert_this(de_domain_quantiles))
 
-
+# Save index
+de_invert |>
+  write_csv("data/capacity/disasters-emergencies/england/de-index.csv")
 
 
 
