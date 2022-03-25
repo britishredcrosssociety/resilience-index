@@ -74,14 +74,10 @@ lad_lookup_17_19 <- raw_lad_lookup |>
   distinct(LAD17CD, LAD19CD) |>
   filter(str_detect(LAD17CD, "^E"))
 
-lad_lookup_19_21 <- lookup_lad_lad |>
-  distinct(lad_19_code, lad_21_code)
-
 lad_lookup <- lad_lookup_17_19 |>
-  left_join(lad_lookup_19_21, by = c("LAD19CD" = "lad_19_code")) |>
-  distinct(lad_17_code = LAD17CD, lad_21_code)
+  distinct(lad_17_code = LAD17CD, lad_19_code = LAD19CD)
 
-# Check changes between 2017 to 2021 are always aggregation rather than disaggregation
+# Check changes between 2017 to 2019 are always aggregation rather than disaggregation
 # As would mean different approaches
 lad_lookup |>
   group_by(lad_17_code) |>
@@ -89,10 +85,10 @@ lad_lookup |>
   filter(count > 1)
 
 lad_lookup |>
-  group_by(lad_21_code) |>
+  group_by(lad_19_code) |>
   summarise(count = n()) |>
   filter(count > 1)
-# Only aggregation from multiple 2017 codes to a single 2021 code
+# Only aggregation from multiple 2017 codes to a single 2019 code
 
 # Join datasets & calculate extent ----
 # Note: high score (i.e. lowest rank) reflects low capability
@@ -101,11 +97,11 @@ engagement_lad <- engagement |>
   left_join(lad_lookup, by = c("lad_code" = "lad_17_code")) |>
   calculate_extent(
     var = engagement_score,
-    higher_level_geography = lad_21_code,
+    higher_level_geography = lad_19_code,
     population = population,
     weight_high_scores = TRUE #  TRUE when a highest variable score equates to a lower capacity
   ) |>
-  rename(lad_code = lad_21_code, engagement_extent = extent)
+  rename(lad_code = lad_19_code, engagement_extent = extent)
 
 engagement_lad |>
   ggplot(aes(x = engagement_extent)) +
