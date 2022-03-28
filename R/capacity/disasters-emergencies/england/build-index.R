@@ -54,6 +54,10 @@ de_invert <- de |>
   mutate(de_domain_rank = inverse_rank(de_domain_rank),
          de_domain_quantiles = invert_this(de_domain_quantiles))
 
+# Save 
+de_invert |>
+  write_csv("data/capacity/disasters-emergencies/england/de-index.csv")
+
 # Compare to 2021 LAD calcs ----
 de_2021 <- read_csv("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/96183f7994c36f875318cffcd1847245663e29e8/data/capacity/disasters-emergencies/england/de-index.csv")
 
