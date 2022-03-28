@@ -95,13 +95,10 @@ de_quint <- indicators_aligned |>
   normalise_indicators() |>
   calculate_domain_scores(domain_name = "de", num_quantiles = 5) 
 
-# Inverting ranks and deciles so that higher scores = higher capacity
-de_quint_invert <- de_quint |>
-  mutate(de_domain_rank = inverse_rank(de_domain_rank),
-         de_domain_quantiles = invert_this(de_domain_quantiles))
+# Don't invert ranks & quintiles because in dashboard logic high score = low capacity 
 
 # Save 
-de_quint_invert |>
+de_quint |>
   select(lad_code, de_domain_quantiles) |>
   write_csv("data/capacity/disasters-emergencies/england/de-index-quint.csv")
 
