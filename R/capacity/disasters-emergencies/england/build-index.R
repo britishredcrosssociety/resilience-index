@@ -14,7 +14,7 @@ indicators <-
 # # Check entry for all 2021 LAD codes
 # lads_21 <- lookup_lad_counties_21 |>
 #   filter(str_detect(lad_21_code, "^E")) |>
-#   distinct(lad_code = lad_21_code) 
+#   distinct(lad_code = lad_21_code)
 
 # lads_21 |>
 #   anti_join(indicators, by = "lad_code")
@@ -23,14 +23,14 @@ indicators <-
 #   anti_join(lads_21, by = "lad_code")
 
 # indicators |>
-#   dplyr::filter(if_any(everything(), ~is.na(.x))) 
+#   dplyr::filter(if_any(everything(), ~is.na(.x)))
 # # City of London & Isle of Scilly are both missing civic assests & engagement
-# # Assumption: drop these LADs due to too many missing variables. 
+# # Assumption: drop these LADs due to too many missing variables.
 
 indicators_complete <- indicators |>
   drop_na()
 
-# Align direction so that high score = low capacity 
+# Align direction so that high score = low capacity
 indicators_aligned <- indicators_complete |>
   mutate(cps_millions = cps_millions * -1) |>
   mutate(median_response_time = as.numeric(median_response_time))
@@ -39,29 +39,59 @@ indicators_aligned <- indicators_complete |>
 
 # Check distribution
 indicators_aligned |>
-  normalise_indicators() |> 
+  normalise_indicators() |>
   summary()
 
 de <-
   indicators_aligned |>
   normalise_indicators() |>
-  calculate_domain_scores(domain_name = "de") 
+  calculate_domain_scores(domain_name = "de")
 
 # Inverting ranks and deciles so that higher scores = higher capacity
 de_invert <- de |>
-  mutate(de_domain_rank = inverse_rank(de_domain_rank),
-         de_domain_quantiles = invert_this(de_domain_quantiles))
+  mutate(
+    de_domain_rank = inverse_rank(de_domain_rank),
+    de_domain_quantiles = invert_this(de_domain_quantiles)
+  )
 
 # Save index
 de_invert |>
   write_csv("data/capacity/disasters-emergencies/england/de-index.csv")
 
-# Check against ranks/quintiles without fire data -----
+# Check against ranks/deciles without fire data -----
 de_index_no_fire <- read_csv("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/data/capacity/disasters-emergencies/england/de-index.csv")
 
+de_index_no_fire <- de_index_no_fire |>
+  rename_with(~ paste0(., "_no_fire"), where(is.numeric))
+
+# Looks at changes in deciles depending on whether add the fire data in or not
 de_invert |>
   left_join(de_index_no_fire, by = "lad_code") |>
-  mutate(quintile_change = de_domain_quantiles.y - de_domain_quantiles.x) |>
+  mutate(quintile_change = de_domain_quantiles - de_domain_quantiles_no_fire) |>
   group_by(quintile_change) |>
-  summarise(count = n(),
-            prop = n() / nrow(de_invert))
+  summarise(
+    count = n(),
+    prop = n() / nrow(de_invert)
+  )
+
+# Check changes to lowest decile
+de_invert |>
+  left_join(de_index_no_fire, by = "lad_code") |>
+  filter(de_domain_quantiles == 10) |>
+  mutate(quintile_change = de_domain_quantiles - de_domain_quantiles_no_fire) |>
+  group_by(quintile_change) |>
+  summarise(
+    count = n(),
+    prop = n() / nrow(de_invert)
+  )
+
+# Check changes to 2nd lowest decile
+de_invert |>
+  left_join(de_index_no_fire, by = "lad_code") |>
+  filter(de_domain_quantiles == 9) |>
+  mutate(quintile_change = de_domain_quantiles - de_domain_quantiles_no_fire) |>
+  group_by(quintile_change) |>
+  summarise(
+    count = n(),
+    prop = n() / nrow(de_invert)
+  )
