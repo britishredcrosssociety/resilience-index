@@ -1,6 +1,3 @@
-# Fire station response time is not included for now (17/03) as don't have LTLA level data 
-# (only FRA level). Include again when get this from Gov. 
-
 # ---- Load libraries and Functions ----
 library(tidyverse)
 library(demographr)
@@ -35,7 +32,8 @@ indicators_complete <- indicators |>
 
 # Align direction so that high score = low capacity 
 indicators_aligned <- indicators_complete |>
-  mutate(cps_millions = cps_millions * -1)
+  mutate(cps_millions = cps_millions * -1) |>
+  mutate(median_response_time = as.numeric(median_response_time))
 
 # ---- Build Index ----
 
@@ -58,6 +56,12 @@ de_invert <- de |>
 de_invert |>
   write_csv("data/capacity/disasters-emergencies/england/de-index.csv")
 
+# Check against ranks/quintiles without fire data -----
+de_index_no_fire <- read_csv("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/data/capacity/disasters-emergencies/england/de-index.csv")
 
-
-
+de_invert |>
+  left_join(de_index_no_fire, by = "lad_code") |>
+  mutate(quintile_change = de_domain_quantiles.y - de_domain_quantiles.x) |>
+  group_by(quintile_change) |>
+  summarise(count = n(),
+            prop = n() / nrow(de_invert))

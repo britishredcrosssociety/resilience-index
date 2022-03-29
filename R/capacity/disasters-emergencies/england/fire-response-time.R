@@ -1,34 +1,22 @@
-# Removing fire station response time for now as don't have LTLA level data 
-# (only FRA level). Include again when get this. 
-
 # Load packages ----
 library(tidyverse)
 library(readxl)
 library(geographr)
-library(sf)
 library(httr)
 
-source("R/utils.R") # for download_file()
-
 # Load data and prep ----
-# Source: https://www.gov.uk/government/statistical-data-sets/fire-statistics-data-tables#response-times
-# Link to dataset (year ending June 2021): https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1032104/fire-statistics-data-tables-fire1001-111121.xlsx
+# Data saved: https://brcsbrms.sharepoint.com/sites/StrategicInsightandForesight/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FStrategicInsightandForesight%2FShared%20Documents%2FData%2FFire%20response%20times&viewid=d6ca3ec2%2D0b57%2D4ed5%2D8934%2Da4981af10332
+# Source: email request to FireStatistics@homeoffice.gov.uk
 
-tf <- download_file(
-  "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1032104/fire-statistics-data-tables-fire1001-111121.xlsx",
-  "xlsx"
+# Request times for dwelling fires only due to the nature of fires responded to by VCS
+# 'Dwellings' is the sum of 'House/bungalow', 'Flats' & 'Other Dwellings'
+raw <- read_excel("data/on-disk/fire-response-times/response times data - by LA for dwelling fires 2020 to 2021 fy.xlsx",
+  sheet = "RAW DATA"
 )
 
-raw <- read_excel(tf, sheet = "Data - annual")
-
-# 'Dwellings' is the sum of 'House/bungalow', 'Flats' & 'Other Dwellings'
-# Assumption to keep only dwelling fires due to the nature of fires responded to by VCS
-# See 'FIRE1001' tab in Excel sheet to understand hierarchies of Primary and Secondary etc. 
 raw_filtered <- raw |>
   rename_with(tolower, everything()) |>
-  filter(financial_year == max(raw$FINANCIAL_YEAR),
-         fire_type == "Dwellings") 
-  
+  drop_na(incident_type)
 
 # Definitions:
 # Total response time: time of call to first vehicle to arrive at the incident.
@@ -36,95 +24,161 @@ raw_filtered <- raw |>
 # Crew turnout: from time station notified to first vehicle to leave
 # Drive time: from time first vehicle leaves to first vehicle to arrive at the incident
 
-# Assume call handling be outwith the LAs fire service control and be a 999 operator variable. So will not include this. 
-# Drive time arguably not just reflective of speed but also proximity to fires of fire stations? Will include to reflect georgaohy of area. 
-
+# Assume call handling be outwith the LAs fire service control and be a 999 operator variable. So will not include this.
+# Drive time arguably not just reflective of speed but also proximity to fires of fire stations?
 fire_response <- raw_filtered |>
   mutate(station_response_time = total_response_time - call_handling_time) |>
-  select(frs = location_category, incidents, station_response_time) |>
-  filter(!frs %in% c("England", "Metropolitan", "Non-metropolitan", "Predominantly Rural", "Predominantly Urban", "Significantly Rural"))
-# 44 areas
+  select(local_authority, station_response_time)
 
-# FRA to LAD lookup data ----
-# Source https://geoportal.statistics.gov.uk/datasets/ons::local-authority-district-to-fire-and-rescue-authority-april-2021-lookup-in-england-and-wales/about
-response <- GET("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD21_FRA21_EW_LU/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json")
-content <- content(response, type = "application/json", simplifyVector = TRUE)
+fire_response_stats <- fire_response |>
+  group_by(local_authority) |>
+  summarise(
+    mean = mean(station_response_time),
+    median = median(station_response_time),
+    sd = sd(station_response_time),
+    count = n()
+  )
 
-fra_lad_lookup <- content$features$attributes |>
-  select(lad_code = LAD21CD, lad_name = LAD21NM, fra_code = FRA21CD, fra_name = FRA21NM) |>
-  filter(!str_detect(fra_name, "Wales"))
+fire_response_median <- fire_response_stats |>
+  select(local_authority, median_response_time = median)
 
-# Check coverage of LADs in dataset ----
-# 2021 Local Authorities list
-# Source: https://geoportal.statistics.gov.uk/datasets/967a3660c4aa49819731ceefe4008d76_0/explore
-response <- GET("https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LTLA21_UTLA21_EW_LU/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json")
-content <- content(response, type = "application/json", simplifyVector = TRUE)
+# Join on the LTLA codes -------------
 
-ltla_utla_lookup <- content$features$attributes |>
-  select(ltla_code = LTLA21CD, ltla_name = LTLA21NM, utla_code = UTLA21CD, utla_name = UTLA21NM)
-         
-ltla_utla_lookup |>
-  anti_join(fra_lad_lookup, by = c("ltla_code" = "lad_code")) |> 
-  filter(str_detect(ltla_code, "^E")) 
+ltla_2021 <- lookup_lad_21_counties_ua_21 |>
+  distinct(lad_21_code, lad_21_name)
 
-fra_lad_lookup  |>
-  anti_join(ltla_utla_lookup, by = c("lad_code" = "ltla_code")) |> 
-  filter(str_detect(lad_code, "^E")) 
+ltla_21_matches <- fire_response_median |>
+  inner_join(ltla_2021, by = c("local_authority" = "lad_21_name")) |>
+  rename(lad_21_name = "local_authority")
 
-# Check of how many LADs to a FRA ----
-fra_lad_lookup |>
-  group_by(fra_code) |>
-  summarise(count = n()) |>
-  summary()
+# Any remaining unmatched
+ltla_21_remaining <- fire_response_median |>
+  anti_join(ltla_2021, by = c("local_authority" = "lad_21_name"))
 
-fra_lad_lookup |>
-  distinct(fra_name)
-# 47 FRAs
+# To save to send to Fire Stats email
+ltla_21_remaining |>
+  write_csv("~/Documents/fire-response-times-ltlas-remaining.csv")
+
+# Check if any unmatches are 2019 LTLA codes -----
+ltla_19_matches <- lookup_lad_lad |>
+  inner_join(ltla_21_remaining, by = c("lad_19_name" = "local_authority")) |>
+  select(lad_19_name, lad_21_name, lad_21_code)
+
+# For those with 2019 codes take median response times across the 2019 LTLAs within the 2021 LTAs
+ltla_19_matches_times <- fire_response |>
+  inner_join(ltla_19_matches, by = c("local_authority" = "lad_19_name")) |>
+  group_by(lad_21_name, lad_21_code) |>
+  summarise(median_response_time = median(station_response_time)) |>
+  ungroup()
+
+# Any remaining unmatched
+ltla_19_remaining <- ltla_21_remaining |>
+  anti_join(ltla_19_matches, by = c("local_authority" = "lad_19_name"))
 
 
-# Check matches between datasets ----
-fra_lad_lookup |>
-  anti_join(fire_response, by = c("fra_name" = "frs")) |>
-  distinct(fra_name)
+# Matches to Local Authorities that were pre 2019 ------------
 
-fire_response |>
-  anti_join(fra_lad_lookup, by = c("frs" = "fra_name"))
+# Local Authority code changes (not covered in the lookup_lad_lad table in geographr package)
+# Source: https://geoportal.statistics.gov.uk/datasets/code-history-database-december-2021-for-the-united-kingdom/about
+query_url <- "https://www.arcgis.com/sharing/rest/content/items/a8807f0914234a52b00edecdc34428fa/data"
 
-# Manual fixes of some names to allow matching
-# Isles Of Scilly had no dwelling fires for 2021/22 
-fire_response_updated <- fire_response |>
-  mutate(frs = case_when(
-    frs == "Devon and Somerset" ~ "Devon & Somerset",
-    frs == "Dorset and Wiltshire" ~ "Dorset & Wiltshire",
-    frs == "Greater London" ~ "London Fire and Emergency Planning Authority",
-    frs == "Nottinghamshire" ~ "Nottinghamshire and City of Nottingham",
-    frs == "Staffordshire" ~ "Stoke-on-Trent and Staffordshire",
-    frs == "Buckinghamshire" ~ "Buckinghamshire & Milton Keynes",
-    frs == "Berkshire" ~ "Royal Berkshire",
-    frs == "Durham" ~ "County Durham and Darlington",
-    frs == "Hereford and Worcester" ~ "Hereford & Worcester",
-    TRUE ~ frs
-  )) |>
-  bind_rows(list(frs = "Isles of Scilly", incidents = 0, station_response_time = NA))
+GET(
+  query_url,
+  write_disk(
+    zip_folder <- tempfile(fileext = ".zip")
+  )
+)
 
-# Check matches after manual fixes
-fire_response_updated |>
-  anti_join(fra_lad_lookup, by = c("frs" = "fra_name"))
+unzip(zip_folder, exdir = tempdir())
 
-fra_lad_lookup |>
-  anti_join(fire_response_updated, by = c("fra_name" = "frs")) |>
-  distinct(fra_name)
+all_changes <-
+  read_csv(
+    file.path(
+      tempdir(),
+      "Changes.csv"
+    )
+  )
 
-# Join fire response time data to FRA to LAD lookup ----
-# Assumption: all LADs within an FRS have same response time as don't currently have data at a lower geography level
-fire_response_lad <- fire_response_updated |>
-  left_join(fra_lad_lookup, by = c("frs" = "fra_name")) |>
-  select(lad_code, station_response_time) 
+# Clean up columns
+all_changes <-
+  all_changes |>
+  distinct(
+    GEOGCD,
+    GEOGNM,
+    GEOGCD_P,
+    GEOGNM_P,
+    YEAR
+  ) |>
+  mutate(year_prev = YEAR - 1) |>
+  rename(
+    code_new = GEOGCD,
+    name_new = GEOGNM,
+    code_prev = GEOGCD_P,
+    name_prev = GEOGNM_P,
+    year_new = YEAR
+  )
+
+# Only keep changes that occurred within between 2018/19
+# These are not covered in the 'lookup_lad_lad' table in geographr
+changes_2019 <- all_changes |>
+  filter(year_new == 2019)
+
+# Need to filter out changes to 'Bournemouth, Christchurch and Poole' registration authorites
+# Only want LTLA changes
+ltla_18_matches <- ltla_19_remaining |>
+  inner_join(changes_2019, by = c("local_authority" = "name_prev")) |>
+  select(lad_18_name = local_authority, lad_19_name = name_new, lad_19_code = code_new) |>
+  filter(str_detect(lad_19_code, "^E0"))
+
+# For those with new 2019 codes take median response times across the 2019 LTLAs within the 2021 LTAs
+# These codes don't change between 2019 and 2021 so rename at end to align with other datasets
+ltla_18_matches_times <- fire_response |>
+  inner_join(ltla_18_matches, by = c("local_authority" = "lad_18_name")) |>
+  group_by(lad_19_name, lad_19_code) |>
+  summarise(median_response_time = median(station_response_time)) |>
+  ungroup() |>
+  rename(lad_21_name = lad_19_name, lad_21_code = lad_19_code)
+
+
+# Any remaining unmatched
+ltla_18_remaining <- ltla_19_remaining |>
+  anti_join(ltla_18_matches, by = c("local_authority" = "lad_18_name"))
+
+# Shepway was renamed to 'Folkestone and Hythe' (E07000112) in 2018 ----
+# Check only Shepway in data and not also an entry for 'Folkestone and Hythe'
+fire_response_median |>
+  filter(local_authority %in% c("Shepway", "Folkestone and Hythe"))
+
+shepway_time <- fire_response_median |>
+  filter(local_authority == "Shepway") |>
+  pull(median_response_time)
+
+folkestone <- ltla_2021 |>
+  filter(lad_21_name == "Folkestone and Hythe") |>
+  mutate(median_response_time = shepway_time)
+
+# Combined all the matches -----
+combined <- ltla_21_matches |>
+  bind_rows(ltla_19_matches_times) |>
+  bind_rows(ltla_18_matches_times) |>
+  bind_rows(folkestone) |>
+  ungroup() 
+
+# Checks on combined
+combined |>
+  group_by(lad_21_name) |>
+  mutate(count = n()) |>
+  filter(count > 1)
+
+# Check all 2021 LTLA codes are included
+ltla_2021 |> 
+  filter(str_detect(lad_21_code, "^E")) |>
+  anti_join(combined, by = "lad_21_code")
+# Isle of Scilly missing (may be included in Cornwall local authority data or could be missinf)
 
 # Save data ----
-# fire_response_lad |>
-#   write_rds("data/capacity/disasters-emergencies/england/fire-response-times.rds")
+combined |>
+  select(lad_code = lad_21_code, median_response_time) |>
+  write_rds("data/capacity/disasters-emergencies/england/fire-response-times.rds")
 
-# Removing fire station response time for now as don't have LTLA level data 
-# (only FRA level). Include again when get this. 
 
