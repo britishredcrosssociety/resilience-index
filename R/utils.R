@@ -322,6 +322,77 @@ calculate_composite_score <-
     return(data)
   }
 
+#' Takes in Open Street Map data returned from the osmdata library and applies following steps:
+#' 1. Retains any multiploygons
+#' 2. Retains any polygons which do not intersect with the multipolygons
+#' 3. Retains any points which aren't in steps 1 or 2
+#'
+#' This process aims to deal with duplication of points relating to the same building.
+#'
+#' @param osm_data osmdata object osmdata in sf format (i.e. output from osmdata::osmdata_sf())
+
+osm_data_reduce <-
+  function(osm_data) {
+    
+    points <- osm_data$osm_points |>
+      select(osm_id_p = osm_id, name_p = name)
+    
+    polygons <- osm_data$osm_polygons |>
+      select(osm_id_poly = osm_id, name_poly = name)
+    
+    multipolygons <- osm_data$osm_multipolygons |>
+      select(osm_id_mpoly = osm_id, name_mpoly = name)
+    
+    # Check if error on joins
+    tryCatch(
+      {
+        polygons |>
+          st_join(multipolygons)
+      },
+      error = function(e) {
+        message("There is a joining error, you may need to turn off s2 processing using sf::sf_use_s2(FALSE)")
+      }
+    )
+    
+    # Retain polygons not intersecting with multipolygons
+    if (nrow(multipolygons) != 0) {
+      polyons_not_multipolygon_overlap <- polygons |>
+        st_join(multipolygons) |>
+        filter(is.na(osm_id_mpoly)) |>
+        distinct(osm_id_poly)
+      
+      polygons_to_keep <- polygons |>
+        inner_join(polyons_not_multipolygon_overlap, by = "osm_id_poly") |>
+        rename(osm_id = osm_id_poly, name = name_poly)
+      
+      polys_multipolys <- multipolygons |>
+        rename(osm_id = osm_id_mpoly, name = name_mpoly) |>
+        bind_rows(polygons_to_keep)
+    } else {
+      polys_multipolys <- polygons |>
+        rename(osm_id = osm_id_poly, name = name_poly)
+    }
+    
+    # Keep points not already covered in a multipolygon or kept polygon
+    if (nrow(polygons) != 0) {
+      points_not_polygon_multipolygon_overlap <- points |>
+        st_join(polys_multipolys) |>
+        filter(is.na(osm_id)) |>
+        distinct(osm_id_p)
+      
+      points_to_keep <- points |>
+        inner_join(points_not_polygon_multipolygon_overlap, by = "osm_id_p") 
+    } else {
+      points_to_keep <- points 
+    }
+    
+    combined <- points_to_keep |>
+      rename(osm_id = osm_id_p, name = name_p) |>
+      bind_rows(polys_multipolys)
+    
+    return(combined)
+  }
+
 # ---- Themes ----
 theme_map <-
   function(...) {
