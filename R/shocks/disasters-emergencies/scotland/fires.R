@@ -5,7 +5,7 @@ library(geographr)
 library(sf)
 library(demographr)
 
-source("https://raw.githubusercontent.com/britishredcrosssociety/resilience-index/main/R/utils.R")
+source("R/utils.R")
 
 # Load data and prep ----
 # Data Source: Fire and Rescue Incident Statistics 2020-21 (Scottish Fire and Rescue Service)
@@ -17,10 +17,67 @@ tf <- download_file(
 
 raw <- read_excel(tf)
 
+reduced <-
+  raw |> 
+  select(
+    fiscal_year = FiscalYear,
+    incident_type = IncidentType,
+    year = CalendarYear,
+    incident_date = IncidentDate,
+    lad_code = LACode,
+    cat = PropertyCategorySummary
+  )
+
+dropped <-
+  reduced |>
+  filter(incident_type == "Dwelling Fire") |>  
+  select(-incident_type, -cat)
+
+fires_id <-
+  dropped |> 
+  mutate(id = row_number()) |> 
+  relocate(id)
+
+fires_id |> 
+  filter(year == "2020") |> 
+  select(lad_code, id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #Keeping only dwelling fires happened in 2020 and 2021
 clean <- raw |>
   filter(IncidentType == "Dwelling Fire", FiscalYear == "2020-21") |>
   rename(lad_21_code = LACode)
+
+fire_lads <-
+  clean |> 
+  distinct(lad_21_code) |>
+  pull()
+
+geographr_lads <-
+  boundaries_lad_21 |> 
+  filter(str_detect(lad_21_code, "^S")) |> 
+  pull(lad_21_code)
+
+if(!(setequal(fire_lads, geographr_lads))) {
+  stop("LADS don't match")
+}
+
 
 grouped <- clean |>
   group_by(lad_21_code) |>
