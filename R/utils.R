@@ -34,6 +34,48 @@ filter_codes <-
     )
   }
 
+#' Filter geographr data sets by Nation
+#'
+#' Note: requires the sf package to be loaded to work with sf objects
+#'
+#' @param .data A data frame with a column ending in `_code` to be used for
+#'              filtering
+#' @param nation string, indicating the nation to be filtered
+filter_nation <-
+  function(.data, nation = c("England", "Wales", "Scotland", "Northern Ireland")) {
+    nation <- match.arg(nation)
+
+    reg_exp <-
+      dplyr::case_when(
+        nation == "England" ~ "^E",
+        nation == "Wales" ~ "^W",
+        nation == "Scotland" ~ "^S",
+        nation == "Northern Ireland" ~ "^N"
+      )
+
+    # Find colname ending in `_code`
+    code_col <-
+      colnames(.data)[stringr::str_detect(colnames(.data), "_code$")]
+
+    if (length(code_col) == 0) {
+      stop("No column ending in `_code` found.")
+    } else {
+      # Match first `_code` col
+      code_col <- code_col[[1]]
+    }
+
+    filtered_data <-
+      .data |>
+      dplyr::filter(
+        stringr::str_detect(
+          get(code_col),
+          reg_exp
+        )
+      )
+
+    return(filtered_data)
+  }
+
 #' Download a file temporarily to disk
 #'
 #' @param url A URL for the request
