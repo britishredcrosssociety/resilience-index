@@ -183,7 +183,7 @@ rating_lad_lookup <- rating_msoa |>
 
 rating_lad <- rating_lad_lookup |>
   left_join(msoa_pop) |>
-  calculate_extent(
+  calculate_extent_depreciated(
     var = weighted_rating,
     higher_level_geography = lad_code,
     population = total_population,

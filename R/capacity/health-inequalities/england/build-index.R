@@ -29,7 +29,7 @@
 
 # ******************************************************************************
 # TODO: Before the index can be built, the scaling of indicators needs
-#       establishing. Currently some indicators use `calculate_extent()`, and 
+#       establishing. Currently some indicators use `calculate_extent_depreciated()`, and 
 #       set 1 to equal pockets of low capacity, meaning they would need scaling
 #       in the build script by multiplying by negative one. Does this make
 #       sense, and if not, where should the inversion/scaling take place?
