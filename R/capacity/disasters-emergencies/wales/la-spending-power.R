@@ -9,13 +9,6 @@ source("R/utils.R")
 # Source: https://statswales.gov.wales/Catalogue/Local-Government/Finance/Revenue/Budgets/budgetedrevenueexpenditure-by-authority-service
 df <- statswales_get_dataset("lgfs0030")
 
-
-# Generate a list of distinct wales lad code
-wales_lad_code <-
-    lookup_msoa_lad %>%
-    filter(str_detect(lad_code, "^W")) %>%
-    distinct(lad_code)
-
 # Clean data
 df_clean <-
     df %>%
