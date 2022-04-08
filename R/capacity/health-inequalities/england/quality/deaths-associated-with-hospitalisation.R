@@ -4,7 +4,7 @@ library(geographr)
 library(readxl)
 library(sf)
 
-source("R/utils.R") # for download_file() & calculate_extent()
+source("R/utils.R") # for download_file() & calculate_extent_depreciated()
 
 # NHS trust deaths associated with hospitalisation -----
 # IMPORTANT NOTE: This data does not include COVID 'activity' i.e. stays and deaths
@@ -137,7 +137,7 @@ deaths_msoa_lad_lookup <- deaths_msoa |>
 
 deaths_lad <- deaths_msoa_lad_lookup |>
   left_join(msoa_pop, by = "msoa_code") |>
-  calculate_extent(
+  calculate_extent_depreciated(
     var = shmi_averaged,
     higher_level_geography = lad_code,
     population = total_population

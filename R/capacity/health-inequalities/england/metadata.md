@@ -18,8 +18,8 @@
 | Workforce | Agency spend/locums |  |  |  | :x: - can't find data | :x: |
 | Workforce | Hospital cancellation rates of appointments |  |  |  | :x: - can't find data | :x: |
 | Workforce | Urgent operations cancelled |  |  |  | :x: - data paused in March 2020 | :x: |
-| Workforce | Primary & secondary care - health spend per head |  |  |  | :x: - can't find data| :x: |
-| Workforce | Emergency care - health spend per head |  |  |  | :x: - can't find data | :x: |
+| Funding | Primary & secondary care - health spend per head |  |  |  | :x: - can't find data| :x: |
+| Funding | Emergency care - health spend per head |  |  |  | :x: - can't find data | :x: |
 | Quality | Social care - CQC ratings |  |  |  | :x: - can't find data| :x: |
 | Quality | Primary & secondary care - CQC ratings | 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) |  [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)| :heavy_check_mark: | :heavy_check_mark: |
 | Quality | Quality & Outcomes Framework| 2021 | [CQC](https://www.cqc.org.uk/about-us/transparency/using-cqc-data#directory) | [OGL3](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) | :x: - at CCG/STP level | :x: |
