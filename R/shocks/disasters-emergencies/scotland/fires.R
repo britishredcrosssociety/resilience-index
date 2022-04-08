@@ -17,6 +17,7 @@ tf <- download_file(
 
 raw <- read_excel(tf)
 
+#Keep useful variables only
 reduced <-
   raw |> 
   select(
@@ -24,10 +25,11 @@ reduced <-
     incident_type = IncidentType,
     year = CalendarYear,
     incident_date = IncidentDate,
-    lad_code = LACode,
+    lad_21_code = LACode,
     cat = PropertyCategorySummary
   )
 
+#Filter fires by incident_type and year to include only dwelling fires from 2020
 dropped <-
   reduced |>
   filter(incident_type == "Dwelling Fire") |>  
@@ -40,32 +42,10 @@ fires_id <-
 
 fires_id |> 
   filter(year == "2020") |> 
-  select(lad_code, id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Keeping only dwelling fires happened in 2020 and 2021
-clean <- raw |>
-  filter(IncidentType == "Dwelling Fire", FiscalYear == "2020-21") |>
-  rename(lad_21_code = LACode)
+  select(lad_21_code, id)
 
 fire_lads <-
-  clean |> 
+  fires_id |> 
   distinct(lad_21_code) |>
   pull()
 
@@ -76,8 +56,14 @@ geographr_lads <-
 
 if(!(setequal(fire_lads, geographr_lads))) {
   stop("LADS don't match")
+} else {
+  "LADS match"
 }
 
+differences <- na.omit(setdiff(fire_lads, geographr_lads))
+differences
+
+#change lads that do not match
 
 grouped <- clean |>
   group_by(lad_21_code) |>
@@ -97,4 +83,4 @@ tot <- inner_join(dz_codes_data, pop, by = "dz_code") |>
   summarise(total_population = sum(total_population)) |>
   mutate(fire_rate = fire_count/total_population*100000)
 
-#Fire every 100 000 people (normalised)
+#Fire every 100 000 people
