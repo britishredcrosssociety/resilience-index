@@ -83,7 +83,13 @@ invert_this <- function(x) (max(x, na.rm = TRUE) + 1) - x
 #' Normalise a vector where mean = 0 & SD = 1.
 #'
 #' @param x Vector of data to normalise
-normalise <- function(x) (x - mean(x)) / sd(x)
+#' @param ignore_nas Whether should ignore missing values when normalising. The
+#'        default is FALSE so flags these values. 
+normalise <- 
+  function(x, 
+           ignore_nas = FALSE) {
+    (x - mean(x, na.rm = ignore_nas)) / sd(x, na.rm = ignore_nas)
+  } 
 
 #' Quantise a vector of ranks
 #'
@@ -174,14 +180,14 @@ quantise <-
 #' @param population Name of the variable in the data frame containing
 #'        the population estimates of the lower level geography
 #' @param weight_high_scores If TRUE higher scores are weighted, else lower
-#' scores are weighted. For indicators like 'Alchol Misuse' and 'Ambulance Wait
-#' Time' this should be set to TRUE. This is because higher values in these
-#' outcomes indicate worse outcomes (higher vulnerability and lower capacity)
-#' and this is where the weighting should be focused. For indicators like
-#' 'Physical Activity' and 'Bed Availability' it should be set to FALSE. This is
-#' because lower values in these outcomes indicate worse outcomes (higher
-#' vulnerability and lower capacity) and this is where the weighting should be 
-#' focused.
+#'        scores are weighted. For indicators like 'Alchol Misuse' and 'Ambulance Wait
+#'        Time' this should be set to TRUE. This is because higher values in these
+#'        outcomes indicate worse outcomes (higher vulnerability and lower capacity)
+#'        and this is where the weighting should be focused. For indicators like
+#'        'Physical Activity' and 'Bed Availability' it should be set to FALSE. This is
+#'        because lower values in these outcomes indicate worse outcomes (higher
+#'        vulnerability and lower capacity) and this is where the weighting should be 
+#'        focused.
 calculate_extent <-
   function(data,
            var,
@@ -307,11 +313,15 @@ load_indicators <-
 #' all numeric variables in a dataframe.
 #'
 #' @param data Data frame containing indicators to normalise.
+#' @param ignore_nas Whether should ignore missing values when normalising. The
+#'        default is FALSE so flags these values and is an input in the 
+#'        normalise function. 
 normalise_indicators <-
-  function(data) {
+  function(data,
+           ignore_nas = FALSE) {
     data <-
       data |>
-      mutate(across(where(is.numeric), normalise))
+      mutate(across(where(is.numeric), ~normalise(.x, ignore_nas)))
 
     return(data)
   }
@@ -360,12 +370,17 @@ weight_indicators_mfla <-
 #' @param domain_name A string identifier to prefix to column names. Use
 #'        snake_case.
 #' @param quantiles The Number of quantiles
+#' @param ignore_nas Whether should ignore missing values when summing across 
+#'        the row. The default is FALSE so flags these values.
 calculate_domain_scores <-
-  function(data, domain_name, num_quantiles = 10) {
+  function(data, 
+           domain_name, 
+           num_quantiles = 10,
+           ignore_nas = FALSE) {
     data <-
       data |>
       rowwise(!where(is.numeric)) |>
-      summarise(domain_score = sum(c_across(where(is.numeric)))) |>
+      summarise(domain_score = sum(c_across(where(is.numeric)), na.rm = ignore_nas)) |>
       ungroup() |>
       mutate(domain_rank = rank(domain_score)) |>
       mutate(domain_quantiles = quantise(domain_rank, num_quantiles)) |>
