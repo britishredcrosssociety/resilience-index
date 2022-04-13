@@ -60,12 +60,40 @@ if(!(setequal(fire_lads, geographr_lads))) {
   "LADS match"
 }
 
+# Change lads that do not match using https://findthatpostcode.uk/
 differences <- na.omit(setdiff(fire_lads, geographr_lads))
 differences
 
-#change lads that do not match
+clean <-
+  fires_id |>
+  mutate(lad_21_code = case_when(
+    lad_21_code == "S12000015" ~ "S12000047",
+    lad_21_code == "S12000024" ~ "S12000048",
+    lad_21_code == "S12000046" ~ "S12000049",
+    lad_21_code == "S12000044" ~ "S12000050",
+    TRUE ~ lad_21_code))
 
-grouped <- clean |>
+# Check again
+fire_lads <-
+  clean |> 
+  distinct(lad_21_code) |>
+  pull()
+
+geographr_lads <-
+  boundaries_lad_21 |> 
+  filter(str_detect(lad_21_code, "^S")) |> 
+  pull(lad_21_code)
+
+if(na.omit(!setequal(fire_lads, geographr_lads))) {
+  stop("LADS don't match")
+} else {
+  "LADS match"
+}
+
+setdiff(fire_lads, geographr_lads)
+
+# Group by LAD
+grouped <- fires_id |>
   group_by(lad_21_code) |>
   summarise(fire_count = n())
 
@@ -83,4 +111,4 @@ tot <- inner_join(dz_codes_data, pop, by = "dz_code") |>
   summarise(total_population = sum(total_population)) |>
   mutate(fire_rate = fire_count/total_population*100000)
 
-#Fire every 100 000 people
+#Fires every 100 000 people
