@@ -40,7 +40,7 @@ fires_id <-
   mutate(id = row_number()) |> 
   relocate(id)
 
-fires_id |> 
+fires_id <- fires_id |> 
   filter(year == "2020") |> 
   select(lad_21_code, id)
 
@@ -72,6 +72,9 @@ clean <-
     lad_21_code == "S12000046" ~ "S12000049",
     lad_21_code == "S12000044" ~ "S12000050",
     TRUE ~ lad_21_code))
+
+clean |>
+  keep_na()
 
 # Check again
 fire_lads <-
