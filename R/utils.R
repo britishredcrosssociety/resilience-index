@@ -375,6 +375,18 @@ osm_data_reduce <-
     
     # Keep points not already covered in a multipolygon or kept polygon
     if (nrow(polygons) != 0) {
+      
+      # Check if error on joins
+      tryCatch(
+        {
+          points |>
+            st_join(polys_multipolys)
+        },
+        error = function(e) {
+          message("There is a joining error between points and multipolygons")
+        }
+      )
+      
       points_not_polygon_multipolygon_overlap <- points |>
         st_join(polys_multipolys) |>
         filter(is.na(osm_id)) |>
@@ -382,6 +394,7 @@ osm_data_reduce <-
       
       points_to_keep <- points |>
         inner_join(points_not_polygon_multipolygon_overlap, by = "osm_id_p") 
+      
     } else {
       points_to_keep <- points 
     }
