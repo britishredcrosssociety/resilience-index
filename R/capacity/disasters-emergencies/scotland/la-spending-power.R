@@ -14,31 +14,33 @@ tf <- download_file("https://www.gov.scot/binaries/content/documents/govscot/pub
 raw <- read_excel(tf, sheet = "Chart 3.4", skip = 5)
 
 spending <- raw |>
-  select(lad_21_name = "Local Authority", 
+  select(lad_name = "Local Authority", 
          cap_exp_person = "Capital \r\nExpenditure,\r\n£ per person") |>
   mutate(cap_exp_person = as.numeric(cap_exp_person)) |>
-  filter(lad_21_name != "ALL COUNCILS")
+  filter(lad_name != "ALL COUNCILS")
 
 # Check LAD names
 spending |>
-  distinct(lad_21_name)
+  distinct(lad_name)
 
-geographr_lads <- boundaries_lad_21 |>
-  filter(str_detect(lad_21_code, "^S"))
+geographr_lads <- boundaries_ltla21 |>
+  select(lad_name = ltla21_name,
+         lad_code = ltla21_code) |>
+  filter(str_detect(lad_code, "^S"))
 
 geographr_lads |>
-  distinct(lad_21_name)
+  distinct(lad_name)
 
 # Correct mistmatches
-spending$lad_21_name <- gsub('&','and', spending$lad_21_name)
+spending$lad_name <- gsub('&','and', spending$lad_name)
 
 # Check if LAD names are the same as in geographr
 spending_names <- spending |>
-  distinct(lad_21_name) |>
+  distinct(lad_name) |>
   pull()
 
 geographr_lads_names <- geographr_lads |>
-  distinct(lad_21_name) |>
+  distinct(lad_name) |>
   pull()
 
 if(!(setequal(spending_names, geographr_lads_names))) {
@@ -48,13 +50,13 @@ if(!(setequal(spending_names, geographr_lads_names))) {
 }
 
 # Add LAD codes to the dataset
-spending_lad <- left_join(spending, lad, by = "lad_21_name") |>
-  select(lad_21_name, lad_21_code, cap_exp_person)
+spending_lad <- left_join(spending, geographr_lads, by = "lad_name") |>
+  select(lad_name, lad_code, cap_exp_person)
 
 # Plot the LADs spending power
 spending_lad |>
-  mutate(lad_21_name = fct_reorder(lad_21_name, desc(cap_exp_person))) |>
-  ggplot(aes(x = lad_21_name, y = cap_exp_person))+
+  mutate(lad_name = fct_reorder(lad_name, desc(cap_exp_person))) |>
+  ggplot(aes(x = lad_name, y = cap_exp_person))+
   geom_point() +
   theme_classic() +
   labs(title = "Capital Expenditure per Person of Scottish Local Authorities",
