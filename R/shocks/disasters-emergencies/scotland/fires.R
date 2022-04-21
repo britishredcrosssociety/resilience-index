@@ -25,7 +25,7 @@ reduced <-
     incident_type = IncidentType,
     year = CalendarYear,
     incident_date = IncidentDate,
-    lad_21_code = LACode,
+    lad_code = LACode,
     cat = PropertyCategorySummary
   )
 
@@ -42,17 +42,19 @@ fires_id <-
 
 fires_id <- fires_id |> 
   filter(year == "2020") |> 
-  select(lad_21_code, id)
+  select(lad_code, id)
 
 fire_lads <-
   fires_id |> 
-  distinct(lad_21_code) |>
+  distinct(lad_code) |>
   pull()
 
 geographr_lads <-
-  boundaries_lad_21 |> 
-  filter(str_detect(lad_21_code, "^S")) |> 
-  pull(lad_21_code)
+  boundaries_ltla21 |> 
+  select(lad_code = ltla21_code,
+         lad_name = ltla21_name) |>
+  filter(str_detect(lad_code, "^S")) |> 
+  pull(lad_code)
 
 if(!(setequal(fire_lads, geographr_lads))) {
   stop("LADS don't match")
@@ -66,12 +68,12 @@ differences
 
 clean <-
   fires_id |>
-  mutate(lad_21_code = case_when(
-    lad_21_code == "S12000015" ~ "S12000047",
-    lad_21_code == "S12000024" ~ "S12000048",
-    lad_21_code == "S12000046" ~ "S12000049",
-    lad_21_code == "S12000044" ~ "S12000050",
-    TRUE ~ lad_21_code))
+  mutate(lad_code = case_when(
+    lad_code == "S12000015" ~ "S12000047",
+    lad_code == "S12000024" ~ "S12000048",
+    lad_code == "S12000046" ~ "S12000049",
+    lad_code == "S12000044" ~ "S12000050",
+    TRUE ~ lad_code))
 
 clean |>
   keep_na()
@@ -79,13 +81,10 @@ clean |>
 # Check again
 fire_lads <-
   clean |> 
-  distinct(lad_21_code) |>
+  distinct(lad_code) |>
   pull()
 
-geographr_lads <-
-  boundaries_lad_21 |> 
-  filter(str_detect(lad_21_code, "^S")) |> 
-  pull(lad_21_code)
+geographr_lads
 
 if(na.omit(!setequal(fire_lads, geographr_lads))) {
   stop("LADS don't match")
@@ -97,21 +96,27 @@ setdiff(fire_lads, geographr_lads)
 
 # Group by LAD
 grouped <- fires_id |>
-  group_by(lad_21_code) |>
+  group_by(lad_code) |>
   summarise(fire_count = n())
 
-codes <-lookup_postcode_oa_11_lsoa_11_msoa_11_lad_20 |>
-  select(dz_code = lsoa_11_code, lad_21_code = lad_20_code)
-
-dz_codes_data <- inner_join(grouped, codes, by = "lad_21_code")
+lookup_lad <- lookup_postcode_oa11_lsoa11_msoa11_ltla20 |>
+  select(dz_code = lsoa11_code, lad_code = ltla20_code)
 
 pop <- population_dz_20 |>
   filter(sex == "All") |>
-  select(dz_code, total_population)
+  select(dz_code, total_population) |>
+  left_join(lookup_lad, by = "dz_code") |>
+  group_by(lad_code) |>
+  summarise(total_population=sum(total_population))|>
+  mutate(lad_code = case_when(
+    lad_code ==  "S12000047"~"S12000015",
+    lad_code == "S12000048"~"S12000024",
+    lad_code ==  "S12000049"~"S12000046",
+    lad_code == "S12000050"~"S12000044",
+    TRUE ~ lad_code))
 
-tot <- inner_join(dz_codes_data, pop, by = "dz_code") |>
-  group_by(lad_21_code, fire_count) |>
-  summarise(total_population = sum(total_population)) |>
-  mutate(fire_rate = fire_count/total_population*100000)
-
-#Fires every 100 000 people
+fires_lad <- left_join(grouped, pop, by = "lad_code") |>
+  mutate(fire_rate = fire_count/total_population*100000) |>
+  mutate(rank = rank(fire_rate)) |>
+  mutate(quantiles = quantise(rank, 10)) |>
+  select(lad_code, quantiles)
