@@ -7,7 +7,7 @@ library(demographr)
 source("R/utils.R")
 
 # Community Needs Index----
-raw <- read_excel("data/SCNI and domains - 2021.xlsx")
+raw <- read_excel("data/on-disk/SCNI and domains - 2021.xlsx")
 
 civic_assets <- raw |>
   select(
