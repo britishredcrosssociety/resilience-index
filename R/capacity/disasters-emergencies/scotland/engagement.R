@@ -2,6 +2,7 @@
 library(tidyverse)
 library(readxl)
 library(geographr)
+library(demographr)
 
 source("R/utils.R")
 
