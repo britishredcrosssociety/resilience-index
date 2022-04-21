@@ -52,15 +52,10 @@ civic_assets |>
   anti_join(lookup_lad, by = "msoa_code")
 #0
 
-# Join datasets----
-civic_assets_codes <- civic_assets |>
-  left_join(lookup_lad, by = "msoa_code")
-
 # Calculate extent----
 # HIGH SCORE/LOW RANK = LOW CAPABILITIES
 civic_assets_lad <- civic_assets |>
   left_join(lookup_lad, by = "msoa_code") |>
-  left_join(lookup_names, by ="lad_code") |>
   left_join(pop_msoa, by = "msoa_code") |>
   calculate_extent(
     var = civic_assets_score,
