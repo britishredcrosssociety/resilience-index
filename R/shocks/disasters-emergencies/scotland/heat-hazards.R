@@ -6,7 +6,7 @@ library(demographr)
 
 source("R/utils.R")
 
-raw <- read_sf("data/on-disk/DataZone_Scotland_Heat_Hazard_v1.shp")
+raw <- read_sf("data/DataZone_Scotland_Heat_Hazard_v1.shp")
 
 raw %>%
   filter(!str_detect(DataZone, "^S"))
@@ -67,12 +67,16 @@ calculate_extent <-
     return(data)
   }
 
-
+lookup_lad <- lookup_postcode_oa11_lsoa11_msoa11_ltla20 |>
+  select(lad_code = ltla20_code,
+         dz_code = lsoa11_code)
+  
 extent <-
   heat_hazard_raw_joined |>
+  left_join(lookup_lad, by = "dz_code") |>
   calculate_extent(
     var = mean_temp,
-    higher_level_geography = dz_code,
+    higher_level_geography = lad_code,
     population = total_population,
     weight_high_scores = TRUE
   )
