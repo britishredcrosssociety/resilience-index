@@ -1,68 +1,59 @@
-library(sf)
+# ---- Load ----
 library(tidyverse)
+library(sf)
 library(geographr)
-library(viridis)
+library(demographr)
+
 source("R/utils.R")
 
+raw <-
+  read_sf("data/on-disk/heat-hazard-raw/england/LSOA_England_Heat_Hazard_v1.shp")
+
+# ---- Prep ----
+lsoa_pop <-
+  population_lsoa_20_codes_11 |>
+  select(lsoa_code = lsoa_11_code, total_population)
+
+lookup_lsoa_lad <-
+  lookup_lsoa11_ltla21 |>
+  select(lsoa_code = lsoa11_code, lad_code = ltla21_code) |>
+  filter(str_detect(lsoa_code, "^W"))
+
 heat_hazard_raw <-
-    st_read("data/on-disk/4EI-heat-hazards/4EI-heat-hazards/LSOA_England_Heat_Hazard_v1.shp")
+  raw |>
+  st_drop_geometry() |>
+  select(
+    lsoa_code = LSOA11CD,
+    mean_temp = mean_std_t
+  ) |>
+  filter(str_detect(lsoa_code, "^W"))
 
-heat_hazard_clean <-
-    heat_hazard_raw %>%
-    filter(str_detect(LSOA11CD, "^W")) %>%
-    rename(lsoa_code = LSOA11CD) %>%
-    left_join(lookup_lsoa_msoa, by = "lsoa_code") %>%
-    left_join(lookup_msoa_lad, by = "msoa_code") %>%
-    left_join(population_lsoa, by = "lsoa_code") %>%
+# ---- Join ----
+heat_hazard_raw_joined <-
+  heat_hazard_raw |>
+  left_join(lookup_lsoa_lad) |>
+  relocate(lad_code, .after = lsoa_code) |>
+  left_join(lsoa_pop) |>
+  select(-lsoa_code)
 
-    calculate_extent(
-        var = hazard,
-        higher_level_geography = lad_code,
-        population = total_population,
-        weight_high_scores = TRUE
-    ) %>%
-    mutate(quantise = quantise(extent)) %>%  # use quantile
-    as_tibble() %>%
-    select(-geometry, -extent)
+# ---- Compute extent scores ----
+extent <-
+  heat_hazard_raw_joined |>
+  calculate_extent(
+    var = mean_temp,
+    higher_level_geography = lad_code,
+    population = total_population,
+    weight_high_scores = TRUE
+  )
 
-heat_hazard_clean %>%
-    write_rds("data/shocks/disasters-emergencies/wales/heat_hazard_lad.rds")
+# ---- Normalise, rank, & quantise ----
+heat_hazard_quantiles <-
+  extent |>
+  normalise_indicators() |>
+  mutate(rank = rank(extent)) |>
+  mutate(quantiles = quantise(rank, 5)) |>
+  select(lad_code, heat_hazard_quintiles = quantiles)
 
-# Visualization
-shp <-
-  boundaries_lad %>%
-  filter(str_detect(lad_code, "^W"))
-
-heat_hazards_shp <-
-  shp %>%
-  left_join(heat_hazard_clean, by = "lad_code")
-
-heat_hazards_shp %>%
-  select(quantise, geometry) %>%
-  ggplot() +
-  geom_sf(
-    mapping = aes(fill = quantise),
-    # color = "black",
-    size = 0.1
-  ) +
-  scale_fill_viridis(
-    # breaks = seq(1, 5, by = 1),
-    # labels = seq(1, 5, by = 1),
-    # na.value = "transparent",
-    option = "magma",
-    # name = expression(paste("Heat Hazard \n(5 = worst)")),
-    alpha = 0.8,
-    begin = 0.1,
-    end = 0.9,
-    discrete = F,
-    direction = -1,
-    guide = guide_legend(
-      title = "",
-      label = TRUE,
-      keyheight = unit(8, units = "mm"),
-      reverse = T
-    )
-  ) +
-  labs(title = "Heat hazard extent scores quantile in Wales") +
-  # theme_map() +
-  theme(plot.margin = unit(c(0.5, 1.5, 0.5, 1.5), "cm"))
+# ---- Save ----
+heat_hazard_quantiles |>
+  write_rds("data/shocks/disasters-emergencies/wales/heat_hazard_lad.rds")
