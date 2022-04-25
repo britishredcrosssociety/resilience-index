@@ -2,6 +2,7 @@
 library(tidyverse)
 library(readxl)
 library(geographr)
+library(demographr)
 library(lubridate)
 source("R/utils.R")
 
@@ -46,21 +47,9 @@ north_three_years <-
         ward_name = str_trim(str_replace_all(LSOA, "[:digit:]", ""), side = "right") # format ward_name to later join operation
     ) |>
     rowwise() |>
-    mutate(avg_three = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |> # ignore NA
-    select(-LSOA, -avg_datatime_2019, -avg_datatime_2020, -avg_datatime_2021)
-
-north_join <-
-    north_three_years |>
-    left_join(lookup_lsoa_ward, by = "ward_name") |>
-    left_join(lookup_lsoa_msoa, by = "lsoa_code") |>
-    left_join(lookup_msoa_lad, by = "msoa_code") |>
-    filter(
-        str_detect(lsoa_code, "^W")
-    ) |>
-    select(avg_three, ward_name, lsoa_code, ward_code, msoa_code, lad_code) |>
-    group_by(lad_code) |>
-    summarize(rescure_time = mean(avg_three, na.rm = TRUE))
-
+    mutate(average_time = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |>
+    ungroup() |>
+    select(lsoa_name, average_time)
 
 # - South -
 # Source: https://www.whatdotheyknow.com/request/fire_and_rescue_service_response_3#incoming-1992620
@@ -69,7 +58,7 @@ north_join <-
 south <- read_csv("data/on-disk/Fire-and-Rescue-Service-response-times/south.csv", skip = 1)[, 1:7]
 
 # Calculate three years' average
-south_three_years <-
+south_average <-
     south |>
     rename(
         lsoa_code = ...1,
@@ -83,19 +72,9 @@ south_three_years <-
         avg_second_2021 = hour(avg_datatime_2021) * 3600 + minute(avg_datatime_2021) * 60 + floor(second(avg_datatime_2021))
     ) |>
     rowwise() |>
-    mutate(avg_three = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |> # ignore NA
-    select(lsoa_code, avg_three)
-
-south_join <-
-    south_three_years |>
-    left_join(lookup_lsoa_msoa, by = "lsoa_code") |>
-    left_join(lookup_msoa_lad, by = "msoa_code") |>
-    filter(
-        str_detect(lsoa_code, "^W")
-    ) |>
-    select(avg_three, lsoa_code, msoa_code, lad_code) |>
-    group_by(lad_code) |>
-    summarize(rescure_time = mean(avg_three, na.rm = TRUE))
+    mutate(average_time = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |>
+    ungroup() |>
+    select(lsoa_code, average_time)
 
 # - Mid and west -
 # Source: https://www.whatdotheyknow.com/request/fire_and_rescue_service_response_2#incoming-1989382
@@ -104,7 +83,7 @@ mid_west <- read_excel("data/on-disk/Fire-and-Rescue-Service-response-times/Mid 
     sheet = "Totals", skip = 3
 )
 
-mid_west_three <-
+mid_west_average <-
     mid_west |>
     rename(
         lsoa_name = "Row Labels",
@@ -112,41 +91,35 @@ mid_west_three <-
         avg_datatime_2020 = "2020",
         avg_datatime_2021 = "2021"
     ) |>
+    filter(lsoa_name != "Grand Total") |>
     mutate(
         avg_second_2019 = avg_datatime_2019 * 60,
         avg_second_2020 = avg_datatime_2020 * 60,
         avg_second_2021 = avg_datatime_2021 * 60
     ) |>
     rowwise() |>
-    mutate(avg_three = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |> # ignore NA
-    select(lsoa_name, avg_three)
+    mutate(average_time = mean(c(avg_second_2019, avg_second_2020, avg_second_2021), na.rm = TRUE)) |>
+    ungroup() |>
+    select(lsoa_name, average_time) |>
+    left_join(lookup_lsoa11_ltla21, by = c("lsoa_name" = "lsoa11_name")) |>
+    select(lsoa_code = lsoa11_code, average_time)
 
-mid_west_join <-
-    mid_west_three |>
-    left_join(lookup_lsoa_msoa, by = "lsoa_name") |>
-    left_join(lookup_msoa_lad, by = "msoa_code") |>
-    filter(
-        str_detect(lsoa_code, "^W")
+# ---- Aggregate to Local Authority ----
+fire_response_times <-
+    bind_rows(
+        south_average,
+        mid_west_average
     ) |>
-    select(avg_three, lsoa_code, msoa_code, lad_code) |>
-    group_by(lad_code) |>
-    summarize(rescure_time = mean(avg_three, na.rm = TRUE))
-
-# **Missing: W06000001
-wales_all <-
-    north_join |>
-    bind_rows(south_join) |>
-    bind_rows(mid_west_join)
-
-# rescure_time is seconds
-output <-
-    wales_lad |>
-    full_join(wales_all) |>
-    mutate(
-        rescure_time = if_else(is.na(rescure_time), mean(rescure_time, na.rm = TRUE), rescure_time)
+    left_join(lookup_lsoa11_ltla21, by = c("lsoa_code" = "lsoa11_code")) |>
+    left_join(population_lsoa_20_codes_11, by = c("lsoa_code" = "lsoa_11_code")) |>
+    select(lsoa_code, ltla21_code, average_time, total_population) |>
+    calculate_extent(
+        var = average_time,
+        higher_level_geography = ltla21_code,
+        population = total_population
     )
 
 write_rds(
-    output,
+    fire_response_times,
     "data/capacity/disasters-emergencies/wales/fire-rescure-response.rds"
 )
