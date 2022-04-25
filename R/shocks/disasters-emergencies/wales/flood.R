@@ -47,5 +47,5 @@ flood_risk <-
 # ---- Save ----
 write_rds(
     flood_risk,
-    "data/shocks/disasters-emergencies/wales/flood-lad.rds"
+    "data/shocks/disasters-emergencies/wales/flood.rds"
 )

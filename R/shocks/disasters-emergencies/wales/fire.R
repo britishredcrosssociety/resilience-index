@@ -41,5 +41,5 @@ num_fires_normalised <-
 # ---- Save ----
 write_rds(
     num_fires_normalised,
-    "data/shocks/disasters-emergencies/wales/fire-lad.rds"
+    "data/shocks/disasters-emergencies/wales/fire.rds"
 )
