@@ -52,5 +52,5 @@ civic_assets_ltla <-
 
 write_rds(
   civic_assets_ltla,
-  "data/capacity/disasters-emergencies/wales/community_assets_lad.rds"
+  "data/capacity/disasters-emergencies/wales/community-assets.rds"
 )

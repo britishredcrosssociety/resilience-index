@@ -28,5 +28,5 @@ expenditure <-
 
 write_rds(
   expenditure,
-  "data/capacity/disasters-emergencies/wales/la-spending-power-lad.rds"
+  "data/capacity/disasters-emergencies/wales/la-spending-power.rds"
 )
