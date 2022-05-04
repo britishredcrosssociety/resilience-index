@@ -8,7 +8,7 @@ source("R/utils.R")
 
 
 # OSCI Community Needs Index data ----
-raw <- read_excel("data/SCNI and domains - 2021.xlsx")
+raw <- read_excel("data/on-disk/SCNI and domains - 2021.xlsx")
 
 engagement <- raw |>
   select(
