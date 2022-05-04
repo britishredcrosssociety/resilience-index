@@ -89,3 +89,7 @@ civic_assets_lad |>
   ylab("Civic Assets Extent") +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
+
+# Save data -----
+civic_assets_lad |>
+  write_rds("data/capacity/disasters-emergencies/scotland/community-assets.rds")

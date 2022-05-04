@@ -93,3 +93,7 @@ engagement_lad |>
   ylab("Engagement Extent") +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
+
+# Save data -----
+engagement_lad |>
+  write_rds("data/capacity/disasters-emergencies/scotland/engagement.rds")

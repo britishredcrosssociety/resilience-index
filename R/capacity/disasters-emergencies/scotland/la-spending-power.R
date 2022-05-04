@@ -64,6 +64,6 @@ spending_lad |>
        y = "Capital Expenditure per Person") +
   guides(x = guide_axis(angle = 90))
 
-# # Save data ----
-# spending_lad |>
-#   write_rds("data/capacity/disasters-emergencies/scotland/la-spending-power.rds")
+# Save data ----
+spending_lad |>
+  write_rds("data/capacity/disasters-emergencies/scotland/la-spending-power.rds")
