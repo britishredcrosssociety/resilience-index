@@ -167,13 +167,14 @@ indicators_mfla <- normalised |>
 
 # Domain scores
 indicators_scores <- indicators_mfla |>
-  calculate_domain_scores(domain_name = "capacity") |>
-  select(lad_code, deciles = capacity_domain_quantiles)
+  calculate_domain_scores(domain_name = "capacity")
 
 # Inverting ranks and deciles so that higher scores = higher capacity
 indicators_invert <- indicators_scores |>
   mutate(capacity_domain_rank = inverse_rank(capacity_domain_rank),
-         capacity_domain_quantiles = invert_this(capacity_domain_quantiles))
+         capacity_domain_quantiles = invert_this(capacity_domain_quantiles)) |>
+  select(lad_code,
+         deciles = capacity_domain_quantiles)
 
 # Save index
 indicators_invert |>
